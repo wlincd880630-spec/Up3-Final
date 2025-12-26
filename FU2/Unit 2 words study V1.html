@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unit 2 Elite Vocab Lab (Azure Neural)</title>
+    <title>Unit 2 Elite Vocab Lab (Fixed)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -13,10 +13,9 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Serif:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Outfit', sans-serif; overflow: hidden; color: #0f172a; }
+        body { font-family: 'Outfit', sans-serif; color: #0f172a; min-height: 100vh; margin: 0; padding: 0; }
         .serif { font-family: 'Noto Serif', serif; }
         
-        /* 极光背景 */
         .bg-animate { 
             background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); 
             background-size: 400% 400%; 
@@ -24,7 +23,6 @@
         }
         @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         
-        /* 玻璃拟态 */
         .glass-panel { 
             background: rgba(255, 255, 255, 0.95); 
             backdrop-filter: blur(24px); 
@@ -32,12 +30,9 @@
             box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.3); 
         }
 
-        /* 滚动条美化 */
-        .custom-scroll { overflow-y: auto; }
-        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
         .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
 
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
@@ -49,62 +44,17 @@
         .animate-shrink { animation: shrink 10s linear forwards; }
     </style>
 </head>
-<body class="bg-animate h-screen w-screen flex flex-col">
-    <div id="root" class="h-full w-full"></div>
+<body class="bg-animate">
+    <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // ==========================================
-        // Azure Configuration (已自动填入)
-        // ==========================================
         const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
         const azureRegion = "eastus2"; 
-        // ==========================================
-        
-        // 全局合成器变量
         let currentSynthesizer = null;
 
-        // Azure TTS 核心函数
-        const speak = (text, onComplete) => {
-            // 如果之前有正在播放的，先停止，防止声音重叠
-            if (currentSynthesizer) {
-                currentSynthesizer.close();
-                currentSynthesizer = null;
-            }
-
-            if (!text) return;
-
-            // 初始化配置
-            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
-            speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; // 设置为最自然的 Jenny 语音
-
-            const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
-            const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
-            
-            currentSynthesizer = synthesizer;
-
-            // 开始合成
-            synthesizer.speakTextAsync(
-                text,
-                result => {
-                    if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
-                        // 播放成功
-                    } else {
-                        console.error("Speech synthesis canceled, " + result.errorDetails);
-                    }
-                    synthesizer.close();
-                    currentSynthesizer = null;
-                    if (onComplete) onComplete();
-                },
-                error => {
-                    console.error(error);
-                    synthesizer.close();
-                    currentSynthesizer = null;
-                }
-            );
-        };
-
+        // 停止语音播放的函数
         const stopSpeech = () => {
             if (currentSynthesizer) {
                 currentSynthesizer.close();
@@ -112,8 +62,28 @@
             }
         };
 
+        const speak = (text, onComplete) => {
+            stopSpeech(); // 播放前先停止之前的
+            if (!text) return;
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+                currentSynthesizer = synthesizer;
+                synthesizer.speakTextAsync(text, result => {
+                    synthesizer.close(); currentSynthesizer = null;
+                    if (onComplete) onComplete();
+                }, error => { 
+                    console.error("Speech error:", error);
+                    synthesizer.close(); currentSynthesizer = null; 
+                });
+            } catch (err) {
+                console.error("Azure SDK init error:", err);
+            }
+        };
 
-     const VOCAB_DATA = [
+        const VOCAB_DATA = [
             ["Achieve", "A-chieve", "实现; 达到", "To successfully complete something or get a result.", "With consistent effort, you can achieve your personal goals.", "只要坚持努力，你就能实现你的个人目标。", "The team achieved a great victory after months of training.", "经过几个月的训练，团队取得了一场伟大的胜利。", "It is difficult to achieve success without a clear plan.", "没有清晰的计划很难取得成功。", "It is difficult to [attain] success without a clear plan."],
              ["Adventure", "Ad-ven-ture", "冒险", "An unusual, exciting, and possibly dangerous activity.", "Our hiking trip turned into a real adventure when it started to snow.", "当开始下雪时，我们的徒步旅行变成了一场真正的冒险。", "He travels the world looking for adventure and new experiences.", "他周游世界，寻找冒险和新的体验。", "Life is a daring adventure or nothing at all.", "生活要么是一场大胆的冒险，要么什么都不是。", "Life is a daring [escapade] or nothing at all."],
                       ["Afford", "Af-ford", "买得起", "To have enough money or time to do something.", "We can't afford to go on vacation this year.", "我们今年去不起度假。", "I would love that car, but I simply can't afford it right now.", "我很想要那辆车，但我现在根本买不起。", "Companies cannot afford to ignore customer complaints.", "公司承担不起忽视顾客投诉的后果。", "Companies cannot [bear the cost] to ignore customer complaints."],
@@ -133,7 +103,7 @@
         
             ["Caption", "Cap-tion", "说明文字", "A short text under a picture.", "The caption under the photo explains where it was taken.", "照片下的说明文字解释了拍摄地点。", "I wrote a funny caption for my Instagram post.", "我为我的Instagram帖子写了一个有趣的标题。", "Please read the caption to understand the diagram.", "请阅读说明文字以理解图表。", "Please read the [description text] to understand the diagram."],
             ["Career", "Ca-reer", "职业", "An occupation undertaken for a long period.", "She decided to pursue a career in medicine.", "她决定从事医学职业。", "Building a successful career requires hard work and patience.", "建立成功的职业生涯需要努力工作和耐心。", "He ruined his political career with that scandal.", "那桩丑闻毁了他的政治生涯。", "He ruined his political [profession/path] with that scandal."],
-            ["Challenge", "Chal-lenge", "挑战", "A difficult task that tests your ability.", "Climbing the mountain was the biggest challenge of my life.", "爬山是我一生中最大的挑战。", "I am ready to accept a new challenge at work.", "我准备好在工作中接受新的挑战了。", "She challenged herself to read 50 books this year.", "她挑战自己今年读50本书。", "She [tested] herself to read 50 books this year."],
+            ["Challenge", "Chal-lenge", "挑战", "A difficult task that tests your ability.", "Climbing the mountain was the biggest challenge of my life.", "爬山是我一生中最大的挑战。", "I am ready to accept a new challenge at work.", "我准备好在工作中接受新的挑战了。", "She challenged herself to read 50 books this year.", "她挑战自己今年读50 books。", "She [tested] herself to read 50 books this year."],
             ["Challenging", "Chal-leng-ing", "具有挑战性的", "Difficult in an interesting way.", "The math exam was challenging but I think I passed.", "数学考试很有挑战性，但我认为我通过了。", "Teaching young children can be a challenging job.", "教小孩子可能是一项具有挑战性的工作。", "He enjoys solving challenging puzzles in his free time.", "他喜欢在空闲时间解具有挑战性的谜题。", "He enjoys solving [difficult] puzzles in his free time."],
             ["Chore", "Chore", "家务; 苦差事", "A routine task, especially a household one.", "I have to finish my chores before I can go out.", "我必须做完家务才能出去。", "Washing the dishes is a chore that I really dislike.", "洗碗是我真的不喜欢的苦差事。", "Modern appliances make household chores much easier.", "现代电器使家务变得容易得多。", "Modern appliances make household [routine tasks] much easier."],
             ["Chuckle", "Chuck-le", "轻声笑", "To laugh quietly.", "He gave a quiet chuckle when he read the message.", "当他读到那条信息时，轻声笑了一下。", "The audience chuckled at the comedian's opening joke.", "观众对喜剧演员的开场笑话轻声发笑。", "She tried to suppress a chuckle during the serious meeting.", "她在严肃的会议中试图忍住轻笑。", "She tried to suppress a [quiet laugh] during the serious meeting."],
@@ -179,7 +149,7 @@
             ["Fair", "Fair", "公平的", "Treating everyone equally.", "It is not fair to cheat in a game.", "在游戏中作弊是不公平的。", "The teacher tries to be fair to all students.", "老师试图对所有学生公平。", "We want a fair price for the car.", "我们想要一个公平的汽车价格。", "We want a [just/reasonable] price for the car."],
       
             ["Fix", "Fix", "修理", "To repair something.", "Can you fix my broken computer?", "你能修好我的坏电脑吗？", "He fixed the leak in the roof yesterday.", "他昨天修好了屋顶的漏洞。", "It is easy to fix this small problem.", "解决这个小问题很容易。", "It is easy to [repair/solve] this small problem."],
-            ["Fossil fuel consumption", "Fos-sil fu-el", "化石燃料消耗", "Using coal, oil, or gas.", "We need to reduce fossil fuel consumption.", "我们需要减少化石燃料消耗。", "High fossil fuel consumption causes pollution.", "高化石燃料消耗导致污染。", "Solar energy lowers fossil fuel consumption.", "太阳能降低化石燃料消耗。", "Solar energy lowers [burning of coal and oil]."],
+            ["Fossil fuel consumption", "Fos-sil fu-el", "化石燃料消耗", "Using coal, oil, or gas.", "We need to reduce fossil fuel consumption.", "我们需要减少化石燃料消耗。", "High fossil fuel consumption causes pollution.", "高化信燃料消耗导致污染。", "Solar energy lowers fossil fuel consumption.", "太阳能降低化石燃料消耗。", "Solar energy lowers [burning of coal and oil]."],
             ["Frightened", "Fright-ened", "受惊的", "Scared or afraid.", "The child was frightened by the loud noise.", "孩子被巨大的噪音吓坏了。", "She is frightened of spiders.", "她害怕蜘蛛。", "Don't be frightened, it's just a movie.", "别害怕，这只是一部电影。", "Don't be [scared/afraid], it's just a movie."],
             ["Frustrated", "Frus-trat-ed", "沮丧的", "Feeling annoyed by failure.", "I feel frustrated when I can't solve the problem.", "当我无法解决问题时，我感到沮丧。", "She was frustrated with the slow internet.", "她对缓慢的网络感到沮丧。", "He looked frustrated after losing the game.", "输掉比赛后他看起来很沮丧。", "He looked [annoyed/disappointed] after losing the game."],
             ["Functional", "Func-tion-al", "实用的", "Practical and useful.", "The furniture is simple but functional.", "家具很简单但很实用。", "Is the old printer still functional?", "旧打印机还能用吗？", "This coat is warm and functional for winter.", "这件外套冬天既暖和又实用。", "This coat is warm and [practical/useful] for winter."],
@@ -206,6 +176,7 @@
             ["Inventor", "In-ven-tor", "发明家", "Person who creates new things.", "Edison was a famous American inventor.", "爱迪生是一位著名的美国发明家。", "The inventor created a useful new machine.", "发明家创造了一台有用的新机器。", "She wants to be an inventor when she grows up.", "她长大后想成为一名发明家。", "She wants to be an [creator/innovator] when she grows up."],
             ["Job description", "Job", "职位描述", "List of work duties.", "Read the job description before applying.", "申请前阅读职位描述。", "The job description was very clear.", "职位描述非常清楚。", "It does not fit my job description.", "这不符合我的职位描述。", "It does not fit my [list of duties]."],
             ["Journalist", "Jour-nal-ist", "记者", "News writer.", "The journalist wrote a story for the newspaper.", "记者为报纸写了一篇报道。", "He works as a journalist in London.", "他在伦敦做记者。", "The journalist interviewed the famous actor.", "记者采访了那位著名演员。", "The [reporter/news writer] interviewed the famous actor."],
+            ["Journalist", "Jour-nal-ist", "记者", "News writer.", "The journalist wrote a story for the newspaper.", "记者为报纸写了一篇报道。", "He works as a journalist in London.", "他在伦敦做记者。", "The journalist interviewed the famous actor.", "记者采访了那位著名演员。", "The [reporter/news writer] interviewed the famous actor."],
             ["Journey", "Jour-ney", "旅程", "A long trip.", "The journey by train took five hours.", "坐火车旅程花了五个小时。", "Life is a journey, enjoy it.", "人生是一场旅程，享受它。", "We wished him a safe journey home.", "我们祝他回家旅途平安。", "We wished him a safe [trip/travel] home."],
             ["Landscape", "Land-scape", "风景", "View of the land.", "The landscape was covered in white snow.", "风景被白雪覆盖。", "He painted a beautiful landscape of the hills.", "他画了一幅美丽的山丘风景画。", "I love the green landscape of Ireland.", "我喜欢爱尔兰的绿色风景。", "I love the green [scenery/view] of Ireland."],
          
@@ -227,7 +198,7 @@
             ["Path", "Path", "道路; 小径", "A way made for walking on ground.", "We walked along a narrow path through the dark forest.", "我们沿着一条穿过黑暗森林的小径走。", "Education is the best path to a good future life.", "教育是通往美好未来生活的最佳途径。", "Choose your own path instead of following what others do.", "选择你自己的道路，而不是跟随别人做的事。", "Choose your own [way/route] instead of following what others do."],
     
             ["Perform", "Per-form", "表演; 执行", "To do an action or entertain people.", "The band will perform on the big stage tonight live.", "乐队今晚将在大舞台上现场表演。", "Doctors perform difficult operations to save people every single day.", "医生每天都在进行困难的手术来救人。", "You must perform well to get a promotion at work.", "你必须表现好才能在工作中获得晋升。", "You must [do/work] well to get a promotion at work."],
-            ["Performance", "Per-form-ance", "表现; 演出", "How well a person does a piece.", "Her performance in the school play was very good indeed.", "她在学校戏剧中的表现确实非常好。", "The boss was happy with his performance at work today.", "老板对他今天的工作表现很满意。", "This car is famous for its high speed and performance.", "这辆车以其高速度和高性能而闻名。", "This car is famous for its high speed and [capability/functioning]."],
+            ["Performance", "Per-form-ance", "表现; 演出", "How well a person does a piece.", "Her performance in the school play was very good indeed.", "她在学校戏剧中的表现确实非常好。", "The boss was happy with his performance at work today.", "老板对他今天的工作表现很满意。", "This car is famous for its high speed and performance.", "这辆车以其高速度和高性能而闻名。", "This car is famous for its high speed and [capability/functioning].."],
         
             ["Physical", "Phys-i-cal", "身体的; 物理的", "Relating to the body not the mind.", "Daily physical exercise is good for your health and body.", "每天的体育锻炼对你的健康和身体都有好处。", "This job requires a lot of hard physical work everyday.", "这份工作每天需要大量的艰苦体力劳动。", "I prefer reading a physical book instead of an ebook.", "我更喜欢读实体书而不是电子书。", "I prefer reading a [real/tangible] book instead of an ebook."],
             ["Physician", "Phy-si-cian", "内科医生", "A doctor who treats illness and injury.", "You should go see a physician if you feel sick.", "如果你感觉不舒服，你应该去看医生。", "He has worked as a physician for twenty long years.", "他做医生已经漫长的二十年了。", "The physician told him to eat more fruit and vegetables.", "医生告诉他要多吃水果和蔬菜。", "The [doctor/medical expert] told him to eat more fruit and vegetables."],
@@ -266,7 +237,7 @@
      
             ["Statistics", "Sta-tis-tics", "统计数据", "Numbers that give information about things.", "Statistics show that smoking is very dangerous for your health.", "统计数据显示吸烟对你的健康非常危险。", "He is studying statistics at the university to find jobs.", "他在大学学习统计学是为了找工作。", "According to official statistics, crime is going down this year.", "根据官方统计数据，今年的犯罪率正在下降。", "According to official [data/figures], crime is going down this year."],
             ["Stressed", "Stressed", "有压力的", "Feeling worried and not able to relax.", "I feel stressed when I have too much work to do.", "当我有太多工作要做时，我感到有压力。", "She gets stressed before every big exam at her school.", "她在学校每次大考前都会感到压力。", "Try to relax and breathe if you are feeling stressed.", "如果你感到有压力，试着放松和呼吸。", "Try to relax and breathe if you are feeling [anxious/under pressure]."],
-            ["Stressful", "Stress-ful", "充满压力的", "Making you feel worried and anxious.", "Moving to a new house is a very stressful event.", "搬新家是一件非常有压力的事情。", "He has a stressful job as a doctor in hospital.", "作为医院的医生，他的工作压力很大。", "Driving in heavy traffic can be a very stressful experience.", "在繁忙的交通中驾驶可能是一种非常有压力的经历。", "Driving in heavy traffic can be a very [pressure-filled] experience."],
+            ["Stressful", "Stress-ful", "充满压力的", "Making you feel worried and anxious.", "Moving to a new house is a very stressful event.", "搬新家是一件非常有压力的事情。", "He has a stressful job as a doctor in hospital.", "作为医院的医生，他的工作压力很大。", "Driving in heavy traffic can be a very stressful experience.", "在繁忙的交通中驾驶可能是一种非常有压力的经历。", "Driving in heavy traffic can be a [pressure-filled] experience."],
           
             ["Supervisor", "Su-per-vi-sor", "主管", "A person who watches over workers.", "My supervisor helped me write the report for the meeting.", "我的主管帮我写了会议报告。", "You should ask your supervisor if you can leave early.", "你应该问你的主管你是否可以早退。", "The site supervisor checks that everyone is safe at work.", "现场主管检查每个人在工作中是否安全。", "The site [manager/overseer] checks that everyone is safe at work."],
             ["Taikonaut", "Tai-ko-naut", "航天员 (中国)", "A Chinese astronaut in space.", "The taikonaut waved to us from the space station TV.", "航天员从空间站电视向我们挥手。", "China sent three taikonauts to space to do science work.", "中国送了三名航天员上太空做科学工作。", "She wants to be a taikonaut when she grows up.", "她长大后想成为一名航天员。", "She wants to be a [Chinese astronaut] when she grows up."],
@@ -279,32 +250,15 @@
             ["Unapologetically", "Un-a-pol-o-get-i-cal-ly", "毫无歉意地", "Without saying sorry for being you.", "She was unapologetically herself and did not care about others.", "她毫无歉意地做自己，不在乎别人。", "He stated his opinion unapologetically during the long meeting today.", "他在今天的长会上毫无歉意地陈述了自己的观点。", "You should be unapologetically proud of your good work.", "你应该对你的好工作毫无歉意地感到自豪。", "You should be [boldly/without sorry] proud of your good work."],
             ["Unpopulated", "Un-pop-u-lat-ed", "无人居住的", "With no people living there.", "The island is completely unpopulated and has no houses on it.", "这个岛完全无人居住，上面没有房子。", "They explored the unpopulated forest for three days last week.", "上周他们探索了无人居住的森林三天。", "Large parts of the desert remain unpopulated due to heat.", "由于酷热，沙漠的大部分地区仍然无人居住。", "Large parts of the desert remain [uninhabited] due to heat."],
       
-            ["Valuable", "Val-u-a-ble", "贵重的", "Worth a lot of money.", "This gold ring is very valuable because it is old.", "这枚金戒指非常贵重，因为它是古老的。", "Thank you for your valuable advice, it helped me much.", "谢谢你宝贵的建议，它帮了我大忙。", "Time is our most valuable resource, so do not waste.", "时间是我们最宝贵的资源，所以不要浪费。", "Time is our most [precious] resource, so do not waste."],
+            ["Valuable", "Val-u-a-ble", "贵重的", "Worth a lot of money.", "This gold ring is very valuable because it is old.", "这枚金戒指非常贵重，因为它是有古老的。", "Thank you for your valuable advice, it helped me much.", "谢谢你宝贵的建议，它帮了我大忙。", "Time is our most valuable resource, so do not waste.", "时间是我们最宝贵的资源，所以不要浪费。", "Time is our most [precious] resource, so do not waste."],
       
             ["Well-paid", "Well-paid", "薪水优厚的", "Getting a lot of money.", "He has a well-paid job in a big bank now.", "他现在在一家大银行有一份高薪工作。", "It is hard to find a well-paid job without skills.", "没有技能很难找到一份高薪工作。", "Doctors are usually well-paid because they save peoples lives.", "医生通常薪水很高，因为他们救人的命。", "Doctors are usually [high earning] because they save peoples lives."],
             ["Wilderness", "Wil-der-ness", "荒野", "Wild land with no people.", "They got lost in the wilderness and had no phone.", "他们在荒野中迷路了，没有电话。", "We must protect the wilderness for the wild animals there.", "我们必须为那里的野生动物保护荒野。", "Survival skills are needed if you go into the wilderness.", "如果你进入荒野，需要生存技能。", "Survival skills are needed if you go into the [wild/nature]."]
-              ];
-    // --- Data Processor (Manual Hint V2) ---
+        ];
+
         const FULL_VOCAB = VOCAB_DATA.map((d, i) => {
             const word = d[0];
-            
-            // 这里修改了逻辑：
-            // 优先读取数组的第11项（索引10）作为 Writing 的题目
-            // 如果第11项不存在，才使用旧的自动替换逻辑作为保底（防止报错）
-            let hintC = d[10]; 
-            
-            if (!hintC) {
-                // 旧的保底逻辑（以防万一你漏加了某个句子的改写）
-                const def = d[3];
-                const exC = d[8];
-                const regex = new RegExp(`\\b${word}\\b`, 'gi');
-                if (regex.test(exC)) {
-                     hintC = exC.replace(regex, `[${def.split(';')[0].split(',')[0].split(' ').slice(0,3).join(' ')}...]`); 
-                } else {
-                     hintC = exC + ` (Target: [${word[0]}...])`;
-                }
-            }
-
+            let hintC = d[10] || d[8];
             return {
                 id: i + 1,
                 w: word,
@@ -314,62 +268,43 @@
                 exA: d[4], cnA: d[5],
                 exB: d[6], cnB: d[7],
                 exC: d[8], cnC: d[9],
-                hintC: hintC // 这里直接使用我们处理好的 hintC
+                hintC: hintC
             };
         });
 
         const BATCH_SIZE = 15;
+        const cleanTarget = (str) => str.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
 
-        const cleanTarget = (str) => {
-            return str.toLowerCase()
-                .replace(/\b(sb|sth|somebody|something)\b/g, '')
-                .replace(/\+\s*adj\s*\+/g, '')
-                .replace(/from\s+doing/g, '')
-                .replace(/[^a-z ]/g, '') 
-                .replace(/\s+/g, ' ')
-                .trim();
+        const FontControls = ({ fontScale, setFontScale }) => {
+            return (
+                <div className="fixed top-4 right-4 z-[9999] flex gap-2">
+                    <button onClick={() => setFontScale(s => Math.min(s + 0.1, 2))} className="bg-white/90 hover:bg-white p-2 rounded-full shadow-lg border border-slate-200 text-slate-800 transition">
+                        <i className="ph ph-plus-circle text-2xl"></i>
+                    </button>
+                    <button onClick={() => setFontScale(s => Math.max(s - 0.1, 0.5))} className="bg-white/90 hover:bg-white p-2 rounded-full shadow-lg border border-slate-200 text-slate-800 transition">
+                        <i className="ph ph-minus-circle text-2xl"></i>
+                    </button>
+                    <button onClick={() => setFontScale(1)} className="bg-white/90 hover:bg-white px-3 py-1 rounded-full shadow-lg border border-slate-200 text-slate-800 font-bold text-sm transition">
+                        Reset
+                    </button>
+                </div>
+            );
         };
 
-        // --- Components ---
-
-        const Dashboard = ({ onStart }) => {
+        const Dashboard = ({ onStart, fontScale }) => {
             const batches = Math.ceil(FULL_VOCAB.length / BATCH_SIZE);
             return (
-                <div className="w-full h-full flex flex-col items-center p-8 overflow-y-auto custom-scroll">
-                    <h1 className="text-6xl md:text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-100 mb-8 drop-shadow-2xl text-center tracking-tight mt-10">Unit 2 所有词汇复习</h1>
-                    
-                    {/* 高对比度积分规则卡片 */}
-                    <div className="bg-slate-900/90 backdrop-blur-xl p-8 rounded-3xl mb-12 border-2 border-indigo-500/50 text-white max-w-4xl text-center w-full shadow-2xl transform hover:scale-[1.01] transition duration-500 ring-4 ring-black/20">
-                        <h2 className="text-4xl font-bold mb-6 flex items-center justify-center gap-3 text-yellow-400 font-serif tracking-wide border-b border-white/10 pb-4">
-                            <i className="ph ph-crown-simple text-5xl"></i> 积分挑战规则
-                        </h2>
-                        <div className="text-2xl text-slate-100 space-y-5 font-medium leading-relaxed">
-                            <div className="flex justify-center gap-12 flex-wrap">
-                                <p className="flex items-center gap-2"><i className="ph ph-star text-yellow-400"></i> 初始：<span className="font-bold text-white text-3xl">150分</span></p>
-                                <p className="flex items-center gap-2"><i className="ph ph-speaker-high text-green-400"></i> 跟读/盲听：<span className="text-green-400 font-bold text-3xl">+2分</span></p>
-                            </div>
-                            <div className="flex justify-center gap-12 flex-wrap">
-                                <p className="flex items-center gap-2"><i className="ph ph-check-circle text-green-400"></i> 听写拼写：<span className="text-green-400 font-bold text-3xl">+5分</span></p>
-                                <p className="flex items-center gap-2"><i className="ph ph-x-circle text-red-400"></i> 错误惩罚：<span className="text-red-400 font-bold text-3xl">-1 ~ -2分</span></p>
-                            </div>
-                            <div className="mt-6 bg-yellow-500/20 py-3 rounded-xl border border-yellow-500/30">
-                                <p className="font-bold text-yellow-300 animate-pulse text-2xl tracking-wide">📸 每组完成后截图发送给 Steven 兑换 Up Star！</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8 w-full max-w-[1800px] pb-20">
+                <div className="w-full flex flex-col items-center p-4 md:p-8 overflow-y-auto custom-scroll" style={{ fontSize: `${fontScale}rem` }}>
+                    <h1 className="text-4xl md:text-7xl font-extrabold text-white mb-8 drop-shadow-2xl text-center tracking-tight mt-10">Unit 2 复习中心</h1>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-[1400px] pb-20">
                         {Array.from({ length: batches }).map((_, i) => (
-                            <button key={i} onClick={() => onStart(i)} className="group bg-white/5 hover:bg-white/10 rounded-[2.5rem] p-10 border border-white/10 hover:border-indigo-400/50 transition-all duration-300 transform hover:-translate-y-2 text-left relative overflow-hidden backdrop-blur-md shadow-2xl h-full flex flex-col justify-between min-h-[220px]">
+                            <button key={i} onClick={() => onStart(i)} className="group bg-white/5 hover:bg-white/10 rounded-3xl p-8 border border-white/10 transition-all duration-300 transform hover:-translate-y-2 text-left relative overflow-hidden backdrop-blur-md shadow-2xl min-h-[180px] flex flex-col justify-between">
                                 <div>
-                                    <div className="absolute -right-8 -top-8 opacity-10 group-hover:opacity-20 transition duration-500 rotate-12"><i className="ph ph-planet text-[10rem] text-indigo-300"></i></div>
-                                    <h3 className="text-4xl font-bold text-white mb-3 font-serif">Batch {i + 1}</h3>
-                                    <div className="flex items-center gap-3 text-indigo-200 mb-8">
-                                        <span className="bg-indigo-500/20 px-4 py-1.5 rounded-lg text-base border border-indigo-500/30 font-medium tracking-wide">Words {i * BATCH_SIZE + 1}-{Math.min((i + 1) * BATCH_SIZE, FULL_VOCAB.length)}</span>
-                                    </div>
+                                    <h3 className="text-3xl font-bold text-white mb-2 font-serif">Batch {i + 1}</h3>
+                                    <span className="bg-indigo-500/20 px-4 py-1.5 rounded-lg text-sm text-indigo-200 border border-indigo-500/30">Words {i * BATCH_SIZE + 1}-{Math.min((i + 1) * BATCH_SIZE, FULL_VOCAB.length)}</span>
                                 </div>
-                                <div className="inline-flex items-center justify-center w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-xl shadow-lg shadow-indigo-900/50 transition-all group-hover:shadow-indigo-600/50 group-hover:scale-[1.02] tracking-wide">
-                                    Start <i className="ph ph-arrow-right ml-3 text-2xl"></i>
+                                <div className="mt-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-lg text-center shadow-lg group-hover:scale-[1.02] transition">
+                                    Start Learning <i className="ph ph-arrow-right ml-2"></i>
                                 </div>
                             </button>
                         ))}
@@ -378,20 +313,23 @@
             );
         };
 
-        const Flashcards = ({ words, onNextModule, updateScore, score }) => {
+        const Flashcards = ({ words = [], onNextModule, updateScore, score, fontScale }) => {
             const [idx, setIdx] = useState(0);
             const [flipped, setFlipped] = useState(false);
             const [paidTTS, setPaidTTS] = useState(new Set()); 
             const [paidBlind, setPaidBlind] = useState(new Set()); 
             const [blindStates, setBlindStates] = useState(new Set()); 
-            const timerRef = useRef(Date.now());
+            
             const w = words[idx];
 
             useEffect(() => { 
-                timerRef.current = Date.now();
-                setPaidTTS(new Set()); setPaidBlind(new Set()); setBlindStates(new Set());
-                stopSpeech(); // 切词时停止播放
+                setPaidTTS(new Set()); 
+                setPaidBlind(new Set()); 
+                setBlindStates(new Set()); 
+                stopSpeech(); 
             }, [idx]);
+
+            if (!w) return null;
 
             const handleTTS = (text, id) => {
                 speak(text);
@@ -405,52 +343,45 @@
                 if (!paidBlind.has(id)) { updateScore(2); setPaidBlind(prev => new Set(prev).add(id)); }
             };
 
-            const next = () => {
-                const duration = (Date.now() - timerRef.current) / 1000;
-                if (duration < 30) updateScore(-5); else if (duration > 60) updateScore(5);
-                setFlipped(false); setTimeout(() => { if (idx < words.length - 1) setIdx(idx + 1); else onNextModule(); }, 300);
-            };
+            const next = () => { setFlipped(false); setTimeout(() => { if (idx < words.length - 1) setIdx(idx + 1); else onNextModule(); }, 300); };
 
             return (
-<div className="w-full h-full flex flex-col items-center justify-start p-6 pb-32 fade-in overflow-y-auto custom-scroll">
-                    <div className="w-full max-w-[1920px] flex justify-between items-center text-white mb-6 px-4">
-                        <div className="flex items-center gap-5 bg-white/10 px-8 py-3 rounded-full backdrop-blur-md border border-white/20 shadow-lg">
-                            <i className="ph ph-book-open-text text-3xl text-indigo-300"></i> <h2 className="text-2xl font-bold tracking-wide">Study Mode</h2>
+                <div className="w-full flex flex-col items-center p-4 md:p-6 pb-20 fade-in" style={{ fontSize: `${fontScale}rem` }}>
+                    <div className="w-full max-w-[1400px] flex flex-wrap justify-between items-center text-white mb-6 gap-4">
+                        <div className="flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full border border-white/20">
+                            <i className="ph ph-book-open-text text-2xl text-indigo-300"></i> <h2 className="text-xl font-bold">Study Mode</h2>
                         </div>
-                        <div className="flex gap-8 items-center">
-                            <span className="text-yellow-300 font-bold flex gap-3 text-3xl bg-black/40 px-8 py-2 rounded-full backdrop-blur-md border border-yellow-500/30 shadow-xl"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span>
-                            <span className="font-mono text-indigo-200 text-2xl font-bold">{idx + 1} / {words.length}</span>
+                        <div className="flex gap-4 items-center">
+                            <span className="text-yellow-300 font-bold flex gap-2 text-xl bg-black/40 px-6 py-2 rounded-full border border-yellow-500/30 shadow-xl"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span>
+                            <span className="font-mono text-indigo-200 text-lg">{idx + 1} / {words.length}</span>
                         </div>
                     </div>
 
-                    <div className="flex-1 w-full max-w-[1920px] perspective-1000 relative group cursor-pointer mb-8 px-4" onClick={() => setFlipped(!flipped)}>
-                        <div className={`w-full h-full duration-700 transform-style-3d transition-transform ${flipped ? 'rotate-y-180' : ''}`}>
-                            {/* Front */}
-                            <div className="absolute w-full h-full backface-hidden glass-panel rounded-[3rem] flex flex-col items-center justify-center p-16 border-b-[20px] border-indigo-500/60 shadow-2xl">
-                                <span className="text-indigo-600 font-mono text-4xl mb-12 uppercase tracking-[0.3em] bg-indigo-50/80 px-10 py-3 rounded-2xl shadow-sm border border-indigo-100">{w.syl}</span>
-                                <h1 className="text-8xl md:text-[10rem] font-bold text-slate-800 text-center leading-tight drop-shadow-lg font-serif tracking-tight">{w.w}</h1>
-                                <p className="text-slate-500 mt-24 text-2xl font-medium animate-pulse flex items-center gap-4 bg-white/60 px-8 py-3 rounded-full border border-slate-200"><i className="ph ph-hand-tap text-3xl"></i> Tap card to flip</p>
+                    <div className="w-full max-w-[1400px] min-h-[500px] perspective-1000 relative group cursor-pointer mb-8" onClick={() => setFlipped(!flipped)}>
+                        <div className={`w-full h-full duration-700 transform-style-3d transition-transform min-h-[500px] ${flipped ? 'rotate-y-180' : ''}`}>
+                            <div className="absolute w-full h-full backface-hidden glass-panel rounded-[2rem] flex flex-col items-center justify-center p-8 text-center shadow-2xl">
+                                <span className="text-indigo-600 font-mono text-xl md:text-2xl mb-6 uppercase tracking-widest">{w.syl}</span>
+                                <h1 className="text-5xl md:text-8xl font-bold text-slate-800 leading-tight font-serif">{w.w}</h1>
+                                <p className="text-slate-500 mt-12 text-lg flex items-center gap-2"><i className="ph ph-hand-tap"></i> 点击翻面</p>
                             </div>
-                            
-                            {/* Back */}
-                            <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-slate-50/95 backdrop-blur-xl rounded-[3rem] flex flex-col p-12 md:p-16 border-b-[20px] border-purple-500/60 overflow-y-auto custom-scroll shadow-2xl">
-                                <div className="flex justify-between items-start mb-12 border-b-2 border-slate-200 pb-10">
-                                    <div className="flex-1 pr-10">
-                                        <h2 className="text-7xl font-bold text-slate-900 mb-6 font-serif">{w.cn}</h2>
-                                        <p className="text-slate-600 text-3xl font-medium leading-relaxed font-serif italic text-justify">{w.def}</p>
+                            <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-slate-50 rounded-[2rem] flex flex-col p-8 md:p-12 overflow-y-auto custom-scroll shadow-2xl">
+                                <div className="flex flex-wrap justify-between items-start mb-8 border-b pb-6 gap-4">
+                                    <div className="flex-1 min-w-[200px]">
+                                        <h2 className="text-4xl md:text-6xl font-bold text-slate-900 mb-4 font-serif">{w.cn}</h2>
+                                        <p className="text-slate-600 text-xl md:text-2xl font-serif italic">{w.def}</p>
                                     </div>
-                                    <button onClick={(e) => { e.stopPropagation(); handleTTS(w.w, 'main'); }} className={`p-8 rounded-full transition-all transform hover:scale-110 shadow-xl ${paidTTS.has('main') ? 'bg-slate-200 text-slate-400' : 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'}`}><i className="ph ph-speaker-high text-5xl"></i></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleTTS(w.w, 'main'); }} className={`p-6 rounded-full shadow-lg ${paidTTS.has('main') ? 'bg-slate-200 text-slate-400' : 'bg-indigo-600 text-white'}`}><i className="ph ph-speaker-high text-3xl"></i></button>
                                 </div>
-                                <div className="space-y-10 pb-10">
-                                    {[{t:"Context A", e:w.exA, c:w.cnA, col:"blue", id:"exA"},{t:"Context B", e:w.exB, c:w.cnB, col:"purple", id:"exB"},{t:"Context C", e:w.exC, c:w.cnC, col:"pink", id:"exC"}].map((x, i) => (
-                                        <div key={i} className={`p-10 rounded-[2.5rem] bg-white border-2 border-${x.col}-100 flex gap-8 items-start hover:shadow-2xl transition-all duration-300 group hover:border-${x.col}-200`}>
-                                            <div className="flex flex-col gap-4 shrink-0 pt-2">
-                                                <button onClick={(e) => { e.stopPropagation(); handleTTS(x.e, x.id); }} className={`p-5 rounded-full shadow-lg hover:scale-110 transition ${paidTTS.has(x.id) ? 'bg-slate-100 text-slate-400' : 'bg-'+x.col+'-50 text-'+x.col+'-600'}`}><i className="ph ph-speaker-simple-high text-3xl"></i></button>
-                                                <button onClick={(e) => { e.stopPropagation(); toggleBlind(x.id); }} className={`p-5 rounded-full shadow-lg hover:scale-110 transition ${paidBlind.has(x.id) ? 'bg-slate-100 text-slate-400' : 'bg-slate-800 text-white'}`} title="Blind Shadowing (+2pts)"><i className={`ph ${blindStates.has(x.id) ? 'ph-eye-closed' : 'ph-eye'} text-3xl`}></i></button>
+                                <div className="space-y-6">
+                                    {[{e:w.exA, c:w.cnA, col:"blue", id:"exA"},{e:w.exB, c:w.cnB, col:"purple", id:"exB"},{e:w.exC, c:w.cnC, col:"pink", id:"exC"}].map((x, i) => (
+                                        <div key={i} className={`p-6 rounded-3xl bg-white border border-${x.col}-100 flex gap-4 items-start shadow-sm`}>
+                                            <div className="flex flex-col gap-2">
+                                                <button onClick={(e) => { e.stopPropagation(); handleTTS(x.e, x.id); }} className={`p-3 rounded-full shadow-md ${paidTTS.has(x.id) ? 'bg-slate-100 text-slate-400' : 'bg-'+x.col+'-50 text-'+x.col+'-600'}`}><i className="ph ph-speaker-simple-high text-xl"></i></button>
+                                                <button onClick={(e) => { e.stopPropagation(); toggleBlind(x.id); }} className={`p-3 rounded-full shadow-md ${paidBlind.has(x.id) ? 'bg-slate-100 text-slate-400' : 'bg-slate-800 text-white'}`}><i className={`ph ${blindStates.has(x.id) ? 'ph-eye-closed' : 'ph-eye'} text-xl`}></i></button>
                                             </div>
-                                            <div className="flex-1 pt-2">
-                                                <p className={`serif text-4xl text-slate-800 leading-relaxed font-medium transition-all duration-500 ${blindStates.has(x.id) ? 'opacity-0 blur-lg select-none translate-y-2' : 'opacity-100 translate-y-0'}`}>{x.e}</p>
-                                                <p className="text-2xl text-slate-500 mt-5 font-bold border-t-2 border-slate-50 pt-4">{x.c}</p>
+                                            <div className="flex-1">
+                                                <p className={`serif text-2xl md:text-3xl text-slate-800 leading-relaxed transition-all ${blindStates.has(x.id) ? 'opacity-0 blur-lg select-none' : 'opacity-100'}`}>{x.e}</p>
+                                                <p className="text-lg md:text-xl text-slate-500 mt-2">{x.c}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -458,187 +389,248 @@
                             </div>
                         </div>
                     </div>
-                    <button onClick={next} className="w-full max-w-[1920px] bg-white/10 backdrop-blur-xl border border-white/30 text-white py-8 rounded-[2.5rem] font-bold text-4xl shadow-2xl hover:bg-white hover:text-indigo-900 transition-all duration-300 transform hover:scale-[1.005] tracking-[0.1em] uppercase flex items-center justify-center gap-6 group">
-                        {idx === words.length - 1 ? "Start Match Game" : "Next Word"} <i className="ph ph-arrow-right group-hover:translate-x-2 transition-transform"></i>
+                    <button onClick={next} className="w-full max-w-[1400px] bg-white/10 backdrop-blur-md border border-white/20 text-white py-6 rounded-3xl font-bold text-2xl shadow-xl hover:bg-white hover:text-indigo-900 transition flex items-center justify-center gap-4">
+                        {idx === words.length - 1 ? "下一步: 连连看" : "下一个单词"} <i className="ph ph-arrow-right"></i>
                     </button>
                 </div>
             );
         };
 
-        const Match = ({ words, onNextModule, updateScore, score }) => {
-            const [items, setItems] = useState([]); const [sel, setSel] = useState([]); const [mat, setMat] = useState([]);
-            useEffect(() => { setItems(words.flatMap(w => [{ id:w.id, t:w.w, type:'w' }, { id:w.id, t:w.def, type:'d' }]).sort(() => Math.random() - 0.5)); }, [words]);
-            const click = (i) => { if (sel.includes(i) || mat.includes(items[i].id)) return; const n = [...sel, i]; setSel(n); if (n.length === 2) { const [a, b] = n; if (items[a].id === items[b].id) { setMat([...mat, items[a].id]); updateScore(2); if (mat.length + 1 === words.length) setTimeout(onNextModule, 1000); } else updateScore(-1); setTimeout(() => setSel([]), 600); }};
+        const Match = ({ words = [], onNextModule, updateScore, score, fontScale }) => {
+            const [items, setItems] = useState([]); 
+            const [sel, setSel] = useState([]); 
+            const [mat, setMat] = useState([]);
+            
+            useEffect(() => { 
+                setItems(words.flatMap(w => [{ id:w.id, t:w.w, type:'w' }, { id:w.id, t:w.def, type:'d' }]).sort(() => Math.random() - 0.5)); 
+            }, [words]);
+
+            const click = (i) => { 
+                if (sel.includes(i) || mat.includes(items[i].id)) return; 
+                const n = [...sel, i]; 
+                setSel(n); 
+                if (n.length === 2) { 
+                    const [a, b] = n; 
+                    if (items[a].id === items[b].id && items[a].type !== items[b].type) { 
+                        setMat([...mat, items[a].id]); 
+                        updateScore(2); 
+                        if (mat.length + 1 === words.length) setTimeout(onNextModule, 1000); 
+                    } else {
+                        updateScore(-1); 
+                    }
+                    setTimeout(() => setSel([]), 600); 
+                }
+            };
+
             return (
-                <div className="w-full h-full flex flex-col items-center justify-center p-8 fade-in">
-                    <div className="w-full max-w-[1920px] flex justify-between items-center text-white mb-8"><div className="flex items-center gap-4 bg-white/10 px-8 py-4 rounded-full backdrop-blur-md"><i className="ph ph-puzzle-piece text-4xl text-indigo-300"></i> <h2 className="text-3xl font-bold">Match</h2></div><div className="flex gap-6 items-center"><span className="text-yellow-300 font-bold flex gap-3 text-3xl bg-black/40 px-8 py-3 rounded-full backdrop-blur-md"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span><span className="font-mono text-indigo-200 text-2xl font-bold">{mat.length}/{words.length}</span></div></div>
-                    <div className="flex-1 w-full max-w-[1920px] overflow-y-auto custom-scroll grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-6 content-start">
+                <div className="w-full flex flex-col items-center p-4 md:p-8 fade-in" style={{ fontSize: `${fontScale}rem` }}>
+                    <div className="w-full max-w-[1400px] flex justify-between items-center text-white mb-8">
+                        <div className="flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full border border-white/20"><i className="ph ph-puzzle-piece text-2xl text-indigo-300"></i> <h2 className="text-xl font-bold">Match Game</h2></div>
+                        <div className="flex gap-4 items-center"><span className="text-yellow-300 font-bold flex gap-2 text-xl bg-black/40 px-6 py-2 rounded-full shadow-md"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span></div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full max-w-[1400px]">
                         {items.map((it, i) => {
-                            const isSel = sel.includes(i); const isMat = mat.includes(it.id);
-                            let cls = "bg-white/10 text-slate-100 hover:bg-white/20 border border-white/10";
-                            if (isSel) cls = "bg-indigo-600 text-white shadow-2xl scale-105 z-20 border-indigo-300";
+                            const isSel = sel.includes(i); 
+                            const isMat = mat.includes(it.id);
+                            let cls = "bg-white/10 text-white hover:bg-white/20 border border-white/10";
+                            if (isSel) cls = "bg-indigo-600 text-white shadow-xl scale-105";
                             if (isMat) cls = "opacity-0 pointer-events-none scale-0";
-                            return <button key={i} onClick={() => click(i)} className={`min-h-[180px] p-6 rounded-[2rem] shadow-lg transition-all duration-500 flex items-center justify-center text-center backdrop-blur-md ${cls}`}><span className={it.type==='w'?'font-bold text-3xl font-serif':'text-xl font-medium leading-relaxed'}>{it.t}</span></button>;
+                            return <button key={i} onClick={() => click(i)} className={`min-h-[140px] p-4 rounded-2xl shadow-md transition-all duration-500 flex items-center justify-center text-center ${cls}`}><span className={it.type==='w'?'font-bold text-xl md:text-2xl':'text-sm md:text-base'}>{it.t}</span></button>;
                         })}
                     </div>
                 </div>
             );
         };
 
-       const Dictation = ({ words, onNextModule, updateScore, score }) => {
+        const Dictation = ({ words = [], onNextModule, updateScore, score, fontScale }) => {
             const [idx, setIdx] = useState(0); 
             const [val, setVal] = useState(""); 
-            const [err, setErr] = useState(0); 
-            const [st, setSt] = useState('idle'); 
-            const [isRetry, setIsRetry] = useState(false); 
-            const [isResetting, setIsResetting] = useState(false); 
-            const [playStatus, setPlayStatus] = useState("Tap to Play");
+            const [st, setSt] = useState('idle');
             const w = words[idx];
 
-            // 针对 Azure 的听写播放逻辑 (不再使用循环，改为手动播放或单词+句子的组合)
-            const playDictation = () => {
-                setPlayStatus("Playing...");
-                // 播放两次单词
-                speak(w.w, () => {
-                   setTimeout(() => {
-                       speak(w.w, () => {
-                           setPlayStatus("Play Again");
-                       });
-                   }, 500);
-                });
+            const play = () => {
+                if (w) speak(w.w, () => setTimeout(() => speak(w.w), 500));
             };
 
             useEffect(() => { 
-                setVal(""); setErr(0); setSt('idle'); setIsRetry(false); setIsResetting(false); 
-                stopSpeech();
-                // 自动开始播放一次
-                setTimeout(playDictation, 500);
-                
-                return () => stopSpeech();
+                setVal(""); 
+                setSt('idle'); 
+                stopSpeech(); 
+                if (w) setTimeout(play, 500); 
             }, [idx]);
+
+            if (!w) return null;
 
             const check = (e) => { 
                 e.preventDefault(); 
-                if (isResetting) return; 
-                // 简单的清理逻辑，忽略大小写和首尾空格
                 if (cleanTarget(val) === cleanTarget(w.w)) { 
                     setSt('ok'); 
-                    stopSpeech(); 
-                    speak("Correct!"); 
-                    if (!isRetry) updateScore(5); 
-                    setTimeout(() => { 
-                        if(idx < words.length-1) setIdx(idx+1); 
-                        else onNextModule(); 
-                    }, 800); 
+                    speak("Correct"); 
+                    updateScore(5); 
+                    setTimeout(() => { if(idx < words.length-1) setIdx(idx+1); else onNextModule(); }, 800); 
                 } else { 
-                    const newErr = err + 1; 
-                    setErr(newErr); 
                     setSt('no'); 
                     updateScore(-1); 
-                    stopSpeech();
-                    speak("Try again"); 
-                    if (newErr >= 5) { 
-                        setIsResetting(true); 
-                        setTimeout(() => { 
-                            setIsResetting(false); setIsRetry(true); setVal(""); setErr(0); setSt('idle'); 
-                        }, 10000); 
-                    } 
-                } 
+                    speak("Wrong"); 
+                }
             };
 
             return (
-                <div className="w-full h-full flex flex-col items-center justify-center p-10 fade-in">
-                    <div className="w-full max-w-[1400px] flex justify-between items-center text-white mb-12">
-                        <div className="flex items-center gap-4 bg-white/10 px-8 py-4 rounded-full backdrop-blur-md">
-                            <i className="ph ph-headphones text-4xl text-indigo-300"></i> 
-                            <h2 className="text-3xl font-bold">Dictation</h2>
-                        </div>
-                        <div className="flex gap-6 items-center">
-                            <span className="text-yellow-300 font-bold flex gap-3 text-3xl bg-black/40 px-8 py-3 rounded-full backdrop-blur-md">
-                                <i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}
-                            </span>
-                            <span className="font-mono text-indigo-200 text-2xl font-bold">{idx+1} / {words.length}</span>
-                        </div>
+                <div className="w-full flex flex-col items-center justify-center p-4 md:p-10 fade-in" style={{ fontSize: `${fontScale}rem` }}>
+                    <div className="w-full max-w-[1000px] flex justify-between items-center text-white mb-10">
+                        <div className="flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full"><i className="ph ph-headphones text-2xl text-indigo-300"></i> <h2 className="text-xl font-bold">Dictation</h2></div>
+                        <div className="flex gap-4 items-center"><span className="text-yellow-300 font-bold flex gap-2 text-xl bg-black/40 px-6 py-2 rounded-full border border-yellow-500/30 shadow-xl"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span></div>
                     </div>
-
-                    <div className="bg-white/95 backdrop-blur-xl rounded-[4rem] p-24 shadow-2xl w-full max-w-[1200px] text-center relative overflow-hidden flex flex-col items-center">
-                        {isResetting && 
-                            <div className="absolute inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center">
-                                <div className="text-red-500 font-bold text-5xl mb-8 animate-bounce">Too many errors!</div>
-                                <div className="text-indigo-400 text-8xl font-bold mb-12">{w.w}</div>
-                                <div className="w-[600px] h-4 bg-slate-700 rounded-full overflow-hidden">
-                                    <div className="h-full bg-red-500 animate-shrink"></div>
-                                </div>
-                                <p className="mt-8 text-slate-400 text-3xl">Retry in 10s (0 pts)</p>
-                            </div>
-                        }
-                        
-                        <div className="absolute top-0 left-0 h-6 bg-indigo-100 w-full">
-                            <div className="h-full bg-indigo-600 transition-all duration-500" style={{width: `${(idx/words.length)*100}%`}}></div>
-                        </div>
-
-                        <button onClick={playDictation} className="w-48 h-48 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-2xl flex flex-col items-center justify-center mx-auto mb-12 hover:scale-110 transition border-[12px] border-indigo-50">
-                            <i className="ph ph-speaker-high text-7xl mb-2"></i>
-                            <span className="text-sm font-bold opacity-80">{playStatus}</span>
-                        </button>
-
-                        <form onSubmit={check} className="w-full flex flex-col items-center">
-                            <input 
-                                autoFocus 
-                                value={val} 
-                                onChange={e => setVal(e.target.value)} 
-                                className={`w-full text-center text-[6rem] font-bold py-8 border-b-8 bg-transparent outline-none tracking-wide font-mono mb-12 ${st==='ok'?'border-green-500 text-green-600':st==='no'?'border-red-500 text-red-500':'border-slate-300 text-slate-800 focus:border-indigo-500'}`} 
-                                placeholder="..." 
-                            />
-                            
-                            <button type="submit" className="bg-indigo-600 text-white font-bold py-6 px-16 rounded-full text-3xl shadow-xl hover:bg-indigo-700 transition transform hover:scale-105 flex items-center gap-4">
-                                Check Answer <i className="ph ph-check-circle text-4xl"></i>
-                            </button>
+                    <div className="bg-white/95 rounded-[3rem] p-10 md:p-16 shadow-2xl w-full max-w-[800px] text-center">
+                        <button onClick={play} className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-indigo-600 text-white shadow-xl flex items-center justify-center mx-auto mb-8 hover:scale-110 transition"><i className="ph ph-speaker-high text-4xl md:text-5xl"></i></button>
+                        <form onSubmit={check} className="flex flex-col items-center">
+                            <input autoFocus value={val} onChange={e => setVal(e.target.value)} className={`w-full text-center text-3xl md:text-5xl font-bold py-6 border-b-4 bg-transparent outline-none mb-8 ${st==='ok'?'border-green-500 text-green-600':st==='no'?'border-red-500 text-red-500':'border-slate-300 text-slate-800'}`} placeholder="..." />
+                            <button type="submit" className="bg-indigo-600 text-white font-bold py-4 px-12 rounded-full text-xl shadow-lg hover:bg-indigo-700 transition">Check Answer</button>
                         </form>
-
-                        <div className="h-8 mt-8">
-                            {isRetry && <span className="text-orange-500 font-bold text-xl">Retry Mode (0 pts)</span>}
-                        </div>
                     </div>
                 </div>
             );
         };
 
-        const Unscramble = ({ words, onNextModule, updateScore, score }) => {
-            const [idx, setIdx] = useState(0); const [parts, setParts] = useState([]); const [ord, setOrd] = useState([]); const [potential, setPotential] = useState(10); const [fail, setFail] = useState(0); const [isResetting, setIsResetting] = useState(false); const w = words[idx]; const sen = w.exB; const lastIdx = useRef(-1); if (lastIdx.current !== idx) { setPotential(10); lastIdx.current = idx; }
-            useEffect(() => { setParts(sen.replace(/[.,!?;]/g,'').split(' ').sort(()=>Math.random()-0.5).map((t,i)=>({id:i,t}))); setOrd([]); setFail(0); setIsResetting(false); stopSpeech(); }, [idx]);
-            const deductGlobal = (n, fn) => { updateScore(-n); fn(); };
-            const hint = () => deductGlobal(15, () => { const c = sen.replace(/[.,!?;]/g,'').split(' '); const n = c[ord.length]; const f = parts.find(p=>p.t===n); if(f) { setParts(parts.filter(p=>p.id!==f.id)); setOrd([...ord, f]); }});
-            const check = () => { if (ord.map(o=>o.t).join(' ') === sen.replace(/[.,!?;]/g,'')) { speak("Excellent"); updateScore(potential); setTimeout(() => { if(idx<words.length-1) setIdx(idx+1); else onNextModule(); }, 800); } else { const newFail = fail + 1; setFail(newFail); speak("Wrong"); setPotential(Math.max(0, potential - 2)); if (newFail >= 5) { setIsResetting(true); setPotential(0); setTimeout(() => { setParts(sen.replace(/[.,!?;]/g,'').split(' ').sort(()=>Math.random()-0.5).map((t,i)=>({id:i,t}))); setOrd([]); setFail(0); setIsResetting(false); }, 10000); }}};
+        const Unscramble = ({ words = [], onNextModule, updateScore, score, fontScale }) => {
+            const [idx, setIdx] = useState(0); 
+            const [parts, setParts] = useState([]); 
+            const [ord, setOrd] = useState([]); 
+            const w = words[idx]; 
+            const sen = w ? w.exB : "";
+
+            useEffect(() => { 
+                if (w) {
+                    setParts(sen.replace(/[.,!?;]/g,'').split(' ').sort(()=>Math.random()-0.5).map((t,i)=>({id:i,t}))); 
+                    setOrd([]); 
+                    stopSpeech(); 
+                }
+            }, [idx]);
+
+            if (!w) return null;
+
+            const check = () => { 
+                if (ord.map(o=>o.t).join(' ') === sen.replace(/[.,!?;]/g,'')) { 
+                    speak("Great"); 
+                    updateScore(10); 
+                    setTimeout(() => { if(idx<words.length-1) setIdx(idx+1); else onNextModule(); }, 800); 
+                } else { 
+                    speak("Wrong"); 
+                    updateScore(-1); 
+                }
+            };
+
             return (
-                <div className="w-full h-full flex flex-col items-center justify-center p-10 fade-in"><div className="w-full max-w-[1400px] flex justify-between items-center text-white mb-10"><div className="flex items-center gap-4 bg-white/10 px-8 py-4 rounded-full backdrop-blur-md"><i className="ph ph-sort-ascending text-4xl text-indigo-300"></i> <h2 className="text-3xl font-bold">Unscramble</h2></div><div className="flex gap-6 items-center"><span className="text-yellow-300 font-bold flex gap-3 text-3xl bg-black/40 px-8 py-3 rounded-full backdrop-blur-md"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span><span className="font-mono text-indigo-200 text-2xl font-bold">{idx+1} / {words.length}</span></div></div><div className="bg-white/95 backdrop-blur-xl rounded-[4rem] p-16 shadow-2xl w-full max-w-[1400px] flex flex-col relative overflow-hidden">{isResetting && <div className="absolute inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center"><div className="text-red-500 font-bold text-4xl mb-6">Answer:</div><div className="text-green-400 text-4xl font-bold text-center p-8 border-4 border-green-500/30 rounded-[2rem] bg-green-900/30 max-w-5xl leading-relaxed">{sen}</div><div className="w-96 h-3 bg-slate-700 rounded-full mt-12 overflow-hidden"><div className="h-full bg-red-500 animate-shrink"></div></div><p className="mt-6 text-slate-400 text-2xl">Resetting...</p></div>}<div className="text-center mb-12 border-b-2 border-slate-200 pb-10"><h3 className="text-6xl font-bold text-indigo-700 mb-4 font-serif">{w.w}</h3><p className="text-slate-500 font-medium text-3xl">{w.cnB}</p></div><div className="bg-slate-100 rounded-[2rem] p-10 min-h-[200px] flex flex-wrap gap-5 justify-center items-center border-4 border-dashed border-slate-300 mb-12 shadow-inner">{ord.map(x=><button key={x.id} onClick={()=>{if(!isResetting){setOrd(ord.filter(o=>o.id!==x.id)); setParts([...parts,x])}}} className="bg-indigo-600 text-white px-8 py-4 rounded-3xl font-bold text-3xl shadow-xl hover:bg-red-500 transition transform hover:-translate-y-1">{x.t}</button>)}</div><div className="flex flex-wrap gap-5 justify-center mb-auto">{parts.map(x=><button key={x.id} onClick={()=>{if(!isResetting){setParts(parts.filter(p=>p.id!==x.id)); setOrd([...ord,x])}}} className="bg-white border-2 border-slate-300 px-8 py-4 rounded-3xl shadow-md hover:border-indigo-300 hover:shadow-xl text-3xl font-medium transition text-slate-700">{x.t}</button>)}</div><div className="grid grid-cols-2 gap-8 mt-16"><button onClick={()=>deductGlobal(10, ()=>speak(sen))} disabled={isResetting} className="bg-orange-50 text-orange-600 font-bold py-6 rounded-[2rem] hover:bg-orange-100 flex items-center justify-center gap-4 border-2 border-orange-100 text-2xl"><i className="ph ph-speaker-high text-3xl"></i> Listen (-10)</button><button onClick={hint} disabled={isResetting} className="bg-purple-50 text-purple-600 font-bold py-6 rounded-[2rem] hover:bg-purple-100 flex items-center justify-center gap-4 border-2 border-purple-100 text-2xl"><i className="ph ph-lightbulb text-3xl"></i> Hint (-15)</button><button onClick={check} disabled={isResetting} className="col-span-2 bg-indigo-600 text-white font-bold py-8 rounded-[2rem] shadow-2xl hover:bg-indigo-700 transition text-3xl transform hover:scale-[1.01]">Check Answer (+{potential})</button></div></div></div>
+                <div className="w-full flex flex-col items-center p-4 md:p-8 fade-in" style={{ fontSize: `${fontScale}rem` }}>
+                    <div className="w-full max-w-[1200px] flex justify-between items-center text-white mb-6">
+                        <div className="flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full"><i className="ph ph-sort-ascending text-2xl text-indigo-300"></i> <h2 className="text-xl font-bold">Unscramble</h2></div>
+                        <div className="flex gap-4 items-center"><span className="text-yellow-300 font-bold flex gap-2 text-xl bg-black/40 px-6 py-2 rounded-full border border-yellow-500/30 shadow-xl"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span></div>
+                    </div>
+                    <div className="bg-white/95 rounded-[3rem] p-8 md:p-12 shadow-2xl w-full max-w-[1200px]">
+                        <div className="text-center mb-10"><h3 className="text-3xl md:text-5xl font-bold text-indigo-700 mb-2">{w.w}</h3><p className="text-slate-500 text-xl md:text-2xl">{w.cnB}</p></div>
+                        <div className="bg-slate-100 rounded-3xl p-6 min-h-[120px] flex flex-wrap gap-3 justify-center items-center border-2 border-dashed border-slate-300 mb-8">{ord.map(x=><button key={x.id} onClick={()=>{setOrd(ord.filter(o=>o.id!==x.id)); setParts([...parts,x])}} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-md">{x.t}</button>)}</div>
+                        <div className="flex flex-wrap gap-3 justify-center mb-10">{parts.map(x=><button key={x.id} onClick={()=>{setParts(parts.filter(p=>p.id!==x.id)); setOrd([...ord,x])}} className="bg-white border px-4 py-2 rounded-xl shadow-sm text-lg font-medium">{x.t}</button>)}</div>
+                        <button onClick={check} className="w-full bg-indigo-600 text-white font-bold py-6 rounded-3xl shadow-xl hover:bg-indigo-700 transition text-2xl">Submit</button>
+                    </div>
+                </div>
             );
         };
 
-        const Writing = ({ words, onFinish, updateScore, score }) => {
-            const [idx, setIdx] = useState(0); const [val, setVal] = useState(""); const [potential, setPotential] = useState(10); const [fail, setFail] = useState(0); const [showTarget, setShowTarget] = useState(false); const [isResetting, setIsResetting] = useState(false); const w = words[idx]; const lastIdx = useRef(-1); if (lastIdx.current !== idx) { setPotential(10); lastIdx.current = idx; }
-            useEffect(() => { setVal(""); setShowTarget(false); setFail(0); setIsResetting(false); stopSpeech(); }, [idx]);
-            const deductGlobal = (n, fn) => { updateScore(-n); fn(); };
-            const check = (e) => { e.preventDefault(); const cleanIn = cleanTarget(val); const target = cleanTarget(w.w); if (cleanIn.includes(target) && cleanIn.length > 15) { speak("Great job"); updateScore(potential); if(idx<words.length-1) setIdx(idx+1); else onFinish(); } else { const newFail = fail + 1; setFail(newFail); speak("Try again"); setPotential(Math.max(0, potential - 2)); if (newFail >= 5) { setIsResetting(true); setPotential(0); setTimeout(() => { setIsResetting(false); setVal(""); setFail(0); setShowTarget(false); }, 10000); }}};
-            const renderScenario = (text) => text.split(/(\[.*?\])/).map((p, i) => (p.startsWith('[') && p.endsWith(']')) ? <span key={i} className="text-red-500 font-bold bg-red-50 px-3 rounded-xl border border-red-100 mx-2">{p.slice(1, -1)}</span> : <span key={i}>{p}</span>);
+        const Writing = ({ words = [], onFinish, updateScore, score, fontScale }) => {
+            const [idx, setIdx] = useState(0); 
+            const [val, setVal] = useState(""); 
+            const [showTarget, setShowTarget] = useState(false); 
+            const w = words[idx];
+
+            useEffect(() => { 
+                setVal(""); 
+                setShowTarget(false); 
+                stopSpeech(); 
+            }, [idx]);
+
+            if (!w) return null;
+
+            const check = (e) => { 
+                e.preventDefault(); 
+                if (cleanTarget(val).includes(cleanTarget(w.w)) && val.length > 15) { 
+                    speak("Well done"); 
+                    updateScore(10); 
+                    if(idx<words.length-1) setIdx(idx+1); else onFinish(); 
+                } else { 
+                    speak("Try again"); 
+                    updateScore(-1); 
+                }
+            };
+
             return (
-                <div className="w-full h-full flex flex-col items-center justify-center p-10 fade-in"><div className="w-full max-w-[1400px] flex justify-between items-center text-white mb-10"><div className="flex items-center gap-4 bg-white/10 px-8 py-4 rounded-full backdrop-blur-md"><i className="ph ph-pencil-simple-slash text-4xl text-indigo-300"></i> <h2 className="text-3xl font-bold">Restore</h2></div><div className="flex gap-6 items-center"><span className="text-yellow-300 font-bold flex gap-3 text-3xl bg-black/40 px-8 py-3 rounded-full backdrop-blur-md"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span><span className="font-mono text-indigo-200 text-2xl font-bold">{idx+1} / {words.length}</span></div></div><div className="bg-white/95 backdrop-blur-xl rounded-[4rem] p-16 shadow-2xl w-full max-w-[1400px] flex flex-col relative overflow-hidden">{isResetting && <div className="absolute inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center"><div className="text-red-500 font-bold text-4xl mb-6">Failed! Answer:</div><div className="text-green-600 text-2xl font-bold text-center p-8 border-4 border-green-500/30 rounded-[2rem] bg-green-900/30 max-w-5xl leading-relaxed">{w.exC}</div><div className="w-96 h-3 bg-slate-700 rounded-full mt-12 overflow-hidden"><div className="h-full bg-red-500 animate-shrink"></div></div><p className="mt-4 text-slate-400 text-2xl">Retry...</p></div>}<div className="bg-slate-100 border-2 border-slate-300 rounded-[3rem] p-12 mb-10 shadow-inner"><p className="text-lg font-bold text-slate-400 uppercase mb-6 tracking-widest">Scenario Sentence</p><div className="text-5xl serif text-slate-800 leading-relaxed font-medium">{renderScenario(w.hintC)}</div><div className="mt-8 flex items-center gap-3 text-red-500 font-bold bg-white inline-flex px-8 py-4 rounded-full shadow-sm border border-red-100 text-2xl"><i className="ph ph-warning-circle text-3xl"></i> Replace red text with target word.</div></div><div className="flex items-center gap-8 mb-10"><button onClick={()=>deductGlobal(10, ()=>setShowTarget(true))} disabled={showTarget} className="bg-pink-50 text-pink-600 px-10 py-5 rounded-[2rem] font-bold hover:bg-pink-100 disabled:opacity-50 transition border-2 border-pink-200 flex items-center gap-4 text-2xl"><i className="ph ph-eye text-3xl"></i> Reveal Target (-10)</button>{showTarget ? <div className="text-4xl animate-fade-in flex items-center gap-4">Target: <span className="text-indigo-600 font-bold text-5xl bg-indigo-50 px-6 py-3 rounded-2xl border border-indigo-100">{w.w}</span></div> : <div className="h-20 bg-slate-200 rounded-3xl w-80 animate-pulse"></div>}</div><form onSubmit={check} className="flex-1 flex flex-col"><textarea value={val} onChange={e=>setVal(e.target.value)} className="w-full flex-1 p-10 border-4 border-slate-300 rounded-[3rem] focus:border-indigo-500 outline-none text-4xl resize-none bg-white shadow-inner font-serif text-slate-700 placeholder:text-slate-300" placeholder="Type the restored sentence..." /><button className="w-full mt-10 bg-pink-600 text-white py-8 rounded-[3rem] font-bold text-4xl shadow-2xl hover:bg-pink-700 transition transform hover:scale-[1.01]">Submit Answer (+{potential})</button></form></div></div>
+                <div className="w-full flex flex-col items-center p-4 md:p-10 fade-in" style={{ fontSize: `${fontScale}rem` }}>
+                    <div className="w-full max-w-[1200px] flex justify-between items-center text-white mb-8">
+                        <div className="flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full"><i className="ph ph-pencil-simple text-2xl text-indigo-300"></i> <h2 className="text-xl font-bold">Writing Challenge</h2></div>
+                        <div className="flex gap-4 items-center"><span className="text-yellow-300 font-bold flex gap-2 text-xl bg-black/40 px-6 py-2 rounded-full border border-yellow-500/30 shadow-xl"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span></div>
+                    </div>
+                    <div className="bg-white/95 rounded-[3rem] p-8 md:p-12 shadow-2xl w-full max-w-[1000px] flex flex-col">
+                        <div className="bg-slate-100 rounded-3xl p-8 mb-8"><p className="text-sm font-bold text-slate-400 uppercase mb-4 tracking-widest">Scenario</p><div className="text-2xl md:text-3xl serif text-slate-800 leading-relaxed">{w.hintC}</div></div>
+                        <button onClick={() => setShowTarget(true)} disabled={showTarget} className="self-start mb-6 text-indigo-600 font-bold border-b-2 border-indigo-200">提示关键词</button>
+                        {showTarget && <div className="mb-6 text-3xl font-bold text-indigo-600">{w.w}</div>}
+                        <form onSubmit={check} className="flex flex-col"><textarea value={val} onChange={e=>setVal(e.target.value)} className="w-full h-48 p-6 border-2 border-slate-200 rounded-2xl focus:border-indigo-500 outline-none text-xl resize-none font-serif" placeholder="使用目标词重写或恢复句子..." /><button className="w-full mt-8 bg-indigo-600 text-white py-6 rounded-2xl font-bold text-2xl shadow-xl hover:bg-indigo-700 transition">完成</button></form>
+                    </div>
+                </div>
             );
         };
 
-        const Summary = ({ s }) => {
+        const Summary = ({ s, fontScale }) => {
             const m = Math.floor(s.time/60);
             return (
-                <div className="w-full h-full flex flex-col items-center justify-center p-8 text-white text-center fade-in"><i className="ph ph-trophy text-[12rem] text-yellow-300 mb-12 animate-bounce drop-shadow-2xl"></i><h1 className="text-9xl font-extrabold mb-16 tracking-tight drop-shadow-xl font-serif">Batch Complete!</h1><div className="bg-white/10 backdrop-blur-xl rounded-[4rem] p-16 border border-white/20 mb-16 w-full max-w-5xl grid grid-cols-2 gap-16 shadow-2xl"><div><div className="text-2xl uppercase tracking-widest opacity-80 mb-4 font-bold">Total Score</div><div className="text-[7rem] font-bold text-yellow-300 drop-shadow-md leading-none">{s.pts}</div></div><div><div className="text-2xl uppercase tracking-widest opacity-80 mb-4 font-bold">Time Spent</div><div className={`text-[7rem] font-bold drop-shadow-md leading-none ${m>=25?'text-green-300':'text-red-300'}`}>{m}m</div></div></div><div className="bg-slate-900/80 p-12 rounded-[3rem] max-w-4xl border border-white/10 shadow-2xl backdrop-blur-md w-full"><h3 className="text-4xl font-bold text-yellow-400 mb-8 flex items-center justify-center gap-5"><i className="ph ph-star-fill"></i> STEVEN UP STAR</h3><p className="text-3xl text-slate-100 leading-relaxed font-light">Screenshot this screen to redeem rewards.<br/><span className="text-red-300 font-bold bg-red-900/40 px-6 py-3 rounded-2xl mt-6 inline-block backdrop-blur-sm border border-red-500/30">Requirement: Study Time > 25 mins</span></p></div></div>
+                <div className="w-full h-screen flex flex-col items-center justify-center p-8 text-white text-center fade-in" style={{ fontSize: `${fontScale}rem` }}>
+                    <i className="ph ph-trophy text-[8rem] text-yellow-300 mb-8 animate-bounce"></i>
+                    <h1 className="text-5xl md:text-8xl font-bold mb-12 font-serif">Batch Complete!</h1>
+                    <div className="bg-white/10 p-10 rounded-[3rem] border border-white/20 mb-12 w-full max-w-4xl grid grid-cols-2 gap-8">
+                        <div><div className="text-lg uppercase opacity-70 mb-2">Total Score</div><div className="text-6xl font-bold text-yellow-300">{s.pts}</div></div>
+                        <div><div className="text-lg uppercase opacity-70 mb-2">Time Used</div><div className="text-6xl font-bold">{m}m</div></div>
+                    </div>
+                    <p className="text-2xl opacity-80">截图保存成绩！</p>
+                    <button onClick={() => window.location.reload()} className="mt-8 bg-white text-indigo-900 font-bold py-4 px-10 rounded-full text-xl hover:scale-105 transition">返回主菜单</button>
+                </div>
             );
         };
 
         const App = () => {
-            const [mode, setMode] = useState('dash'); const [batch, setBatch] = useState(0); const [words, setWords] = useState([]); const [startT, setStartT] = useState(0); const [score, setScore] = useState(150); const [fin, setFin] = useState({pts:0, time:0});
-            const start = (i) => { setBatch(i); setWords(FULL_VOCAB.slice(i*BATCH_SIZE, (i+1)*BATCH_SIZE)); setStartT(Date.now()); setScore(150); setMode('flash'); };
-            const finish = () => { setFin({ pts: score, time: (Date.now()-startT)/1000 }); setMode('summary'); };
+            const [mode, setMode] = useState('dash'); 
+            const [batch, setBatch] = useState(0); 
+            const [words, setWords] = useState([]); 
+            const [startT, setStartT] = useState(0); 
+            const [score, setScore] = useState(150); 
+            const [fin, setFin] = useState({pts:0, time:0});
+            const [fontScale, setFontScale] = useState(1);
+
+            const start = (i) => { 
+                const selectedWords = FULL_VOCAB.slice(i*BATCH_SIZE, (i+1)*BATCH_SIZE);
+                setBatch(i); 
+                setWords(selectedWords); 
+                setStartT(Date.now()); 
+                setScore(150); 
+                setMode('flash'); 
+            };
+
+            const finish = () => { 
+                setFin({ pts: score, time: (Date.now()-startT)/1000 }); 
+                setMode('summary'); 
+            };
+
             const updateScore = (delta) => setScore(s => s + delta);
-            return <>{mode==='dash' && <Dashboard onStart={start} />}{mode==='flash' && <Flashcards words={words} onNextModule={()=>setMode('match')} updateScore={updateScore} score={score} />}{mode==='match' && <Match words={words} onNextModule={()=>setMode('dictation')} updateScore={updateScore} score={score} />}{mode==='dictation' && <Dictation words={words} onNextModule={()=>setMode('unscramble')} updateScore={updateScore} score={score} />}{mode==='unscramble' && <Unscramble words={words} onNextModule={()=>setMode('writing')} updateScore={updateScore} score={score} />}{mode==='writing' && <Writing words={words} onFinish={finish} updateScore={updateScore} score={score} />}{mode==='summary' && <Summary s={fin} />}</>;
+
+            return (
+                <div className="min-h-screen">
+                    <FontControls fontScale={fontScale} setFontScale={setFontScale} />
+                    {mode==='dash' && <Dashboard onStart={start} fontScale={fontScale} />}
+                    {mode==='flash' && <Flashcards words={words} onNextModule={()=>setMode('match')} updateScore={updateScore} score={score} fontScale={fontScale} />}
+                    {mode==='match' && <Match words={words} onNextModule={()=>setMode('dictation')} updateScore={updateScore} score={score} fontScale={fontScale} />}
+                    {mode==='dictation' && <Dictation words={words} onNextModule={()=>setMode('unscramble')} updateScore={updateScore} score={score} fontScale={fontScale} />}
+                    {mode==='unscramble' && <Unscramble words={words} onNextModule={()=>setMode('writing')} updateScore={updateScore} score={score} fontScale={fontScale} />}
+                    {mode==='writing' && <Writing words={words} onFinish={finish} updateScore={updateScore} score={score} fontScale={fontScale} />}
+                    {mode==='summary' && <Summary s={fin} fontScale={fontScale} />}
+                </div>
+            );
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
