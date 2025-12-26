@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit 2 Elite Vocab Lab (Azure Neural)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Serif:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; overflow: hidden; color: #0f172a; }
+        .serif { font-family: 'Noto Serif', serif; }
+        
+        /* 极光背景 */
+        .bg-animate { 
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); 
+            background-size: 400% 400%; 
+            animation: gradient 30s ease infinite; 
+        }
+        @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        /* 玻璃拟态 */
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(24px); 
+            border: 1px solid rgba(255, 255, 255, 0.5); 
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.3); 
+        }
+
+        /* 滚动条美化 */
+        .custom-scroll { overflow-y: auto; }
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .fade-in { animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shrink { from { width: 100%; } to { width: 0%; } }
+        .animate-shrink { animation: shrink 10s linear forwards; }
+    </style>
+</head>
+<body class="bg-animate h-screen w-screen flex flex-col">
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // Azure Configuration (已自动填入)
+        // ==========================================
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const azureRegion = "eastus2"; 
+        // ==========================================
+        
+        // 全局合成器变量
+        let currentSynthesizer = null;
+
+        // Azure TTS 核心函数
+        const speak = (text, onComplete) => {
+            // 如果之前有正在播放的，先停止，防止声音重叠
+            if (currentSynthesizer) {
+                currentSynthesizer.close();
+                currentSynthesizer = null;
+            }
+
+            if (!text) return;
+
+            // 初始化配置
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+            speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; // 设置为最自然的 Jenny 语音
+
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+            
+            currentSynthesizer = synthesizer;
+
+            // 开始合成
+            synthesizer.speakTextAsync(
+                text,
+                result => {
+                    if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                        // 播放成功
+                    } else {
+                        console.error("Speech synthesis canceled, " + result.errorDetails);
+                    }
+                    synthesizer.close();
+                    currentSynthesizer = null;
+                    if (onComplete) onComplete();
+                },
+                error => {
+                    console.error(error);
+                    synthesizer.close();
+                    currentSynthesizer = null;
+                }
+            );
+        };
+
+        const stopSpeech = () => {
+            if (currentSynthesizer) {
+                currentSynthesizer.close();
+                currentSynthesizer = null;
+            }
+        };
+
+
+     const VOCAB_DATA = [
+            ["Achieve", "A-chieve", "实现; 达到", "To successfully complete something or get a result.", "With consistent effort, you can achieve your personal goals.", "只要坚持努力，你就能实现你的个人目标。", "The team achieved a great victory after months of training.", "经过几个月的训练，团队取得了一场伟大的胜利。", "It is difficult to achieve success without a clear plan.", "没有清晰的计划很难取得成功。", "It is difficult to [attain] success without a clear plan."],
+             ["Adventure", "Ad-ven-ture", "冒险", "An unusual, exciting, and possibly dangerous activity.", "Our hiking trip turned into a real adventure when it started to snow.", "当开始下雪时，我们的徒步旅行变成了一场真正的冒险。", "He travels the world looking for adventure and new experiences.", "他周游世界，寻找冒险和新的体验。", "Life is a daring adventure or nothing at all.", "生活要么是一场大胆的冒险，要么什么都不是。", "Life is a daring [escapade] or nothing at all."],
+                      ["Afford", "Af-ford", "买得起", "To have enough money or time to do something.", "We can't afford to go on vacation this year.", "我们今年去不起度假。", "I would love that car, but I simply can't afford it right now.", "我很想要那辆车，但我现在根本买不起。", "Companies cannot afford to ignore customer complaints.", "公司承担不起忽视顾客投诉的后果。", "Companies cannot [bear the cost] to ignore customer complaints."],
+        
+            ["Alive", "A-live", "活着的; 有活力的", "Living, not dead; full of energy.", "It was a serious accident, but luckily he is still alive.", "这是一场严重的事故，但幸运的是他还活着。", "The city center really comes alive at night with music.", "市中心在夜晚随着音乐变得充满活力。", "Traditional stories keep our history alive for future generations.", "传统故事让我们的历史为后代保持活力。", "Traditional stories keep our history [active/existing] for future generations."],
+        
+            ["Animator", "An-i-ma-tor", "动画师", "A person who makes animated films or cartoons.", "The animator spent weeks creating the character's movements.", "动画师花了几周时间创作角色的动作。", "She works as a lead animator for a famous movie studio.", "她在一家著名的电影制片厂担任首席动画师。", "He wants to be an animator because he loves drawing.", "他想成为一名动画师，因为他喜欢画画。", "He wants to be an [cartoon artist] because he loves drawing."],
+         
+            ["Appliance", "Ap-pli-ance", "电器", "A machine used for household tasks.", "The washing machine is an essential household appliance.", "洗衣机是必不可少的家用电器。", "Make sure to unplug the appliance before cleaning it.", "清洁电器前务必拔掉电源。", "Modern kitchen appliances save us a lot of time.", "现代厨房电器为我们节省了很多时间。", "Modern kitchen [machines/devices] save us a lot of time."],
+          
+            ["Astronaut", "As-tro-naut", "宇航员", "A person trained to travel in a spacecraft.", "The astronaut described the view of Earth as beautiful.", "宇航员将地球的景色描述为美丽的。", "Becoming an astronaut requires years of rigorous training.", "成为一名宇航员需要多年的严格训练。", "She dreams of being the first astronaut to visit Mars.", "她梦想成为第一个访问火星的宇航员。", "She dreams of being the first [space traveler] to visit Mars."],
+            ["Athlete", "Ath-lete", "运动员", "A person who is very good at sports.", "The athlete trains for six hours every single day.", "这位运动员每天训练六个小时。", "He is a talented athlete who excels in running.", "他是一位擅长跑步的天才运动员。", "Every athlete wants to win a gold medal at the Olympics.", "每个运动员都想在奥运会上赢得金牌。", "Every [sports person] wants to win a gold medal at the Olympics."],
+            ["Audience", "Au-di-ence", "观众", "The group of people watching or listening to something.", "The audience clapped loudly at the end of the show.", "演出结束时观众大声鼓掌。", "The speaker engaged the audience with interesting stories.", "演讲者用有趣的故事吸引了听众。", "The target audience for this movie is teenagers.", "这部电影的目标受众是青少年。", "The target [viewers/spectators] for this movie is teenagers."],
+            ["Available", "A-vail-a-ble", "可用的; 有空的", "Able to be used or obtained.", "I checked if there were any seats available on the flight.", "我检查了航班上是否有空位。", "The new product will be available in stores next week.", "新产品将于下周在商店上架。", "Is the manager available to speak with me now?", "经理现在有空和我说话吗？", "Is the manager [free/open] to speak with me now?"],
+            ["Aviation", "A-vi-a-tion", "航空", "The activity of flying or operating aircraft.", "He works in the aviation industry as a safety inspector.", "他在航空业担任安全检查员。", "Advances in aviation have made travel much faster.", "航空的进步使旅行变得快得多。", "She has a passion for aviation and wants to fly planes.", "她对航空充满热情，想开飞机。", "She has a passion for [flying aircraft] and wants to fly planes."],
+        
+        
+            ["Caption", "Cap-tion", "说明文字", "A short text under a picture.", "The caption under the photo explains where it was taken.", "照片下的说明文字解释了拍摄地点。", "I wrote a funny caption for my Instagram post.", "我为我的Instagram帖子写了一个有趣的标题。", "Please read the caption to understand the diagram.", "请阅读说明文字以理解图表。", "Please read the [description text] to understand the diagram."],
+            ["Career", "Ca-reer", "职业", "An occupation undertaken for a long period.", "She decided to pursue a career in medicine.", "她决定从事医学职业。", "Building a successful career requires hard work and patience.", "建立成功的职业生涯需要努力工作和耐心。", "He ruined his political career with that scandal.", "那桩丑闻毁了他的政治生涯。", "He ruined his political [profession/path] with that scandal."],
+            ["Challenge", "Chal-lenge", "挑战", "A difficult task that tests your ability.", "Climbing the mountain was the biggest challenge of my life.", "爬山是我一生中最大的挑战。", "I am ready to accept a new challenge at work.", "我准备好在工作中接受新的挑战了。", "She challenged herself to read 50 books this year.", "她挑战自己今年读50本书。", "She [tested] herself to read 50 books this year."],
+            ["Challenging", "Chal-leng-ing", "具有挑战性的", "Difficult in an interesting way.", "The math exam was challenging but I think I passed.", "数学考试很有挑战性，但我认为我通过了。", "Teaching young children can be a challenging job.", "教小孩子可能是一项具有挑战性的工作。", "He enjoys solving challenging puzzles in his free time.", "他喜欢在空闲时间解具有挑战性的谜题。", "He enjoys solving [difficult] puzzles in his free time."],
+            ["Chore", "Chore", "家务; 苦差事", "A routine task, especially a household one.", "I have to finish my chores before I can go out.", "我必须做完家务才能出去。", "Washing the dishes is a chore that I really dislike.", "洗碗是我真的不喜欢的苦差事。", "Modern appliances make household chores much easier.", "现代电器使家务变得容易得多。", "Modern appliances make household [routine tasks] much easier."],
+            ["Chuckle", "Chuck-le", "轻声笑", "To laugh quietly.", "He gave a quiet chuckle when he read the message.", "当他读到那条信息时，轻声笑了一下。", "The audience chuckled at the comedian's opening joke.", "观众对喜剧演员的开场笑话轻声发笑。", "She tried to suppress a chuckle during the serious meeting.", "她在严肃的会议中试图忍住轻笑。", "She tried to suppress a [quiet laugh] during the serious meeting."],
+            ["Circus", "Cir-cus", "马戏团", "A show with acrobats, clowns, and animals.", "The acrobats at the circus performed amazing stunts.", "马戏团的杂技演员表演了惊人的特技。", "As a child, he wanted to run away and join the circus.", "作为一个孩子，他想离家出走加入马戏团。", "The media turned the trial into a complete circus.", "媒体把这场审判变成了一场彻头彻尾的闹剧。", "The media turned the trial into a complete [chaotic show]."],
+            ["Climate", "Cli-mate", "气候", "The typical weather conditions in an area.", "This region has a mild climate with warm summers.", "这个地区气候温和，夏季温暖。", "Climate change is causing more extreme weather events.", "气候变化正导致更极端的极端天气事件。", "They moved to Spain because they prefer a warmer climate.", "他们搬到了西班牙，因为他们更喜欢温暖的气候。", "They moved to Spain because they prefer a warmer [weather pattern]."],
+     
+            ["Collect", "Col-lect", "收集", "To bring things together.", "He likes to collect rare coins from around the world.", "他喜欢收集来自世界各地的稀有硬币。", "We are trying to collect money for the local charity.", "我们正在为当地慈善机构筹款。", "I need a moment to collect my thoughts.", "我需要一点时间来整理思绪。", "I need a moment to [gather] my thoughts."],
+            ["Commitment", "Com-mit-ment", "承诺; 投入", "A promise or firm decision to do something.", "Marriage is a lifelong commitment to another person.", "婚姻是对另一个人的终身承诺。", "Her commitment to her studies resulted in high grades.", "她对学习的投入带来了高分。", "The company made a commitment to reduce waste.", "公司承诺减少浪费。", "The company made a [promise/pledge] to reduce waste."],
+      
+            ["Compete", "Com-pete", "竞争", "To try to be more successful than others.", "Athletes from many countries compete in the Olympics.", "来自许多国家的运动员参加奥运会。", "Small shops find it hard to compete with big supermarkets.", "小商店发现很难与大超市竞争。", "They compete against each other for the top prize.", "他们为头奖而相互竞争。", "They [vie/contend] against each other for the top prize."],
+            ["Competition", "Com-pe-ti-tion", "比赛; 竞争", "An event where people try to win.", "There is strong competition for jobs in this city.", "在这个城市，就业竞争非常激烈。", "She won first prize in the piano competition.", "她在钢琴比赛中获得了一等奖。", "Healthy competition can improve performance.", "良性竞争可以提高表现。", "Healthy [rivalry] can improve performance."],
+            ["Competitive", "Com-pet-i-tive", "有竞争力的", "Wanting to win or be better than others.", "The market for smartphones is extremely competitive.", "智能手机市场竞争极其激烈。", "She has a competitive spirit and hates to lose.", "她有竞争精神，讨厌输。", "We offer a competitive salary to attract the best workers.", "我们提供有竞争力的薪水以吸引最好的工人。", "We offer a [market-leading] salary to attract the best workers."],
+            ["Contact", "Con-tact", "联系", "Communication with someone.", "Please contact us if you have any questions.", "如果您有任何问题，请联系我们。", "I lost contact with my friends from high school.", "我和高中的朋友失去了联系。", "Avoid direct contact with this chemical.", "避免直接接触这种化学品。", "Avoid direct [touch/exposure] with this chemical."],
+       
+            ["Create", "Cre-ate", "创造", "To make something new exist.", "The artist used metal to create a beautiful sculpture.", "艺术家用金属创作了一个美丽的雕塑。", "The new policy will create more jobs for young people.", "新政策将为年轻人创造更多就业机会。", "She wants to create a safe home for her family.", "她想为家人创造一个安全的家。", "She wants to [make/build] a safe home for her family."],
+            ["Creative", "Cre-a-tive", "有创意的", "Having good imagination and ideas.", "She is very creative and loves painting and writing.", "她很有创意，喜欢绘画和写作。", "We need a creative solution to solve this problem.", "我们需要一个有创意的解决方案来解决这个问题。", "He works as a creative director in an ad agency.", "他在一家广告公司担任创意总监。", "He works as a [imaginative] director in an ad agency."],
+            ["Creator", "Cre-a-tor", "创作者", "A person who makes something.", "J.K. Rowling is the creator of Harry Potter.", "J.K.罗琳是哈利·波特的创作者。", "The creator of this app became very rich.", "这个应用的创作者变得非常富有。", "Artists are often the creators of culture.", "艺术家通常是文化的创造者。", "Artists are often the [makers/inventors] of culture."],
+            ["Customer", "Cus-tom-er", "顾客", "A person who buys things.", "The shop assistant helped the customer find a shirt.", "店员帮助顾客找了一件衬衫。", "Customer satisfaction is very important for our business.", "顾客满意度对我们的业务非常重要。", "Regular customers get a discount at this store.", "老顾客在这家店有折扣。", "Regular [buyers/clients] get a discount at this store."],
+            ["Daily basis", "Dai-ly", "每天", "Happening every day.", "I exercise on a daily basis to stay healthy.", "我每天锻炼以保持健康。", "We update the website content on a daily basis.", "我们每天更新网站内容。", "She deals with customers on a daily basis.", "她每天都与顾客打交道。", "She deals with customers on a [everyday schedule]."],
+            ["Deposit", "De-pos-it", "存款; 沉淀", "Money in bank; layer of substance.", "I need to go to the bank to make a deposit.", "我需要去银行存一笔钱。", "The flood left a thick deposit of mud on the road.", "洪水在路上留下了厚厚的淤泥沉淀。", "You must pay a deposit to rent the apartment.", "你必须付押金才能租这套公寓。", "You must pay a [down payment] to rent the apartment."],
+        
+            ["Developer", "De-vel-op-er", "开发者", "Person who builds software or buildings.", "The software developer fixed the bug in the app.", "软件开发人员修复了应用中的错误。", "A developer plans to build a mall here.", "一位开发商计划在这里建一个商场。", "She is the lead developer on this project.", "她是这个项目的首席开发人员。", "She is the lead [programmer/builder] on this project."],
+            ["Digital", "Dig-i-tal", "数字的", "Using computer technology.", "We live in a digital age of fast information.", "我们生活在一个信息快速的数字时代。", "I prefer using a digital camera for photos.", "我更喜欢用数码相机拍照。", "Digital marketing is important for modern businesses.", "数字营销对现代企业很重要。", "[Online/Electronic] marketing is important for modern businesses."],
+    
+            ["Documentary", "Doc-u-men-ta-ry", "纪录片", "A factual film about real life.", "We watched a documentary about wild animals.", "我们看了一部关于野生动物的纪录片。", "The documentary showed the truth about the war.", "这部纪录片展示了关于战争的真相。", "She is filming a documentary in the jungle.", "她正在丛林里拍摄一部纪录片。", "She is filming a [factual film] in the jungle."],
+        
+            ["Earn", "Earn", "赚取", "To get money for work.", "She earns a good salary as a lawyer.", "作为律师她赚取不错的薪水。", "You have to work hard to earn respect.", "你必须努力工作才能赢得尊重。", "He hopes to earn enough money to buy a house.", "他希望能赚够钱买房子。", "He hopes to [make/gain] enough money to buy a house."],
+            ["Effect", "Ef-fect", "效果", "A result of an action.", "The medicine had a quick effect on my headache.", "这药对我的头痛有很快的效果。", "Pollution has a bad effect on the environment.", "污染对环境有不良影响。", "The special effects in the movie were amazing.", "电影里的特效令人惊叹。", "The special [visual tricks] in the movie were amazing."],
+            ["Elite", "E-lite", "精英", "The best group of people.", "He joined an elite team of scientists.", "他加入了一个精英科学家团队。", "Only elite athletes compete in the Olympics.", "只有精英运动员参加奥运会。", "She went to an elite university in the US.", "她去了美国的一所精英大学。", "She went to an [top-tier/exclusive] university in the US."],
+            ["Engineer", "En-gi-neer", "工程师", "Person who designs machines.", "The civil engineer designed the new bridge.", "土木工程师设计了这座新桥。", "She is a software engineer for a tech company.", "她是一家科技公司的软件工程师。", "Engineers solve technical problems.", "工程师解决技术问题。", "[Technical designers] solve technical problems."],
+            ["Enjoy", "En-joy", "享受", "To get pleasure from something.", "I enjoy reading books on the weekend.", "我喜欢周末看书。", "Did you enjoy the party last night?", "你昨晚的派对玩得开心吗？", "He enjoys playing football with his friends.", "他喜欢和朋友踢足球。", "He [likes/takes pleasure in] playing football with his friends."],
+            ["Entertain", "En-ter-tain", "娱乐", "To amuse people.", "The clown entertained the children at the party.", "小丑在派对上逗乐了孩子们。", "He entertained us with funny stories.", "他用有趣的故事招待我们。", "We like to entertain guests at our home.", "我们喜欢在家招待客人。", "We like to [amuse/host] guests at our home."],
+        
+            ["Entertainment", "En-ter-tain-ment", "娱乐", "Things that are fun to watch or do.", "Movies are a popular form of entertainment.", "电影是一种流行的娱乐形式。", "The city offers great nightlife entertainment.", "这座城市提供很棒的夜生活娱乐。", "There was live entertainment at the wedding.", "婚礼上有现场娱乐表演。", "There was live [amusement/performance] at the wedding."],
+            ["Entrance exam", "En-trance ex-am", "入学考试", "Test to enter a school.", "She studied hard for the university entrance exam.", "她为大学入学考试刻苦学习。", "The entrance exam was very difficult to pass.", "入学考试很难通过。", "He was happy when he passed the entrance exam.", "当他通过入学考试时很高兴。", "He was happy when he passed the [admission test]."],
+            ["Environment", "En-vi-ron-ment", "环境", "The natural world around us.", "We must do more to protect the environment.", "我们必须做更多来保护环境。", "Plastic waste is bad for the environment.", "塑料垃圾对环境有害。", "A clean environment is important for health.", "清洁的环境对健康很重要。", "A clean [surrounding/setting] is important for health."],
+            ["Environmental", "En-vi-ron-men-tal", "环境的", "Relating to nature.", "Climate change is a major environmental issue.", "气候变化是一个主要的环境问题。", "The government passed new environmental laws.", "政府通过了新的环境法。", "He works for an environmental organization.", "他为一家环境组织工作。", "He works for an [ecological] organization."],
+            ["Environmentally", "En-vi-ron-men-tal-ly", "环保地", "In a way that protects nature.", "We should try to live environmentally.", "我们应该尝试环保地生活。", "This product is environmentally friendly.", "这个产品是环保的。", "Acting environmentally responsibly is important.", "以对环境负责的方式行事很重要。", "Acting [ecologically] responsibly is important."],
+      
+            ["Expense", "Ex-pense", "费用", "The money you spend on something.", "Travel is a big expense for our company.", "旅行是我们公司的一大笔开支。", "He paid for the dinner at his own expense.", "他自费付了晚餐钱。", "Buying a house is a huge expense.", "买房是一笔巨大的开支。", "Buying a house is a huge [cost/spending]."],
+            ["Explain", "Ex-plain", "解释", "To make something clear.", "Can you explain how this machine works?", "你能解释一下这台机器怎么工作吗？", "She explained why she was late for work.", "她解释了为什么上班迟到。", "It is difficult to explain my feelings.", "很难解释我的感受。", "It is difficult to [describe/clarify] my feelings."],
+            ["Fail", "Fail", "失败", "Not to succeed.", "If you don't study, you might fail the test.", "如果你不学习，可能会考试不及格。", "He failed to arrive on time.", "他没能按时到达。", "Don't be afraid to fail, keep trying.", "不要害怕失败，继续尝试。", "Don't be afraid to [not succeed], keep trying."],
+            ["Fair", "Fair", "公平的", "Treating everyone equally.", "It is not fair to cheat in a game.", "在游戏中作弊是不公平的。", "The teacher tries to be fair to all students.", "老师试图对所有学生公平。", "We want a fair price for the car.", "我们想要一个公平的汽车价格。", "We want a [just/reasonable] price for the car."],
+      
+            ["Fix", "Fix", "修理", "To repair something.", "Can you fix my broken computer?", "你能修好我的坏电脑吗？", "He fixed the leak in the roof yesterday.", "他昨天修好了屋顶的漏洞。", "It is easy to fix this small problem.", "解决这个小问题很容易。", "It is easy to [repair/solve] this small problem."],
+            ["Fossil fuel consumption", "Fos-sil fu-el", "化石燃料消耗", "Using coal, oil, or gas.", "We need to reduce fossil fuel consumption.", "我们需要减少化石燃料消耗。", "High fossil fuel consumption causes pollution.", "高化石燃料消耗导致污染。", "Solar energy lowers fossil fuel consumption.", "太阳能降低化石燃料消耗。", "Solar energy lowers [burning of coal and oil]."],
+            ["Frightened", "Fright-ened", "受惊的", "Scared or afraid.", "The child was frightened by the loud noise.", "孩子被巨大的噪音吓坏了。", "She is frightened of spiders.", "她害怕蜘蛛。", "Don't be frightened, it's just a movie.", "别害怕，这只是一部电影。", "Don't be [scared/afraid], it's just a movie."],
+            ["Frustrated", "Frus-trat-ed", "沮丧的", "Feeling annoyed by failure.", "I feel frustrated when I can't solve the problem.", "当我无法解决问题时，我感到沮丧。", "She was frustrated with the slow internet.", "她对缓慢的网络感到沮丧。", "He looked frustrated after losing the game.", "输掉比赛后他看起来很沮丧。", "He looked [annoyed/disappointed] after losing the game."],
+            ["Functional", "Func-tion-al", "实用的", "Practical and useful.", "The furniture is simple but functional.", "家具很简单但很实用。", "Is the old printer still functional?", "旧打印机还能用吗？", "This coat is warm and functional for winter.", "这件外套冬天既暖和又实用。", "This coat is warm and [practical/useful] for winter."],
+       
+            ["Geography", "Ge-og-ra-phy", "地理", "Study of places and earth.", "My favorite subject in school was geography.", "我在学校最喜欢的科目是地理。", "The geography of the island is very beautiful.", "岛屿的地理环境非常美丽。", "We learned about rivers in geography class.", "我们在地理课上学习了河流。", "We learned about rivers in [earth science] class."],
+       
+            ["Geology", "Ge-ol-o-gy", "地质学", "Study of rocks and earth.", "She is studying geology at university.", "她在大学学习地质学。", "The geology of the canyon is fascinating.", "峡谷的地质非常迷人。", "Understanding geology helps predict earthquakes.", "了解地质学有助于预测地震。", "Understanding [rock structure/earth science] helps predict earthquakes."],
+            ["Give up", "Give up", "放弃", "To stop trying.", "Never give up on your dreams.", "永远不要放弃你的梦想。", "He decided to give up smoking last year.", "他去年决定戒烟。", "I give up, tell me the answer.", "我放弃了，告诉我答案。", "I [quit/surrender], tell me the answer."],
+            ["Goal", "Goal", "目标", "Something you want to do.", "My goal is to learn to speak Spanish.", "我的目标是学会说西班牙语。", "He scored the winning goal in the match.", "他在比赛中进了致胜一球。", "Set a goal and work hard to reach it.", "设定一个目标并努力去实现它。", "Set a [target/aim] and work hard to reach it."],
+     
+            ["Gymnastics", "Gym-nas-tics", "体操", "Sport with jumping and balance.", "She practices gymnastics three times a week.", "她每周练习三次体操。", "Gymnastics requires strength and flexibility.", "体操需要力量和柔韧性。", "We watched the gymnastics competition on TV.", "我们在电视上看了体操比赛。", "We watched the [acrobatic sport] competition on TV."],
+            ["Hire", "Hire", "雇佣", "To give someone a job.", "The company plans to hire more staff.", "公司计划招聘更多员工。", "We need to hire a car for our holiday.", "我们需要为假期租一辆车。", "You are hired! When can you start?", "你被录用了！你什么时候能开始？", "You are [employed]! When can you start?"],
+     
+       
+    
+            ["Housewife", "House-wife", "家庭主妇", "Woman who manages home.", "My mother was a housewife and raised three kids.", "我母亲是一位家庭主妇，抚养了三个孩子。", "She is a busy housewife who cooks and cleans.", "她是一位忙碌的家庭主妇，负责做饭和打扫。", "Being a housewife is a hard full-time job.", "做家庭主妇是一份辛苦的全职工作。", "Being a [homemaker] is a hard full-time job."],
+            ["Impartial", "Im-par-tial", "公正的", "Fair; not taking sides.", "A judge must be impartial in court.", "法官在法庭上必须公正。", "He gave impartial advice to both friends.", "他给两个朋友都提供了公正的建议。", "It is hard to remain impartial when you are angry.", "当你生气时很难保持公正。", "It is hard to remain [neutral/unbiased] when you are angry."],
+            ["Impossible", "Im-pos-si-ble", "不可能的", "Cannot be done.", "It is impossible to fly without a plane.", "没有飞机飞行是不可能的。", "Nothing is impossible if you try hard.", "如果你努力尝试，没有什么是不可能的。", "The puzzle seemed impossible to solve.", "这个谜题似乎不可能解开。", "The puzzle seemed [unachievable] to solve."],
+            ["In general", "Gen-er-al", "通常", "Mostly; usually.", "In general, I prefer tea over coffee.", "总的来说，我喜欢茶胜过咖啡。", "The weather here is warm in general.", "这里的气候通常很温暖。", "People in general are kind and helpful.", "人们通常是善良和乐于助人的。", "People [usually/mostly] are kind and helpful."],
+            ["Incredible", "In-cred-i-ble", "难以置信", "Amazing; hard to believe.", "The view from the mountain was incredible.", "山上的景色令人难以置信。", "He told an incredible story about his trip.", "他讲了一个关于他旅行的不可思议的故事。", "You did an incredible job on this project.", "你在这个项目上做得棒极了。", "You did an [amazing/unbelievable] job on this project."],
+            ["Inspire", "In-spire", "激励", "To give someone an idea or hope.", "Her speech inspired me to work harder.", "她的演讲激励我更加努力工作。", "Nature often inspires artists to paint.", "大自然经常激发画家作画。", "Teachers should inspire their students to learn.", "教师应该激励学生学习。", "Teachers should [motivate/encourage] their students to learn."],
+     
+        
+            ["Inventor", "In-ven-tor", "发明家", "Person who creates new things.", "Edison was a famous American inventor.", "爱迪生是一位著名的美国发明家。", "The inventor created a useful new machine.", "发明家创造了一台有用的新机器。", "She wants to be an inventor when she grows up.", "她长大后想成为一名发明家。", "She wants to be an [creator/innovator] when she grows up."],
+            ["Job description", "Job", "职位描述", "List of work duties.", "Read the job description before applying.", "申请前阅读职位描述。", "The job description was very clear.", "职位描述非常清楚。", "It does not fit my job description.", "这不符合我的职位描述。", "It does not fit my [list of duties]."],
+            ["Journalist", "Jour-nal-ist", "记者", "News writer.", "The journalist wrote a story for the newspaper.", "记者为报纸写了一篇报道。", "He works as a journalist in London.", "他在伦敦做记者。", "The journalist interviewed the famous actor.", "记者采访了那位著名演员。", "The [reporter/news writer] interviewed the famous actor."],
+            ["Journey", "Jour-ney", "旅程", "A long trip.", "The journey by train took five hours.", "坐火车旅程花了五个小时。", "Life is a journey, enjoy it.", "人生是一场旅程，享受它。", "We wished him a safe journey home.", "我们祝他回家旅途平安。", "We wished him a safe [trip/travel] home."],
+            ["Landscape", "Land-scape", "风景", "View of the land.", "The landscape was covered in white snow.", "风景被白雪覆盖。", "He painted a beautiful landscape of the hills.", "他画了一幅美丽的山丘风景画。", "I love the green landscape of Ireland.", "我喜欢爱尔兰的绿色风景。", "I love the green [scenery/view] of Ireland."],
+         
+            ["License", "Li-cense", "执照", "Official permission card.", "You need a license to drive a car.", "你需要执照才能开车。", "He lost his fishing license.", "他弄丢了钓鱼执照。", "The shop has a license to sell alcohol.", "这家店有售酒执照。", "The shop has a [permit/permission] to sell alcohol."],
+            ["Lively", "Live-ly", "活泼的", "Full of energy.", "The puppy is very lively and playful.", "这只小狗非常活泼爱玩。", "We had a lively discussion in class.", "我们在课堂上进行了热烈的讨论。", "The music was lively and fun.", "音乐活泼有趣。", "The music was [energetic/upbeat] and fun."],
+            ["Liveliness", "Live-li-ness", "活力", "Being full of energy.", "I love the liveliness of the city market.", "我喜欢城市市场的活力。", "Her liveliness made everyone smile.", "她的活力让每个人都微笑了。", "The team played with great liveliness.", "球队充满活力地比赛。", "The team played with great [energy/vitality]."],
+       
+                ["Magical", "Mag-i-cal", "神奇的", "Like magic; beautiful.", "The fireworks looked magical in the sky.", "烟花在天空中看起来很神奇。", "We had a magical time at the beach.", "我们在海滩度过了神奇的时光。", "The story is about a magical kingdom.", "这个故事是关于一个神奇王国的。", "The story is about a [enchanted/mystical] kingdom."],
+            ["Make you tick", "Tick", "动力", "What drives you.", "What makes you tick?", "什么驱动你？", "I want to know what makes him tick.", "我想知道是什么驱动他。", "Passion is what makes her tick.", "激情是她的动力。", "Passion is what [drives/motivates] her."],
+    
+            ["Nervous", "Ner-vous", "紧张的", "Worried and afraid about what might happen.", "She felt very nervous before her big job interview today.", "今天在重要的工作面试前，她感到非常紧张。", "It is normal to feel nervous when meeting new people.", "见新朋友时感到紧张是正常的。", "He gave a nervous smile when the teacher called him.", "当老师叫他时，他露出了紧张的微笑。", "He gave a [anxious/tense] smile when the teacher called him."],
+         
+            ["Operate", "Op-er-ate", "操作; 运营", "To make a machine work or function.", "You must learn how to operate this machine very carefully.", "你必须学会非常小心地操作这台机器。", "The company operates in many different countries around the world.", "这家公司在世界许多不同的国家运营。", "Doctors operated on the patient to fix his broken leg.", "医生给病人做了手术以修复他的断腿。", "Doctors [performed surgery] on the patient to fix his broken leg."],
+            ["Operation", "Op-er-a-tion", "手术; 行动", "The process of cutting into the body.", "The rescue operation saved the hikers from the snowy mountain.", "救援行动从雪山上救出了徒步旅行者。", "He is recovering well after his knee operation last week.", "他在上周的膝盖手术后恢复得很好。", "The new factory will be in full operation next month.", "新工厂将于下个月全面投入运营。", "The new factory will be in full [functioning/action] next month."],
+        
+            ["Paddle", "Pad-dle", "划桨; 桨", "A short pole with a flat blade.", "We used a paddle to move the boat across water.", "我们用桨让船穿过水面。", "You need strong arms to paddle against the river current.", "你需要强壮的手臂来逆流划船。", "He dropped his paddle in the water and lost it.", "他把桨掉进水里弄丢了。", "He dropped his [oar/blade] in the water and lost it."],
+            ["Paleoclimatology", "Pa-le-o-cli-ma-tol-o-gy", "古气候学", "Study of ancient climates on Earth.", "Paleoclimatology helps us know about the weather in the past.", "古气候学帮助我们了解过去的天气。", "She studies paleoclimatology to learn about ancient climate changes today.", "她通过学习古气候学来了解今天的古代气候变化。", "Scientists use paleoclimatology to help predict the future global warming.", "科学家利用 [the study of ancient climates] to help predict the future global warming."],
+            ["Passionate", "Pas-sion-ate", "充满激情的", "Having very strong feelings about something.", "She is passionate about helping animals and works for free.", "她对帮助动物充满热情，并免费工作。", "He gave a passionate speech that made everyone feel inspired.", "他发表了一场充满激情的演讲，让每个人都深受鼓舞。", "You need to be passionate to succeed in this job.", "你需要充满激情才能在这份工作中取得成功。", "You need to be [enthusiastic/ardent] to succeed in this job."],
+            ["Path", "Path", "道路; 小径", "A way made for walking on ground.", "We walked along a narrow path through the dark forest.", "我们沿着一条穿过黑暗森林的小径走。", "Education is the best path to a good future life.", "教育是通往美好未来生活的最佳途径。", "Choose your own path instead of following what others do.", "选择你自己的道路，而不是跟随别人做的事。", "Choose your own [way/route] instead of following what others do."],
+    
+            ["Perform", "Per-form", "表演; 执行", "To do an action or entertain people.", "The band will perform on the big stage tonight live.", "乐队今晚将在大舞台上现场表演。", "Doctors perform difficult operations to save people every single day.", "医生每天都在进行困难的手术来救人。", "You must perform well to get a promotion at work.", "你必须表现好才能在工作中获得晋升。", "You must [do/work] well to get a promotion at work."],
+            ["Performance", "Per-form-ance", "表现; 演出", "How well a person does a piece.", "Her performance in the school play was very good indeed.", "她在学校戏剧中的表现确实非常好。", "The boss was happy with his performance at work today.", "老板对他今天的工作表现很满意。", "This car is famous for its high speed and performance.", "这辆车以其高速度和高性能而闻名。", "This car is famous for its high speed and [capability/functioning]."],
+        
+            ["Physical", "Phys-i-cal", "身体的; 物理的", "Relating to the body not the mind.", "Daily physical exercise is good for your health and body.", "每天的体育锻炼对你的健康和身体都有好处。", "This job requires a lot of hard physical work everyday.", "这份工作每天需要大量的艰苦体力劳动。", "I prefer reading a physical book instead of an ebook.", "我更喜欢读实体书而不是电子书。", "I prefer reading a [real/tangible] book instead of an ebook."],
+            ["Physician", "Phy-si-cian", "内科医生", "A doctor who treats illness and injury.", "You should go see a physician if you feel sick.", "如果你感觉不舒服，你应该去看医生。", "He has worked as a physician for twenty long years.", "他做医生已经漫长的二十年了。", "The physician told him to eat more fruit and vegetables.", "医生告诉他要多吃水果和蔬菜。", "The [doctor/medical expert] told him to eat more fruit and vegetables."],
+            ["Physicist", "Phys-i-cist", "物理学家", "A scientist who studies matter and energy.", "Albert Einstein is the most famous physicist in the world.", "阿尔伯特·爱因斯坦是世界上最著名的物理学家。", "The physicist explained how gravity works to the young students.", "物理学家向年轻学生解释了重力是如何运作的。", "She works as a physicist in a large research lab.", "她在一家大型研究实验室担任物理学家。", "She works as a [science expert] in a large research lab."],
+            ["Physics", "Phys-ics", "物理学", "The study of matter and energy forces.", "Physics helps us understand how the universe works and moves.", "物理学帮助我们理解宇宙是如何运作和运动的。", "My favorite subject in high school was always science class.", "我在高中最喜欢的科目一直是科学课。", "The laws of physics control everything in the world around.", "物理定律控制着周围世界的一切。", "The laws of [matter and energy] control everything in the world around."],
+            ["Pilot", "Pi-lot", "飞行员", "A person who flies a plane professionally.", "The pilot told us we would land in ten minutes.", "飞行员告诉我们将在十分钟后降落。", "He wants to be a pilot and fly big planes.", "他想成为一名飞行员，驾驶大飞机。", "The pilot landed the plane safely in the bad storm.", "飞行员在恶劣的风暴中安全降落了飞机。", "The [aviator/flyer] landed the plane safely in the bad storm."],
+        
+            ["Possibility", "Pos-si-bil-i-ty", "可能性", "A chance that something may happen.", "There is a possibility of rain later in the afternoon.", "下午晚些时候有可能下雨。", "We should look at every possibility before we decide now.", "我们现在决定之前应该看看每一种可能性。", "Is there any possibility that you can come home early?", "你有可能早点回家吗？", "Is there any [chance/likelihood] that you can come home early?"],
+            ["Practise", "Prac-tise", "练习", "To do something again to get better.", "You must practise speaking English every day to improve fast.", "你必须每天练习说英语才能快速提高。", "If you practise the piano, you will play very well.", "如果你练习钢琴，你会弹得很好。", "Practise makes perfect, so please do not give up trying.", "熟能生巧，所以请不要放弃尝试。", "[Training/Rehearsing] makes perfect, so please do not give up trying."],
+            ["Product", "Prod-uct", "产品", "Something that is made to be sold.", "This new skin product will make your face look young.", "这款新护肤产品会让你的脸看起来年轻。", "We check the product carefully before we sell it out.", "我们在出售之前会仔细检查产品。", "This product is made from recycled paper and plastic materials.", "该产品由回收纸和塑料材料制成。", "This [item/goods] is made from recycled paper and plastic materials."],
+            ["Professional", "Pro-fes-sion-al", "专业的", "Doing a job well and correctly.", "You should always look professional when you go to work.", "去上班时你应该总是看起来很专业。", "He is a professional photographer who takes photos of nature.", "他是一名拍摄自然照片的专业摄影师。", "Please ask for professional advice if you have legal problems.", "如果你有法律问题，请寻求专业建议。", "Please ask for [expert/specialized] advice if you have legal problems."],
+            ["Pursue", "Pur-sue", "追求", "To follow a dream or a person.", "She went to the city to pursue her acting dream.", "她去城市追求她的演艺梦想。", "He wants to pursue a career in music and arts.", "他想从事音乐和艺术事业。", "The police officers pursue the thief down the busy street.", "警察在繁忙的街道上追捕小偷。", "The police officers [chase/follow] the thief down the busy street."],
+            ["Pursuit", "Pur-suit", "追求 (名词)", "The act of trying to get something.", "The pursuit of happiness is important for every single person.", "追求幸福对每个人都很重要。", "He moved to the city in pursuit of better work.", "为了追求更好的工作，他搬到了城市。", "The police car was in close pursuit of the thief.", "警车紧紧追赶着小偷。", "The police car was in close [chase/hunt] of the thief."],
+        
+        
+            ["Rare", "Rare", "罕见的", "Not seen or found very often.", "It is very rare to see this bird in winter.", "冬天很少见到这种鸟。", "He found a rare coin in the old wooden box.", "他在旧木箱里发现了一枚稀有硬币。", "She has a rare talent for painting beautiful life portraits.", "她在画美丽的生活肖像方面有罕见的天赋。", "She has a [uncommon/scarce] talent for painting beautiful life portraits."],
+            ["Reach for", "Reach for", "伸手去拿", "To stretch arm to get something.", "The baby tried to reach for the toy on top.", "宝宝试图伸手去拿上面的玩具。", "Always reach for your goals even if they seem hard.", "永远追求你的目标，即使它们看起来很难。", "He reached for his phone to call his best friend.", "他伸手去拿手机给最好的朋友打电话。", "He [stretched] for his phone to call his best friend."],
+            ["Realisation", "Re-al-i-sa-tion", "意识到", "The moment you understand something clearly.", "The realisation that I lost my keys was very scary.", "意识到我丢了钥匙非常可怕。", "His realisation of the truth came too late to help.", "他对真相的意识到得太晚了，无法提供帮助。", "It was a sudden realisation that changed his whole mind.", "这是一个突然的觉悟改变了他的整个想法。", "It was a sudden [understanding] that changed his whole mind."],
+            ["Realize", "Re-al-ize", "意识到", "To know and understand something clearly.", "I did not realize how late it was last night.", "我没意识到昨晚有多晚。", "He finally realized that he had made a very big mistake.", "他终于意识到自己犯了一个很大的错误。", "She realized her dream of becoming a doctor this year.", "她今年实现了成为医生的梦想。", "She [fulfilled] her dream of becoming a doctor this year."],
+            ["Reality", "Re-al-i-ty", "现实", "Things as they truly are in life.", "Virtual reality games are becoming very popular with young people.", "虚拟现实游戏在年轻人中变得非常流行。", "In reality, the job was harder than I thought before.", "实际上，这份工作比我之前想的要难。", "You must face reality and solve your problems right now.", "你必须面对现实并立即解决你的问题。", "You must face [the truth] and solve your problems right now."],
+            ["Recycle", "Re-cy-cle", "回收利用", "To use materials again to save waste.", "We should recycle plastic bottles to help save the planet.", "我们应该回收塑料瓶以帮助拯救地球。", "It is good to teach children how to recycle paper.", "教孩子如何回收纸张是很好的。", "This shirt is made from one hundred percent recycled cotton.", "这件衬衫是由百分之百的再生棉制成的。", "This shirt is made from one hundred percent [reused] cotton."],
+            ["Remote", "Re-mote", "偏远的", "Far away from where people live.", "They live in a remote village high in the mountains.", "他们住在高山上的一个偏远村庄。", "I use the remote control to change the TV channel.", "我用遥控器换电视频道。", "Remote working allows you to work from your own home.", "远程办公允许你在自己家里工作。", "[Distant] working allows you to work from your own home."],
+            ["Remoteness", "Re-mote-ness", "偏远 (名词)", "The state of being far away.", "The remoteness of the island makes it a quiet place.", "岛屿的偏远使其成为一个安静的地方。", "He enjoyed the wild beauty and remoteness of the desert.", "他享受沙漠的野性之美和偏远。", "Despite its remoteness, the hotel has a good internet connection.", "尽管偏远，这家酒店有很好的网络连接。", "Despite its [isolation/distance], the hotel has a good internet connection."],
+            ["Renewable energy", "Re-new-a-ble", "可再生能源", "Power from sun, wind or water.", "Solar power is a clean form of renewable energy source.", "太阳能是一种清洁的可再生能源。", "We must use renewable energy to help stop air pollution.", "我们必须使用可再生能源来帮助停止空气污染。", "Investing in renewable energy is good for the future world.", "投资可再生能源对未来世界有益。", "Investing in [sustainable power] is good for the future world."],
+            ["Rescue", "Res-cue", "救援", "To save someone from a danger.", "The lifeguard jumped into the water to rescue the boy.", "救生员跳入水中去救那个男孩。", "They sent a team to rescue the lost hikers yesterday.", "他们昨天派了一个小组去救援迷路的徒步旅行者。", "She likes to rescue abandoned dogs and find them homes.", "她喜欢救援被遗弃的狗并为它们找家。", "She likes to [save] abandoned dogs and find them homes."],
+        
+         
+            ["Sample", "Sam-ple", "样品", "A small part to show the whole.", "I tasted a free sample of cake at the shop.", "我在商店尝了一块免费的蛋糕样品。", "The doctor took a blood sample to check my health.", "医生抽了血样来检查我的健康。", "This is just a small sample of my best work.", "这只是我最好工作的一个小样本。", "This is just a small [example/specimen] of my best work."],
+            ["Satisfaction", "Sat-is-fac-tion", "满意", "A happy feeling when you do well.", "Customer satisfaction is the main goal for our big company.", "顾客满意度是我们大公司的主要目标。", "He looked at his painting with a feeling of satisfaction.", "他带着满足感看着他的画。", "Helping other people gives me a great sense of satisfaction.", "帮助他人给我带来极大的满足感。", "Helping other people gives me a great sense of [contentment]."],
+            ["Satisfied", "Sat-is-fied", "满意的", "Happy with what you have got.", "She was satisfied with her high score on the test.", "她对自己在考试中的高分感到满意。", "A satisfied customer will always come back to the shop.", "满意的顾客总是会回到店里。", "He felt satisfied after eating a very good dinner tonight.", "今晚吃了一顿很好的晚餐后他感到很满足。", "He felt [content/pleased] after eating a very good dinner tonight."],
+            ["Satisfying", "Sat-is-fy-ing", "令人满意的", "Making you feel happy and full.", "Cleaning the house can be a very satisfying thing to do.", "打扫房子可能是一件非常令人满意的事情。", "It is satisfying to see your hard work pay off.", "看到你的努力得到回报是令人满意的。", "We had a satisfying meal at the new restaurant yesterday.", "昨天我们在新餐厅吃了一顿令人满意的饭。", "We had a [pleasing/fulfilling] meal at the new restaurant yesterday."],
+            ["Schedule", "Sched-ule", "日程表", "A list of times for things.", "I have a busy schedule with many meetings this week.", "我这周的日程安排很满，有很多会议。", "The train arrived at the station exactly on the schedule.", "火车准时到达了车站。", "Let me check my schedule before I say yes to you.", "在我答应你之前让我查一下我的日程表。", "Let me check my [timetable/plan] before I say yes to you."],
+            ["Scientific", "Sci-en-tif-ic", "科学的", "Related to science and its methods.", "There is no scientific evidence to show ghosts are real.", "没有科学证据表明鬼魂是真实的。", "We need to use a scientific method to find answers.", "我们需要用科学的方法来寻找答案。", "She likes to read scientific journals in her free time.", "她喜欢在空闲时间读科学期刊。", "She likes to read [technical/research] journals in her free time."],
+        
+["Social", "So-cial", "社交的", "Relating to people meeting each other.", "Social media helps us stay connected with our old friends.", "社交媒体帮助我们要和老朋友保持联系。", "Humans are social animals who need to be with others.", "人类是需要与他人在一起的群居动物。", "Poverty is a major social problem in many big cities.", "贫困是许多大城市的一个主要社会问题。", "Poverty is a major [community/societal] problem in many big cities."],
+     
+            ["Statistics", "Sta-tis-tics", "统计数据", "Numbers that give information about things.", "Statistics show that smoking is very dangerous for your health.", "统计数据显示吸烟对你的健康非常危险。", "He is studying statistics at the university to find jobs.", "他在大学学习统计学是为了找工作。", "According to official statistics, crime is going down this year.", "根据官方统计数据，今年的犯罪率正在下降。", "According to official [data/figures], crime is going down this year."],
+            ["Stressed", "Stressed", "有压力的", "Feeling worried and not able to relax.", "I feel stressed when I have too much work to do.", "当我有太多工作要做时，我感到有压力。", "She gets stressed before every big exam at her school.", "她在学校每次大考前都会感到压力。", "Try to relax and breathe if you are feeling stressed.", "如果你感到有压力，试着放松和呼吸。", "Try to relax and breathe if you are feeling [anxious/under pressure]."],
+            ["Stressful", "Stress-ful", "充满压力的", "Making you feel worried and anxious.", "Moving to a new house is a very stressful event.", "搬新家是一件非常有压力的事情。", "He has a stressful job as a doctor in hospital.", "作为医院的医生，他的工作压力很大。", "Driving in heavy traffic can be a very stressful experience.", "在繁忙的交通中驾驶可能是一种非常有压力的经历。", "Driving in heavy traffic can be a very [pressure-filled] experience."],
+          
+            ["Supervisor", "Su-per-vi-sor", "主管", "A person who watches over workers.", "My supervisor helped me write the report for the meeting.", "我的主管帮我写了会议报告。", "You should ask your supervisor if you can leave early.", "你应该问你的主管你是否可以早退。", "The site supervisor checks that everyone is safe at work.", "现场主管检查每个人在工作中是否安全。", "The site [manager/overseer] checks that everyone is safe at work."],
+            ["Taikonaut", "Tai-ko-naut", "航天员 (中国)", "A Chinese astronaut in space.", "The taikonaut waved to us from the space station TV.", "航天员从空间站电视向我们挥手。", "China sent three taikonauts to space to do science work.", "中国送了三名航天员上太空做科学工作。", "She wants to be a taikonaut when she grows up.", "她长大后想成为一名航天员。", "She wants to be a [Chinese astronaut] when she grows up."],
+         
+            ["Technology", "Tech-nol-o-gy", "科技", "Machines and tools from science.", "Modern technology makes our life easier and faster every day.", "现代科技让我们的生活每天都更轻松快捷。", "We use technology to communicate with friends far away now.", "我们现在用科技与远方的朋友交流。", "The company invests a lot of money in green technology.", "公司在绿色科技上投入了大量资金。", "The company invests a lot of money in green [machinery/innovation]."],
+            ["Telepathy", "Te-lep-a-thy", "心灵感应", "Reading minds without speaking words.", "I knew you would call, it must be telepathy.", "我就知道你会打来，一定是心灵感应。", "Do you believe in telepathy or is it just magic?", "你相信心灵感应还是那只是魔术？", "Twins often seem to have telepathy and feel each other.", "双胞胎似乎经常有心灵感应，能感觉到彼此。", "Twins often seem to have [mind reading] and feel each other."],
+            ["Temperature rise", "Tem-per-a-ture rise", "气温上升", "When it gets hotter outside.", "Global temperature rise is a big problem for the world.", "全球气温上升是世界的一个大问题。", "We must stop the temperature rise to save the ice.", "我们必须阻止气温上升以拯救冰层。", "The temperature rise is melting the snow on the mountains.", "气温上升正在融化山上的雪。", "The [warming] is melting the snow on the mountains."],
+         
+            ["Tuition class", "Tu-i-tion class", "补习班", "Extra lessons after school time.", "He goes to a math tuition class every Saturday morning.", "他每个周六早上都去上数学补习班。", "Tuition classes help students pass their hard exams at school.", "补习班帮助学生通过学校的艰难考试。", "The cost of private tuition classes can be very high.", "私人补习班的费用可能非常高。", "The cost of private [extra lessons] can be very high."],
+            ["Unapologetically", "Un-a-pol-o-get-i-cal-ly", "毫无歉意地", "Without saying sorry for being you.", "She was unapologetically herself and did not care about others.", "她毫无歉意地做自己，不在乎别人。", "He stated his opinion unapologetically during the long meeting today.", "他在今天的长会上毫无歉意地陈述了自己的观点。", "You should be unapologetically proud of your good work.", "你应该对你的好工作毫无歉意地感到自豪。", "You should be [boldly/without sorry] proud of your good work."],
+            ["Unpopulated", "Un-pop-u-lat-ed", "无人居住的", "With no people living there.", "The island is completely unpopulated and has no houses on it.", "这个岛完全无人居住，上面没有房子。", "They explored the unpopulated forest for three days last week.", "上周他们探索了无人居住的森林三天。", "Large parts of the desert remain unpopulated due to heat.", "由于酷热，沙漠的大部分地区仍然无人居住。", "Large parts of the desert remain [uninhabited] due to heat."],
+      
+            ["Valuable", "Val-u-a-ble", "贵重的", "Worth a lot of money.", "This gold ring is very valuable because it is old.", "这枚金戒指非常贵重，因为它是古老的。", "Thank you for your valuable advice, it helped me much.", "谢谢你宝贵的建议，它帮了我大忙。", "Time is our most valuable resource, so do not waste.", "时间是我们最宝贵的资源，所以不要浪费。", "Time is our most [precious] resource, so do not waste."],
+      
+            ["Well-paid", "Well-paid", "薪水优厚的", "Getting a lot of money.", "He has a well-paid job in a big bank now.", "他现在在一家大银行有一份高薪工作。", "It is hard to find a well-paid job without skills.", "没有技能很难找到一份高薪工作。", "Doctors are usually well-paid because they save peoples lives.", "医生通常薪水很高，因为他们救人的命。", "Doctors are usually [high earning] because they save peoples lives."],
+            ["Wilderness", "Wil-der-ness", "荒野", "Wild land with no people.", "They got lost in the wilderness and had no phone.", "他们在荒野中迷路了，没有电话。", "We must protect the wilderness for the wild animals there.", "我们必须为那里的野生动物保护荒野。", "Survival skills are needed if you go into the wilderness.", "如果你进入荒野，需要生存技能。", "Survival skills are needed if you go into the [wild/nature]."]
+              ];
+    // --- Data Processor (Manual Hint V2) ---
+        const FULL_VOCAB = VOCAB_DATA.map((d, i) => {
+            const word = d[0];
+            
+            // 这里修改了逻辑：
+            // 优先读取数组的第11项（索引10）作为 Writing 的题目
+            // 如果第11项不存在，才使用旧的自动替换逻辑作为保底（防止报错）
+            let hintC = d[10]; 
+            
+            if (!hintC) {
+                // 旧的保底逻辑（以防万一你漏加了某个句子的改写）
+                const def = d[3];
+                const exC = d[8];
+                const regex = new RegExp(`\\b${word}\\b`, 'gi');
+                if (regex.test(exC)) {
+                     hintC = exC.replace(regex, `[${def.split(';')[0].split(',')[0].split(' ').slice(0,3).join(' ')}...]`); 
+                } else {
+                     hintC = exC + ` (Target: [${word[0]}...])`;
+                }
+            }
+
+            return {
+                id: i + 1,
+                w: word,
+                syl: d[1],
+                cn: d[2],
+                def: d[3],
+                exA: d[4], cnA: d[5],
+                exB: d[6], cnB: d[7],
+                exC: d[8], cnC: d[9],
+                hintC: hintC // 这里直接使用我们处理好的 hintC
+            };
+        });
+
+        const BATCH_SIZE = 15;
+
+        const cleanTarget = (str) => {
+            return str.toLowerCase()
+                .replace(/\b(sb|sth|somebody|something)\b/g, '')
+                .replace(/\+\s*adj\s*\+/g, '')
+                .replace(/from\s+doing/g, '')
+                .replace(/[^a-z ]/g, '') 
+                .replace(/\s+/g, ' ')
+                .trim();
+        };
+
+        // --- Components ---
+
+        const Dashboard = ({ onStart }) => {
+            const batches = Math.ceil(FULL_VOCAB.length / BATCH_SIZE);
+            return (
+                <div className="w-full h-full flex flex-col items-center p-8 overflow-y-auto custom-scroll">
+                    <h1 className="text-6xl md:text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-100 mb-8 drop-shadow-2xl text-center tracking-tight mt-10">Unit 2 所有词汇复习</h1>
+                    
+                    {/* 高对比度积分规则卡片 */}
+                    <div className="bg-slate-900/90 backdrop-blur-xl p-8 rounded-3xl mb-12 border-2 border-indigo-500/50 text-white max-w-4xl text-center w-full shadow-2xl transform hover:scale-[1.01] transition duration-500 ring-4 ring-black/20">
+                        <h2 className="text-4xl font-bold mb-6 flex items-center justify-center gap-3 text-yellow-400 font-serif tracking-wide border-b border-white/10 pb-4">
+                            <i className="ph ph-crown-simple text-5xl"></i> 积分挑战规则
+                        </h2>
+                        <div className="text-2xl text-slate-100 space-y-5 font-medium leading-relaxed">
+                            <div className="flex justify-center gap-12 flex-wrap">
+                                <p className="flex items-center gap-2"><i className="ph ph-star text-yellow-400"></i> 初始：<span className="font-bold text-white text-3xl">150分</span></p>
+                                <p className="flex items-center gap-2"><i className="ph ph-speaker-high text-green-400"></i> 跟读/盲听：<span className="text-green-400 font-bold text-3xl">+2分</span></p>
+                            </div>
+                            <div className="flex justify-center gap-12 flex-wrap">
+                                <p className="flex items-center gap-2"><i className="ph ph-check-circle text-green-400"></i> 听写拼写：<span className="text-green-400 font-bold text-3xl">+5分</span></p>
+                                <p className="flex items-center gap-2"><i className="ph ph-x-circle text-red-400"></i> 错误惩罚：<span className="text-red-400 font-bold text-3xl">-1 ~ -2分</span></p>
+                            </div>
+                            <div className="mt-6 bg-yellow-500/20 py-3 rounded-xl border border-yellow-500/30">
+                                <p className="font-bold text-yellow-300 animate-pulse text-2xl tracking-wide">📸 每组完成后截图发送给 Steven 兑换 Up Star！</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8 w-full max-w-[1800px] pb-20">
+                        {Array.from({ length: batches }).map((_, i) => (
+                            <button key={i} onClick={() => onStart(i)} className="group bg-white/5 hover:bg-white/10 rounded-[2.5rem] p-10 border border-white/10 hover:border-indigo-400/50 transition-all duration-300 transform hover:-translate-y-2 text-left relative overflow-hidden backdrop-blur-md shadow-2xl h-full flex flex-col justify-between min-h-[220px]">
+                                <div>
+                                    <div className="absolute -right-8 -top-8 opacity-10 group-hover:opacity-20 transition duration-500 rotate-12"><i className="ph ph-planet text-[10rem] text-indigo-300"></i></div>
+                                    <h3 className="text-4xl font-bold text-white mb-3 font-serif">Batch {i + 1}</h3>
+                                    <div className="flex items-center gap-3 text-indigo-200 mb-8">
+                                        <span className="bg-indigo-500/20 px-4 py-1.5 rounded-lg text-base border border-indigo-500/30 font-medium tracking-wide">Words {i * BATCH_SIZE + 1}-{Math.min((i + 1) * BATCH_SIZE, FULL_VOCAB.length)}</span>
+                                    </div>
+                                </div>
+                                <div className="inline-flex items-center justify-center w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-xl shadow-lg shadow-indigo-900/50 transition-all group-hover:shadow-indigo-600/50 group-hover:scale-[1.02] tracking-wide">
+                                    Start <i className="ph ph-arrow-right ml-3 text-2xl"></i>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const Flashcards = ({ words, onNextModule, updateScore, score }) => {
+            const [idx, setIdx] = useState(0);
+            const [flipped, setFlipped] = useState(false);
+            const [paidTTS, setPaidTTS] = useState(new Set()); 
+            const [paidBlind, setPaidBlind] = useState(new Set()); 
+            const [blindStates, setBlindStates] = useState(new Set()); 
+            const timerRef = useRef(Date.now());
+            const w = words[idx];
+
+            useEffect(() => { 
+                timerRef.current = Date.now();
+                setPaidTTS(new Set()); setPaidBlind(new Set()); setBlindStates(new Set());
+                stopSpeech(); // 切词时停止播放
+            }, [idx]);
+
+            const handleTTS = (text, id) => {
+                speak(text);
+                if (!paidTTS.has(id)) { updateScore(2); setPaidTTS(prev => new Set(prev).add(id)); }
+            };
+
+            const toggleBlind = (id) => {
+                const newBlinds = new Set(blindStates);
+                if (newBlinds.has(id)) newBlinds.delete(id); else newBlinds.add(id);
+                setBlindStates(newBlinds);
+                if (!paidBlind.has(id)) { updateScore(2); setPaidBlind(prev => new Set(prev).add(id)); }
+            };
+
+            const next = () => {
+                const duration = (Date.now() - timerRef.current) / 1000;
+                if (duration < 30) updateScore(-5); else if (duration > 60) updateScore(5);
+                setFlipped(false); setTimeout(() => { if (idx < words.length - 1) setIdx(idx + 1); else onNextModule(); }, 300);
+            };
+
+            return (
+<div className="w-full h-full flex flex-col items-center justify-start p-6 pb-32 fade-in overflow-y-auto custom-scroll">
+                    <div className="w-full max-w-[1920px] flex justify-between items-center text-white mb-6 px-4">
+                        <div className="flex items-center gap-5 bg-white/10 px-8 py-3 rounded-full backdrop-blur-md border border-white/20 shadow-lg">
+                            <i className="ph ph-book-open-text text-3xl text-indigo-300"></i> <h2 className="text-2xl font-bold tracking-wide">Study Mode</h2>
+                        </div>
+                        <div className="flex gap-8 items-center">
+                            <span className="text-yellow-300 font-bold flex gap-3 text-3xl bg-black/40 px-8 py-2 rounded-full backdrop-blur-md border border-yellow-500/30 shadow-xl"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span>
+                            <span className="font-mono text-indigo-200 text-2xl font-bold">{idx + 1} / {words.length}</span>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 w-full max-w-[1920px] perspective-1000 relative group cursor-pointer mb-8 px-4" onClick={() => setFlipped(!flipped)}>
+                        <div className={`w-full h-full duration-700 transform-style-3d transition-transform ${flipped ? 'rotate-y-180' : ''}`}>
+                            {/* Front */}
+                            <div className="absolute w-full h-full backface-hidden glass-panel rounded-[3rem] flex flex-col items-center justify-center p-16 border-b-[20px] border-indigo-500/60 shadow-2xl">
+                                <span className="text-indigo-600 font-mono text-4xl mb-12 uppercase tracking-[0.3em] bg-indigo-50/80 px-10 py-3 rounded-2xl shadow-sm border border-indigo-100">{w.syl}</span>
+                                <h1 className="text-8xl md:text-[10rem] font-bold text-slate-800 text-center leading-tight drop-shadow-lg font-serif tracking-tight">{w.w}</h1>
+                                <p className="text-slate-500 mt-24 text-2xl font-medium animate-pulse flex items-center gap-4 bg-white/60 px-8 py-3 rounded-full border border-slate-200"><i className="ph ph-hand-tap text-3xl"></i> Tap card to flip</p>
+                            </div>
+                            
+                            {/* Back */}
+                            <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-slate-50/95 backdrop-blur-xl rounded-[3rem] flex flex-col p-12 md:p-16 border-b-[20px] border-purple-500/60 overflow-y-auto custom-scroll shadow-2xl">
+                                <div className="flex justify-between items-start mb-12 border-b-2 border-slate-200 pb-10">
+                                    <div className="flex-1 pr-10">
+                                        <h2 className="text-7xl font-bold text-slate-900 mb-6 font-serif">{w.cn}</h2>
+                                        <p className="text-slate-600 text-3xl font-medium leading-relaxed font-serif italic text-justify">{w.def}</p>
+                                    </div>
+                                    <button onClick={(e) => { e.stopPropagation(); handleTTS(w.w, 'main'); }} className={`p-8 rounded-full transition-all transform hover:scale-110 shadow-xl ${paidTTS.has('main') ? 'bg-slate-200 text-slate-400' : 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'}`}><i className="ph ph-speaker-high text-5xl"></i></button>
+                                </div>
+                                <div className="space-y-10 pb-10">
+                                    {[{t:"Context A", e:w.exA, c:w.cnA, col:"blue", id:"exA"},{t:"Context B", e:w.exB, c:w.cnB, col:"purple", id:"exB"},{t:"Context C", e:w.exC, c:w.cnC, col:"pink", id:"exC"}].map((x, i) => (
+                                        <div key={i} className={`p-10 rounded-[2.5rem] bg-white border-2 border-${x.col}-100 flex gap-8 items-start hover:shadow-2xl transition-all duration-300 group hover:border-${x.col}-200`}>
+                                            <div className="flex flex-col gap-4 shrink-0 pt-2">
+                                                <button onClick={(e) => { e.stopPropagation(); handleTTS(x.e, x.id); }} className={`p-5 rounded-full shadow-lg hover:scale-110 transition ${paidTTS.has(x.id) ? 'bg-slate-100 text-slate-400' : 'bg-'+x.col+'-50 text-'+x.col+'-600'}`}><i className="ph ph-speaker-simple-high text-3xl"></i></button>
+                                                <button onClick={(e) => { e.stopPropagation(); toggleBlind(x.id); }} className={`p-5 rounded-full shadow-lg hover:scale-110 transition ${paidBlind.has(x.id) ? 'bg-slate-100 text-slate-400' : 'bg-slate-800 text-white'}`} title="Blind Shadowing (+2pts)"><i className={`ph ${blindStates.has(x.id) ? 'ph-eye-closed' : 'ph-eye'} text-3xl`}></i></button>
+                                            </div>
+                                            <div className="flex-1 pt-2">
+                                                <p className={`serif text-4xl text-slate-800 leading-relaxed font-medium transition-all duration-500 ${blindStates.has(x.id) ? 'opacity-0 blur-lg select-none translate-y-2' : 'opacity-100 translate-y-0'}`}>{x.e}</p>
+                                                <p className="text-2xl text-slate-500 mt-5 font-bold border-t-2 border-slate-50 pt-4">{x.c}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button onClick={next} className="w-full max-w-[1920px] bg-white/10 backdrop-blur-xl border border-white/30 text-white py-8 rounded-[2.5rem] font-bold text-4xl shadow-2xl hover:bg-white hover:text-indigo-900 transition-all duration-300 transform hover:scale-[1.005] tracking-[0.1em] uppercase flex items-center justify-center gap-6 group">
+                        {idx === words.length - 1 ? "Start Match Game" : "Next Word"} <i className="ph ph-arrow-right group-hover:translate-x-2 transition-transform"></i>
+                    </button>
+                </div>
+            );
+        };
+
+        const Match = ({ words, onNextModule, updateScore, score }) => {
+            const [items, setItems] = useState([]); const [sel, setSel] = useState([]); const [mat, setMat] = useState([]);
+            useEffect(() => { setItems(words.flatMap(w => [{ id:w.id, t:w.w, type:'w' }, { id:w.id, t:w.def, type:'d' }]).sort(() => Math.random() - 0.5)); }, [words]);
+            const click = (i) => { if (sel.includes(i) || mat.includes(items[i].id)) return; const n = [...sel, i]; setSel(n); if (n.length === 2) { const [a, b] = n; if (items[a].id === items[b].id) { setMat([...mat, items[a].id]); updateScore(2); if (mat.length + 1 === words.length) setTimeout(onNextModule, 1000); } else updateScore(-1); setTimeout(() => setSel([]), 600); }};
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center p-8 fade-in">
+                    <div className="w-full max-w-[1920px] flex justify-between items-center text-white mb-8"><div className="flex items-center gap-4 bg-white/10 px-8 py-4 rounded-full backdrop-blur-md"><i className="ph ph-puzzle-piece text-4xl text-indigo-300"></i> <h2 className="text-3xl font-bold">Match</h2></div><div className="flex gap-6 items-center"><span className="text-yellow-300 font-bold flex gap-3 text-3xl bg-black/40 px-8 py-3 rounded-full backdrop-blur-md"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span><span className="font-mono text-indigo-200 text-2xl font-bold">{mat.length}/{words.length}</span></div></div>
+                    <div className="flex-1 w-full max-w-[1920px] overflow-y-auto custom-scroll grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-6 content-start">
+                        {items.map((it, i) => {
+                            const isSel = sel.includes(i); const isMat = mat.includes(it.id);
+                            let cls = "bg-white/10 text-slate-100 hover:bg-white/20 border border-white/10";
+                            if (isSel) cls = "bg-indigo-600 text-white shadow-2xl scale-105 z-20 border-indigo-300";
+                            if (isMat) cls = "opacity-0 pointer-events-none scale-0";
+                            return <button key={i} onClick={() => click(i)} className={`min-h-[180px] p-6 rounded-[2rem] shadow-lg transition-all duration-500 flex items-center justify-center text-center backdrop-blur-md ${cls}`}><span className={it.type==='w'?'font-bold text-3xl font-serif':'text-xl font-medium leading-relaxed'}>{it.t}</span></button>;
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+       const Dictation = ({ words, onNextModule, updateScore, score }) => {
+            const [idx, setIdx] = useState(0); 
+            const [val, setVal] = useState(""); 
+            const [err, setErr] = useState(0); 
+            const [st, setSt] = useState('idle'); 
+            const [isRetry, setIsRetry] = useState(false); 
+            const [isResetting, setIsResetting] = useState(false); 
+            const [playStatus, setPlayStatus] = useState("Tap to Play");
+            const w = words[idx];
+
+            // 针对 Azure 的听写播放逻辑 (不再使用循环，改为手动播放或单词+句子的组合)
+            const playDictation = () => {
+                setPlayStatus("Playing...");
+                // 播放两次单词
+                speak(w.w, () => {
+                   setTimeout(() => {
+                       speak(w.w, () => {
+                           setPlayStatus("Play Again");
+                       });
+                   }, 500);
+                });
+            };
+
+            useEffect(() => { 
+                setVal(""); setErr(0); setSt('idle'); setIsRetry(false); setIsResetting(false); 
+                stopSpeech();
+                // 自动开始播放一次
+                setTimeout(playDictation, 500);
+                
+                return () => stopSpeech();
+            }, [idx]);
+
+            const check = (e) => { 
+                e.preventDefault(); 
+                if (isResetting) return; 
+                // 简单的清理逻辑，忽略大小写和首尾空格
+                if (cleanTarget(val) === cleanTarget(w.w)) { 
+                    setSt('ok'); 
+                    stopSpeech(); 
+                    speak("Correct!"); 
+                    if (!isRetry) updateScore(5); 
+                    setTimeout(() => { 
+                        if(idx < words.length-1) setIdx(idx+1); 
+                        else onNextModule(); 
+                    }, 800); 
+                } else { 
+                    const newErr = err + 1; 
+                    setErr(newErr); 
+                    setSt('no'); 
+                    updateScore(-1); 
+                    stopSpeech();
+                    speak("Try again"); 
+                    if (newErr >= 5) { 
+                        setIsResetting(true); 
+                        setTimeout(() => { 
+                            setIsResetting(false); setIsRetry(true); setVal(""); setErr(0); setSt('idle'); 
+                        }, 10000); 
+                    } 
+                } 
+            };
+
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center p-10 fade-in">
+                    <div className="w-full max-w-[1400px] flex justify-between items-center text-white mb-12">
+                        <div className="flex items-center gap-4 bg-white/10 px-8 py-4 rounded-full backdrop-blur-md">
+                            <i className="ph ph-headphones text-4xl text-indigo-300"></i> 
+                            <h2 className="text-3xl font-bold">Dictation</h2>
+                        </div>
+                        <div className="flex gap-6 items-center">
+                            <span className="text-yellow-300 font-bold flex gap-3 text-3xl bg-black/40 px-8 py-3 rounded-full backdrop-blur-md">
+                                <i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}
+                            </span>
+                            <span className="font-mono text-indigo-200 text-2xl font-bold">{idx+1} / {words.length}</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-white/95 backdrop-blur-xl rounded-[4rem] p-24 shadow-2xl w-full max-w-[1200px] text-center relative overflow-hidden flex flex-col items-center">
+                        {isResetting && 
+                            <div className="absolute inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center">
+                                <div className="text-red-500 font-bold text-5xl mb-8 animate-bounce">Too many errors!</div>
+                                <div className="text-indigo-400 text-8xl font-bold mb-12">{w.w}</div>
+                                <div className="w-[600px] h-4 bg-slate-700 rounded-full overflow-hidden">
+                                    <div className="h-full bg-red-500 animate-shrink"></div>
+                                </div>
+                                <p className="mt-8 text-slate-400 text-3xl">Retry in 10s (0 pts)</p>
+                            </div>
+                        }
+                        
+                        <div className="absolute top-0 left-0 h-6 bg-indigo-100 w-full">
+                            <div className="h-full bg-indigo-600 transition-all duration-500" style={{width: `${(idx/words.length)*100}%`}}></div>
+                        </div>
+
+                        <button onClick={playDictation} className="w-48 h-48 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-2xl flex flex-col items-center justify-center mx-auto mb-12 hover:scale-110 transition border-[12px] border-indigo-50">
+                            <i className="ph ph-speaker-high text-7xl mb-2"></i>
+                            <span className="text-sm font-bold opacity-80">{playStatus}</span>
+                        </button>
+
+                        <form onSubmit={check} className="w-full flex flex-col items-center">
+                            <input 
+                                autoFocus 
+                                value={val} 
+                                onChange={e => setVal(e.target.value)} 
+                                className={`w-full text-center text-[6rem] font-bold py-8 border-b-8 bg-transparent outline-none tracking-wide font-mono mb-12 ${st==='ok'?'border-green-500 text-green-600':st==='no'?'border-red-500 text-red-500':'border-slate-300 text-slate-800 focus:border-indigo-500'}`} 
+                                placeholder="..." 
+                            />
+                            
+                            <button type="submit" className="bg-indigo-600 text-white font-bold py-6 px-16 rounded-full text-3xl shadow-xl hover:bg-indigo-700 transition transform hover:scale-105 flex items-center gap-4">
+                                Check Answer <i className="ph ph-check-circle text-4xl"></i>
+                            </button>
+                        </form>
+
+                        <div className="h-8 mt-8">
+                            {isRetry && <span className="text-orange-500 font-bold text-xl">Retry Mode (0 pts)</span>}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Unscramble = ({ words, onNextModule, updateScore, score }) => {
+            const [idx, setIdx] = useState(0); const [parts, setParts] = useState([]); const [ord, setOrd] = useState([]); const [potential, setPotential] = useState(10); const [fail, setFail] = useState(0); const [isResetting, setIsResetting] = useState(false); const w = words[idx]; const sen = w.exB; const lastIdx = useRef(-1); if (lastIdx.current !== idx) { setPotential(10); lastIdx.current = idx; }
+            useEffect(() => { setParts(sen.replace(/[.,!?;]/g,'').split(' ').sort(()=>Math.random()-0.5).map((t,i)=>({id:i,t}))); setOrd([]); setFail(0); setIsResetting(false); stopSpeech(); }, [idx]);
+            const deductGlobal = (n, fn) => { updateScore(-n); fn(); };
+            const hint = () => deductGlobal(15, () => { const c = sen.replace(/[.,!?;]/g,'').split(' '); const n = c[ord.length]; const f = parts.find(p=>p.t===n); if(f) { setParts(parts.filter(p=>p.id!==f.id)); setOrd([...ord, f]); }});
+            const check = () => { if (ord.map(o=>o.t).join(' ') === sen.replace(/[.,!?;]/g,'')) { speak("Excellent"); updateScore(potential); setTimeout(() => { if(idx<words.length-1) setIdx(idx+1); else onNextModule(); }, 800); } else { const newFail = fail + 1; setFail(newFail); speak("Wrong"); setPotential(Math.max(0, potential - 2)); if (newFail >= 5) { setIsResetting(true); setPotential(0); setTimeout(() => { setParts(sen.replace(/[.,!?;]/g,'').split(' ').sort(()=>Math.random()-0.5).map((t,i)=>({id:i,t}))); setOrd([]); setFail(0); setIsResetting(false); }, 10000); }}};
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center p-10 fade-in"><div className="w-full max-w-[1400px] flex justify-between items-center text-white mb-10"><div className="flex items-center gap-4 bg-white/10 px-8 py-4 rounded-full backdrop-blur-md"><i className="ph ph-sort-ascending text-4xl text-indigo-300"></i> <h2 className="text-3xl font-bold">Unscramble</h2></div><div className="flex gap-6 items-center"><span className="text-yellow-300 font-bold flex gap-3 text-3xl bg-black/40 px-8 py-3 rounded-full backdrop-blur-md"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span><span className="font-mono text-indigo-200 text-2xl font-bold">{idx+1} / {words.length}</span></div></div><div className="bg-white/95 backdrop-blur-xl rounded-[4rem] p-16 shadow-2xl w-full max-w-[1400px] flex flex-col relative overflow-hidden">{isResetting && <div className="absolute inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center"><div className="text-red-500 font-bold text-4xl mb-6">Answer:</div><div className="text-green-400 text-4xl font-bold text-center p-8 border-4 border-green-500/30 rounded-[2rem] bg-green-900/30 max-w-5xl leading-relaxed">{sen}</div><div className="w-96 h-3 bg-slate-700 rounded-full mt-12 overflow-hidden"><div className="h-full bg-red-500 animate-shrink"></div></div><p className="mt-6 text-slate-400 text-2xl">Resetting...</p></div>}<div className="text-center mb-12 border-b-2 border-slate-200 pb-10"><h3 className="text-6xl font-bold text-indigo-700 mb-4 font-serif">{w.w}</h3><p className="text-slate-500 font-medium text-3xl">{w.cnB}</p></div><div className="bg-slate-100 rounded-[2rem] p-10 min-h-[200px] flex flex-wrap gap-5 justify-center items-center border-4 border-dashed border-slate-300 mb-12 shadow-inner">{ord.map(x=><button key={x.id} onClick={()=>{if(!isResetting){setOrd(ord.filter(o=>o.id!==x.id)); setParts([...parts,x])}}} className="bg-indigo-600 text-white px-8 py-4 rounded-3xl font-bold text-3xl shadow-xl hover:bg-red-500 transition transform hover:-translate-y-1">{x.t}</button>)}</div><div className="flex flex-wrap gap-5 justify-center mb-auto">{parts.map(x=><button key={x.id} onClick={()=>{if(!isResetting){setParts(parts.filter(p=>p.id!==x.id)); setOrd([...ord,x])}}} className="bg-white border-2 border-slate-300 px-8 py-4 rounded-3xl shadow-md hover:border-indigo-300 hover:shadow-xl text-3xl font-medium transition text-slate-700">{x.t}</button>)}</div><div className="grid grid-cols-2 gap-8 mt-16"><button onClick={()=>deductGlobal(10, ()=>speak(sen))} disabled={isResetting} className="bg-orange-50 text-orange-600 font-bold py-6 rounded-[2rem] hover:bg-orange-100 flex items-center justify-center gap-4 border-2 border-orange-100 text-2xl"><i className="ph ph-speaker-high text-3xl"></i> Listen (-10)</button><button onClick={hint} disabled={isResetting} className="bg-purple-50 text-purple-600 font-bold py-6 rounded-[2rem] hover:bg-purple-100 flex items-center justify-center gap-4 border-2 border-purple-100 text-2xl"><i className="ph ph-lightbulb text-3xl"></i> Hint (-15)</button><button onClick={check} disabled={isResetting} className="col-span-2 bg-indigo-600 text-white font-bold py-8 rounded-[2rem] shadow-2xl hover:bg-indigo-700 transition text-3xl transform hover:scale-[1.01]">Check Answer (+{potential})</button></div></div></div>
+            );
+        };
+
+        const Writing = ({ words, onFinish, updateScore, score }) => {
+            const [idx, setIdx] = useState(0); const [val, setVal] = useState(""); const [potential, setPotential] = useState(10); const [fail, setFail] = useState(0); const [showTarget, setShowTarget] = useState(false); const [isResetting, setIsResetting] = useState(false); const w = words[idx]; const lastIdx = useRef(-1); if (lastIdx.current !== idx) { setPotential(10); lastIdx.current = idx; }
+            useEffect(() => { setVal(""); setShowTarget(false); setFail(0); setIsResetting(false); stopSpeech(); }, [idx]);
+            const deductGlobal = (n, fn) => { updateScore(-n); fn(); };
+            const check = (e) => { e.preventDefault(); const cleanIn = cleanTarget(val); const target = cleanTarget(w.w); if (cleanIn.includes(target) && cleanIn.length > 15) { speak("Great job"); updateScore(potential); if(idx<words.length-1) setIdx(idx+1); else onFinish(); } else { const newFail = fail + 1; setFail(newFail); speak("Try again"); setPotential(Math.max(0, potential - 2)); if (newFail >= 5) { setIsResetting(true); setPotential(0); setTimeout(() => { setIsResetting(false); setVal(""); setFail(0); setShowTarget(false); }, 10000); }}};
+            const renderScenario = (text) => text.split(/(\[.*?\])/).map((p, i) => (p.startsWith('[') && p.endsWith(']')) ? <span key={i} className="text-red-500 font-bold bg-red-50 px-3 rounded-xl border border-red-100 mx-2">{p.slice(1, -1)}</span> : <span key={i}>{p}</span>);
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center p-10 fade-in"><div className="w-full max-w-[1400px] flex justify-between items-center text-white mb-10"><div className="flex items-center gap-4 bg-white/10 px-8 py-4 rounded-full backdrop-blur-md"><i className="ph ph-pencil-simple-slash text-4xl text-indigo-300"></i> <h2 className="text-3xl font-bold">Restore</h2></div><div className="flex gap-6 items-center"><span className="text-yellow-300 font-bold flex gap-3 text-3xl bg-black/40 px-8 py-3 rounded-full backdrop-blur-md"><i className="ph ph-star-fill text-yellow-400 mt-1"></i> {score}</span><span className="font-mono text-indigo-200 text-2xl font-bold">{idx+1} / {words.length}</span></div></div><div className="bg-white/95 backdrop-blur-xl rounded-[4rem] p-16 shadow-2xl w-full max-w-[1400px] flex flex-col relative overflow-hidden">{isResetting && <div className="absolute inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center"><div className="text-red-500 font-bold text-4xl mb-6">Failed! Answer:</div><div className="text-green-600 text-2xl font-bold text-center p-8 border-4 border-green-500/30 rounded-[2rem] bg-green-900/30 max-w-5xl leading-relaxed">{w.exC}</div><div className="w-96 h-3 bg-slate-700 rounded-full mt-12 overflow-hidden"><div className="h-full bg-red-500 animate-shrink"></div></div><p className="mt-4 text-slate-400 text-2xl">Retry...</p></div>}<div className="bg-slate-100 border-2 border-slate-300 rounded-[3rem] p-12 mb-10 shadow-inner"><p className="text-lg font-bold text-slate-400 uppercase mb-6 tracking-widest">Scenario Sentence</p><div className="text-5xl serif text-slate-800 leading-relaxed font-medium">{renderScenario(w.hintC)}</div><div className="mt-8 flex items-center gap-3 text-red-500 font-bold bg-white inline-flex px-8 py-4 rounded-full shadow-sm border border-red-100 text-2xl"><i className="ph ph-warning-circle text-3xl"></i> Replace red text with target word.</div></div><div className="flex items-center gap-8 mb-10"><button onClick={()=>deductGlobal(10, ()=>setShowTarget(true))} disabled={showTarget} className="bg-pink-50 text-pink-600 px-10 py-5 rounded-[2rem] font-bold hover:bg-pink-100 disabled:opacity-50 transition border-2 border-pink-200 flex items-center gap-4 text-2xl"><i className="ph ph-eye text-3xl"></i> Reveal Target (-10)</button>{showTarget ? <div className="text-4xl animate-fade-in flex items-center gap-4">Target: <span className="text-indigo-600 font-bold text-5xl bg-indigo-50 px-6 py-3 rounded-2xl border border-indigo-100">{w.w}</span></div> : <div className="h-20 bg-slate-200 rounded-3xl w-80 animate-pulse"></div>}</div><form onSubmit={check} className="flex-1 flex flex-col"><textarea value={val} onChange={e=>setVal(e.target.value)} className="w-full flex-1 p-10 border-4 border-slate-300 rounded-[3rem] focus:border-indigo-500 outline-none text-4xl resize-none bg-white shadow-inner font-serif text-slate-700 placeholder:text-slate-300" placeholder="Type the restored sentence..." /><button className="w-full mt-10 bg-pink-600 text-white py-8 rounded-[3rem] font-bold text-4xl shadow-2xl hover:bg-pink-700 transition transform hover:scale-[1.01]">Submit Answer (+{potential})</button></form></div></div>
+            );
+        };
+
+        const Summary = ({ s }) => {
+            const m = Math.floor(s.time/60);
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center p-8 text-white text-center fade-in"><i className="ph ph-trophy text-[12rem] text-yellow-300 mb-12 animate-bounce drop-shadow-2xl"></i><h1 className="text-9xl font-extrabold mb-16 tracking-tight drop-shadow-xl font-serif">Batch Complete!</h1><div className="bg-white/10 backdrop-blur-xl rounded-[4rem] p-16 border border-white/20 mb-16 w-full max-w-5xl grid grid-cols-2 gap-16 shadow-2xl"><div><div className="text-2xl uppercase tracking-widest opacity-80 mb-4 font-bold">Total Score</div><div className="text-[7rem] font-bold text-yellow-300 drop-shadow-md leading-none">{s.pts}</div></div><div><div className="text-2xl uppercase tracking-widest opacity-80 mb-4 font-bold">Time Spent</div><div className={`text-[7rem] font-bold drop-shadow-md leading-none ${m>=25?'text-green-300':'text-red-300'}`}>{m}m</div></div></div><div className="bg-slate-900/80 p-12 rounded-[3rem] max-w-4xl border border-white/10 shadow-2xl backdrop-blur-md w-full"><h3 className="text-4xl font-bold text-yellow-400 mb-8 flex items-center justify-center gap-5"><i className="ph ph-star-fill"></i> STEVEN UP STAR</h3><p className="text-3xl text-slate-100 leading-relaxed font-light">Screenshot this screen to redeem rewards.<br/><span className="text-red-300 font-bold bg-red-900/40 px-6 py-3 rounded-2xl mt-6 inline-block backdrop-blur-sm border border-red-500/30">Requirement: Study Time > 25 mins</span></p></div></div>
+            );
+        };
+
+        const App = () => {
+            const [mode, setMode] = useState('dash'); const [batch, setBatch] = useState(0); const [words, setWords] = useState([]); const [startT, setStartT] = useState(0); const [score, setScore] = useState(150); const [fin, setFin] = useState({pts:0, time:0});
+            const start = (i) => { setBatch(i); setWords(FULL_VOCAB.slice(i*BATCH_SIZE, (i+1)*BATCH_SIZE)); setStartT(Date.now()); setScore(150); setMode('flash'); };
+            const finish = () => { setFin({ pts: score, time: (Date.now()-startT)/1000 }); setMode('summary'); };
+            const updateScore = (delta) => setScore(s => s + delta);
+            return <>{mode==='dash' && <Dashboard onStart={start} />}{mode==='flash' && <Flashcards words={words} onNextModule={()=>setMode('match')} updateScore={updateScore} score={score} />}{mode==='match' && <Match words={words} onNextModule={()=>setMode('dictation')} updateScore={updateScore} score={score} />}{mode==='dictation' && <Dictation words={words} onNextModule={()=>setMode('unscramble')} updateScore={updateScore} score={score} />}{mode==='unscramble' && <Unscramble words={words} onNextModule={()=>setMode('writing')} updateScore={updateScore} score={score} />}{mode==='writing' && <Writing words={words} onFinish={finish} updateScore={updateScore} score={score} />}{mode==='summary' && <Summary s={fin} />}</>;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
