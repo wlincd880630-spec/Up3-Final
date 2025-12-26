@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn: Destination (Pro V4)</title>
+    
+    <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/babel-standalone/7.22.17/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Fredoka:wght@500;600&family=Noto+Serif:ital,wght@0,500;1,500&family=Courier+Prime:wght@400;700&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* 全局设置 */
+        * { -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            color: #1e293b; 
+            /* 紫罗兰极光背景 */
+            background: linear-gradient(135deg, #2e1065, #4c1d95, #5b21b6, #7c3aed);
+            background-size: 400% 400%;
+            background-attachment: fixed; /* 背景固定，不随内容滚动 */
+            animation: gradient 25s ease infinite;
+            /* 关键修复：允许滚动 */
+            min-height: 100vh;
+            overflow-y: auto; 
+            overflow-x: hidden;
+            padding-bottom: 50px;
+        }
+        @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .serif { font-family: 'Noto Serif', serif; }
+        .mono { font-family: 'Courier Prime', monospace; }
+        .display-font { font-family: 'Fredoka', sans-serif; }
+        .airline-font { font-family: 'Oswald', sans-serif; }
+
+        /* 玻璃面板 */
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.96); 
+            backdrop-filter: blur(24px); 
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.5); 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+            border-radius: 2rem;
+        }
+
+        /* 动画 */
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .barcode { 
+            background: repeating-linear-gradient(90deg, 
+                #000 0px, #000 3px, 
+                transparent 3px, transparent 5px,
+                #000 5px, #000 9px,
+                transparent 9px, transparent 11px,
+                #000 11px, #000 12px
+            );
+        }
+
+        /* 返回按钮 (固定位置) */
+        .nav-back { 
+            position: fixed; top: 20px; left: 20px; z-index: 100; 
+            background: rgba(255,255,255,0.15); color: white; 
+            padding: 10px 20px; border-radius: 99px; text-decoration: none; 
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); 
+            font-weight: 600; font-size: 1rem;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .nav-back:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // 🔹 Azure 语音配置
+        // ==========================================
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const azureRegion = "eastus2"; 
+        
+        let currentSynthesizer = null;
+
+        const speak = (text, onComplete) => {
+            if (currentSynthesizer) { currentSynthesizer.close(); currentSynthesizer = null; }
+            if (!text) {
+                if(onComplete) onComplete();
+                return;
+            }
+            
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+                currentSynthesizer = synthesizer;
+                
+                synthesizer.speakTextAsync(text, result => {
+                    synthesizer.close(); 
+                    currentSynthesizer = null;
+                    if(onComplete) onComplete();
+                }, err => { 
+                    console.error(err); 
+                    synthesizer.close(); 
+                    currentSynthesizer = null; 
+                    if(onComplete) onComplete();
+                });
+            } catch (e) { 
+                console.error("Azure Error", e); 
+                if(onComplete) onComplete();
+            }
+        };
+
+        // ==========================================
+        // 🔹 数据配置
+        // ==========================================
+        const WORD_STRUCTURE = [
+            { char: 'd', width: 'w-14' },
+            { char: 'e', width: 'w-14' },
+            { char: 's', width: 'w-14' },
+            { char: 't', width: 'w-14' },
+            { char: 'i', width: 'w-14' },
+            { char: 'n', width: 'w-14' },
+            { char: 'a', width: 'w-14' },
+            { char: 'tion', width: 'w-28', suffix: true }
+        ];
+
+        const AIRLINES = [
+            { code: 'CA', name: 'AIR CHINA', color: '#ce1126' },
+            { code: '3U', name: 'SICHUAN AIR', color: '#E50012' },
+            { code: 'SQ', name: 'SINGAPORE AIR', color: '#f59e0b' },
+            { code: 'BA', name: 'BRITISH AIRWAYS', color: '#002b5c' },
+            { code: 'EK', name: 'EMIRATES', color: '#d4af37' },
+            { code: 'QF', name: 'QANTAS', color: '#e0001b' },
+            { code: 'LH', name: 'LUFTHANSA', color: '#ffb81c' },
+            { code: 'AF', name: 'AIR FRANCE', color: '#00266e' },
+            { code: 'CX', name: 'CATHAY PACIFIC', color: '#006a5d' },
+            { code: 'NH', name: 'ANA', color: '#112879' },
+            { code: 'DL', name: 'DELTA', color: '#8b0e26' },
+            { code: 'UA', name: 'UNITED', color: '#005daa' },
+            { code: 'QR', name: 'QATAR AIRWAYS', color: '#5c0632' },
+            { code: 'AA', name: 'AMERICAN AIR', color: '#bfbfbf' }
+        ];
+
+        const DESTINATIONS = [
+            { country: "USA", city: "New York", code: "JFK" },
+            { country: "Britain", city: "London", code: "LHR" },
+            { country: "France", city: "Paris", code: "CDG" },
+            { country: "Egypt", city: "Cairo", code: "CAI" },
+            { country: "Jordan", city: "Amman", code: "AMM" },
+            { country: "Russia", city: "Moscow", code: "SVO" },
+            { country: "Thailand", city: "Bangkok", code: "BKK" },
+            { country: "Japan", city: "Tokyo", code: "HND" },
+            { country: "China", city: "Beijing", code: "PEK" },
+            { country: "Australia", city: "Canberra", code: "CBR" }
+        ];
+
+        const GAME_DATA = [
+            { 
+                name: "USA", 
+                capital: "Washington D.C.", 
+                others: ["New York", "Los Angeles"], 
+                desc: "Located in North America, stretching from the Atlantic to the Pacific.", 
+                pop: "331 Million",
+                feat: "Hollywood, Grand Canyon, Tech Innovation",
+                map: "map_usa.jpg", 
+                flag: "flag_usa.jpg" 
+            },
+            { 
+                name: "Britain", 
+                capital: "London", 
+                others: ["Manchester", "Liverpool"], 
+                desc: "An island nation in Northwestern Europe, separated from France by the English Channel.", 
+                pop: "67 Million",
+                feat: "Royal Family, Big Ben, Fish & Chips",
+                map: "map_uk.jpg", 
+                flag: "flag_uk.jpg" 
+            },
+            { 
+                name: "France", 
+                capital: "Paris", 
+                others: ["Lyon", "Marseille"], 
+                desc: "Located in Western Europe, famous for its hexagon shape and diverse landscapes.", 
+                pop: "67 Million",
+                feat: "Eiffel Tower, Louvre Museum, Fine Wine",
+                map: "map_france.jpg", 
+                flag: "flag_france.jpg" 
+            },
+            { 
+                name: "Egypt", 
+                capital: "Cairo", 
+                others: ["Alexandria", "Luxor"], 
+                desc: "Located in Northeast Africa, home to the Nile River and connecting Africa to Asia.", 
+                pop: "104 Million",
+                feat: "Pyramids of Giza, Sphinx, Ancient History",
+                map: "map_egypt.jpg", 
+                flag: "flag_egypt.jpg" 
+            },
+            { 
+                name: "China", 
+                capital: "Beijing", 
+                others: ["Shanghai", "Chengdu"], 
+                desc: "Located in East Asia, a vast country with mountains, deserts, and coastline.", 
+                pop: "1.4 Billion",
+                feat: "Great Wall, Pandas, Forbidden City",
+                map: "map_china.jpg", 
+                flag: "flag_china.jpg" 
+            },
+            { 
+                name: "Japan", 
+                capital: "Tokyo", 
+                others: ["Osaka", "Kyoto"], 
+                desc: "An island nation in East Asia, situated in the Pacific Ocean.", 
+                pop: "125 Million",
+                feat: "Mt. Fuji, Cherry Blossoms, Sushi",
+                map: "map_japan.jpg", 
+                flag: "flag_japan.jpg" 
+            },
+            { 
+                name: "Australia", 
+                capital: "Canberra", 
+                others: ["Sydney", "Melbourne"], 
+                desc: "A country and continent surrounded by the Indian and Pacific Oceans.", 
+                pop: "26 Million",
+                feat: "Kangaroos, Opera House, Great Barrier Reef",
+                map: "map_australia.jpg", 
+                flag: "flag_australia.jpg" 
+            },
+            { 
+                name: "Russia", 
+                capital: "Moscow", 
+                others: ["St. Petersburg", "Kazan"], 
+                desc: "The largest country in the world, spanning across Eastern Europe and Northern Asia.", 
+                pop: "144 Million",
+                feat: "Red Square, Trans-Siberian Railway, Ballet",
+                map: "map_russia.jpg", 
+                flag: "flag_russia.jpg" 
+            },
+            { 
+                name: "Thailand", 
+                capital: "Bangkok", 
+                others: ["Chiang Mai", "Phuket"], 
+                desc: "Located in Southeast Asia, known for its tropical beaches and central plains.", 
+                pop: "70 Million",
+                feat: "Buddhist Temples, Elephants, Street Food",
+                map: "map_thailand.jpg", 
+                flag: "flag_thailand.jpg" 
+            },
+            { 
+                name: "Italy", 
+                capital: "Rome", 
+                others: ["Milan", "Venice"], 
+                desc: "A boot-shaped peninsula in Southern Europe, extending into the Mediterranean Sea.", 
+                pop: "60 Million",
+                feat: "Colosseum, Pizza & Pasta, Renaissance Art",
+                map: "map_italy.jpg", 
+                flag: "flag_italy.jpg" 
+            }
+        ];
+
+        // ==========================================
+        // 🔹 页面组件
+        // ==========================================
+
+        // 1. Mapping View
+        const MappingView = ({ onNext }) => {
+            const [inputs, setInputs] = useState(Array(WORD_STRUCTURE.length).fill(""));
+            const [status, setStatus] = useState("idle");
+            const inputsRef = useRef([]);
+
+            const handleChange = (val, i) => {
+                const maxLen = WORD_STRUCTURE[i].char.length;
+                const newInputs = [...inputs];
+                let nextVal = val.toLowerCase();
+                
+                if (nextVal.length <= maxLen) {
+                    newInputs[i] = nextVal;
+                    setInputs(newInputs);
+                    setStatus("idle");
+                    if (nextVal.length === maxLen && i < WORD_STRUCTURE.length - 1) {
+                        inputsRef.current[i + 1].focus();
+                    }
+                }
+            };
+
+            const handleKeyDown = (e, i) => {
+                if (e.key === "Backspace" && !inputs[i] && i > 0) inputsRef.current[i - 1].focus();
+            };
+
+            const check = () => {
+                const isCorrect = inputs.every((val, i) => val === WORD_STRUCTURE[i].char);
+                setStatus(isCorrect ? "correct" : "wrong");
+                if (isCorrect) {
+                    speak("Excellent! Destination.", () => {
+                        setTimeout(onNext, 500); 
+                    });
+                } else {
+                    speak("Try again.");
+                }
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-center w-full min-h-full fade-in p-6">
+                    <button onClick={() => speak("Destination")} className="w-24 h-24 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center shadow-2xl mb-8 transition animate-bounce">
+                        <i className="ph ph-speaker-high text-4xl"></i>
+                    </button>
+                    <p className="text-slate-500 text-lg mb-12 font-bold tracking-wide">Listen and fill in the missing letters.</p>
+
+                    <div className="flex flex-wrap justify-center gap-3 mb-12 items-end">
+                        {WORD_STRUCTURE.map((item, i) => (
+                            <div key={i} className="flex flex-col items-center">
+                                <div className={`text-xs font-bold uppercase tracking-widest mb-2 ${item.suffix ? 'text-red-400' : 'opacity-0'}`}>
+                                    {item.suffix ? 'Suffix' : '.'}
+                                </div>
+                                <input
+                                    ref={el => inputsRef.current[i] = el}
+                                    type="text"
+                                    value={inputs[i]}
+                                    onChange={(e) => handleChange(e.target.value, i)}
+                                    onKeyDown={(e) => handleKeyDown(e, i)}
+                                    className={`${item.width} h-16 md:h-20 rounded-xl border-4 text-center ${item.suffix ? 'text-2xl' : 'text-3xl'} font-bold mono focus:outline-none focus:-translate-y-2 transition shadow-sm
+                                        ${item.suffix ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200'}
+                                        ${status === 'correct' ? 'border-green-400 bg-green-50 text-green-700' : 
+                                          status === 'wrong' ? 'border-red-400 bg-red-50 text-red-700' : 
+                                          'focus:border-blue-400'}`}
+                                />
+                            </div>
+                        ))}
+                    </div>
+
+                    <button onClick={check} className="px-12 py-4 bg-slate-900 text-white rounded-full font-bold text-xl shadow-xl hover:bg-slate-700 transition active:scale-95 flex items-center gap-3">
+                        Check Spelling <i className="ph ph-check-circle text-2xl"></i>
+                    </button>
+                </div>
+            );
+        };
+
+        // 2. Definition View
+        const DefinitionView = ({ onNext }) => {
+            const examples = [
+                { en: "We arrived at our destination tired and hungry.", cn: "我们又累又饿地到达了目的地。" },
+                { en: "Chengdu is a popular holiday destination for food lovers.", cn: "成都对于美食爱好者来说是一个受欢迎的度假目的地。" },
+                { en: "His letter never reached its destination.", cn: "他的信从未寄达目的地。" }
+            ];
+
+            return (
+                <div className="flex flex-col items-center justify-center w-full min-h-full fade-in p-6">
+                    <div className="glass-panel p-10 max-w-4xl w-full">
+                        <div className="border-b border-slate-200 pb-6 mb-8">
+                            <h1 className="text-5xl md:text-6xl font-black text-slate-800 mb-2 display-font">Destination</h1>
+                            <div className="text-xl text-slate-500 font-mono">/ˌdes.tɪˈneɪ.ʃən/ • Noun</div>
+                            <p className="text-2xl text-slate-700 mt-4 leading-relaxed font-serif">The place where someone is going or where something is being sent or taken.</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            {examples.map((ex, i) => (
+                                <ExampleRow key={i} en={ex.en} cn={ex.cn} />
+                            ))}
+                        </div>
+
+                        <div className="mt-10 flex justify-end">
+                            <button onClick={onNext} className="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold shadow-lg transition flex items-center gap-3">
+                                Create Boarding Pass <i className="ph ph-airplane-takeoff text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ExampleRow = ({ en, cn }) => {
+            const [blur, setBlur] = useState(true);
+            return (
+                <div className="bg-slate-50 p-6 rounded-2xl border-l-4 border-blue-500 relative hover:bg-blue-50 transition group">
+                    <div className="absolute top-4 right-4 flex gap-2 opacity-50 group-hover:opacity-100 transition">
+                        <button onClick={() => setBlur(!blur)} className="p-2 hover:text-blue-600"><i className={`ph ${blur ? 'ph-eye-slash' : 'ph-eye'} text-xl`}></i></button>
+                        <button onClick={() => speak(en)} className="p-2 hover:text-blue-600"><i className="ph ph-speaker-high text-xl"></i></button>
+                    </div>
+                    <p className={`text-xl font-bold text-slate-800 mb-2 transition-all duration-300 ${blur ? 'blur-sm select-none text-transparent text-shadow-sm' : ''}`}>{en}</p>
+                    <p className="text-slate-500">{cn}</p>
+                </div>
+            );
+        };
+
+        // 3. Boarding Pass View
+        const BoardingPassView = ({ onNext }) => {
+            const [name, setName] = useState("");
+            const [airline, setAirline] = useState(AIRLINES[0]);
+            const [dest, setDest] = useState(DESTINATIONS[0]);
+            const [flightNum, setFlightNum] = useState("CA988");
+            const [gate, setGate] = useState("D12");
+            const [seat, setSeat] = useState("08A");
+            const [time, setTime] = useState("10:45");
+
+            useEffect(() => {
+                const num = Math.floor(Math.random() * 9000 + 100);
+                setFlightNum(airline.code + num);
+                const g = String.fromCharCode(65 + Math.floor(Math.random() * 6)) + Math.floor(Math.random() * 20 + 1);
+                setGate(g);
+                const h = Math.floor(Math.random() * 14 + 8);
+                const m = Math.floor(Math.random() * 12) * 5;
+                setTime(`${h}:${m < 10 ? '0'+m : m}`);
+            }, [airline]);
+
+            const downloadPDF = () => {
+                const el = document.getElementById('ticket-render');
+                const origTransform = el.style.transform;
+                el.style.transform = 'none'; 
+                
+                html2canvas(el, { scale: 2, useCORS: true }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jspdf.jsPDF({ orientation: 'landscape', unit: 'px', format: [840, 340] });
+                    pdf.addImage(imgData, 'PNG', 20, 20, 800, 300);
+                    pdf.save("BoardingPass.pdf");
+                    el.style.transform = origTransform; 
+                    speak("Printing your boarding pass.");
+                });
+            };
+
+            return (
+                <div className="flex flex-col xl:flex-row w-full h-full fade-in p-6 gap-8 items-center xl:items-start">
+                    {/* Form Panel */}
+                    <div className="w-full xl:w-1/3 bg-white p-8 rounded-3xl flex flex-col justify-center gap-6 shadow-2xl z-10">
+                        <h2 className="text-3xl font-black text-slate-800 display-font">Flight Check-In</h2>
+                        
+                        <div>
+                            <label className="block text-slate-500 font-bold mb-2 text-sm uppercase">Passenger Name</label>
+                            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="YOUR NAME" className="w-full p-3 border-2 border-slate-200 rounded-xl font-bold text-lg focus:border-blue-500 outline-none" />
+                        </div>
+
+                        <div>
+                            <label className="block text-slate-500 font-bold mb-2 text-sm uppercase">Airline</label>
+                            <select onChange={e => setAirline(AIRLINES.find(a => a.code === e.target.value))} className="w-full p-3 border-2 border-slate-200 rounded-xl font-bold bg-white">
+                                {AIRLINES.map(al => <option key={al.code} value={al.code}>{al.name}</option>)}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-slate-500 font-bold mb-2 text-sm uppercase">Destination</label>
+                            <select onChange={e => setDest(DESTINATIONS.find(d => d.code === e.target.value))} className="w-full p-3 border-2 border-slate-200 rounded-xl font-bold bg-white">
+                                {DESTINATIONS.map(d => <option key={d.code} value={d.code}>{d.country} ({d.city})</option>)}
+                            </select>
+                        </div>
+
+                        <div className="flex gap-3 mt-4">
+                            <button onClick={downloadPDF} className="flex-1 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition flex items-center justify-center gap-2">
+                                <i className="ph ph-printer text-xl"></i> PDF
+                            </button>
+                            <button onClick={onNext} className="flex-1 py-3 bg-yellow-500 text-white rounded-xl font-bold hover:bg-yellow-400 transition flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/30">
+                                <i className="ph ph-game-controller text-xl"></i> Play Game
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Preview Panel */}
+                    <div className="w-full xl:w-2/3 bg-slate-200 rounded-3xl min-h-[400px] flex items-center justify-center relative overflow-hidden shadow-inner">
+                        <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'url(https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg)', backgroundSize: 'cover'}}></div>
+
+                        <div id="ticket-render" className="bg-white w-[800px] h-[320px] rounded-3xl shadow-2xl flex overflow-hidden transform scale-[0.55] md:scale-75 lg:scale-90 transition-all font-sans">
+                            <div className="flex-[2.8] border-r-2 border-dashed border-slate-300 flex flex-col relative">
+                                <div className="h-16 text-white flex items-center justify-between px-8 airline-font tracking-wider text-2xl" style={{backgroundColor: airline.color}}>
+                                    <span><i className="ph ph-airplane-tilt mr-2"></i> {airline.name}</span>
+                                    <span className="text-white/80">BOARDING PASS</span>
+                                </div>
+                                <div className="p-8 grid grid-cols-3 gap-y-6 gap-x-4 flex-1">
+                                    <div className="col-span-2">
+                                        <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Passenger Name</div>
+                                        <div className="text-2xl font-black text-slate-800 mono truncate">{name.toUpperCase() || "PASSENGER"}</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Flight</div>
+                                        <div className="text-xl font-bold text-slate-800 mono">{flightNum}</div>
+                                    </div>
+                                    
+                                    <div>
+                                        <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">From</div>
+                                        <div className="text-xl font-bold text-slate-600">CHENGDU</div>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">To</div>
+                                        <div className="text-4xl font-black text-blue-600 leading-none">{dest.city.toUpperCase()} <span className="text-2xl text-slate-300">({dest.code})</span></div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Gate</div>
+                                        <div className="text-3xl font-black text-slate-800">{gate}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Seat</div>
+                                        <div className="text-3xl font-black text-slate-800">{seat}</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Boarding Time</div>
+                                        <div className="text-2xl font-black text-slate-800 bg-yellow-100 px-2 rounded">{time}</div>
+                                    </div>
+                                </div>
+                                <div className="h-12 w-full px-8 pb-4"><div className="barcode w-full h-full opacity-60"></div></div>
+                            </div>
+
+                            <div className="flex-[1.2] flex flex-col bg-slate-50">
+                                <div className="h-16 flex items-center justify-center text-white text-2xl" style={{backgroundColor: airline.color}}>
+                                    <i className="ph ph-airplane"></i>
+                                </div>
+                                <div className="p-6 flex flex-col gap-4 flex-1">
+                                    <div>
+                                        <div className="text-xs text-slate-400 uppercase tracking-widest">Passenger</div>
+                                        <div className="text-sm font-bold text-slate-800 mono truncate">{name.toUpperCase() || "GUEST"}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-slate-400 uppercase tracking-widest">To</div>
+                                        <div className="text-2xl font-black text-blue-600">{dest.code}</div>
+                                    </div>
+                                    <div className="mt-auto">
+                                        <div className="text-xs text-slate-400 uppercase tracking-widest">Flight</div>
+                                        <div className="text-lg font-bold text-slate-800 mono">{flightNum}</div>
+                                    </div>
+                                    <div className="barcode h-8 w-full opacity-60"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. Game View (Pro V3 - Scroll Friendly)
+        const GameView = () => {
+            const [isRolling, setIsRolling] = useState(false);
+            const [currentDisplay, setCurrentDisplay] = useState("Ready?");
+            const [targetCountry, setTargetCountry] = useState(null);
+            const [options, setOptions] = useState([]);
+            const [feedback, setFeedback] = useState(null);
+            const [mapBlur, setMapBlur] = useState(true);
+            const poolRef = useRef([...Array(GAME_DATA.length).keys()]); 
+
+            const startRoll = () => {
+                if(poolRef.current.length === 0) {
+                    if(confirm("All countries played! Restart?")) poolRef.current = [...Array(GAME_DATA.length).keys()];
+                    else return;
+                }
+
+                setIsRolling(true);
+                setTargetCountry(null);
+                setFeedback(null);
+                setMapBlur(true);
+                
+                let count = 0;
+                const interval = setInterval(() => {
+                    const r = GAME_DATA[Math.floor(Math.random() * GAME_DATA.length)];
+                    setCurrentDisplay(r.name);
+                    count++;
+                    if(count > 20) {
+                        clearInterval(interval);
+                        pickCountry();
+                    }
+                }, 80);
+            };
+
+            const pickCountry = () => {
+                const randIndex = Math.floor(Math.random() * poolRef.current.length);
+                const dataIndex = poolRef.current[randIndex];
+                poolRef.current.splice(randIndex, 1);
+                
+                const country = GAME_DATA[dataIndex];
+                setCurrentDisplay(country.name);
+                setTargetCountry(country);
+                setIsRolling(false);
+                setMapBlur(true);
+                
+                let opts = [country.capital, ...country.others];
+                opts = opts.sort(() => Math.random() - 0.5);
+                setOptions(opts);
+                
+                speak(country.name);
+            };
+
+            const checkAnswer = (opt) => {
+                if(opt === targetCountry.capital) {
+                    setFeedback({ type: 'success', msg: `Correct! ${targetCountry.capital} is the capital.` });
+                    speak(`Correct! ${targetCountry.capital} is the capital.`);
+                } else {
+                    setFeedback({ type: 'error', msg: "Try again!" });
+                    speak("Try again.");
+                }
+            };
+
+            return (
+                <div className="flex flex-col items-center w-full min-h-full fade-in p-6 bg-blue-50/90 relative">
+                    <h1 className="text-4xl font-black text-slate-800 mb-8 display-font tracking-wide text-center">Capital City Challenge 🌍</h1>
+
+                    <div className="bg-white p-6 rounded-3xl border-4 border-blue-500 shadow-[0_10px_0_#1d4ed8] w-full max-w-md text-center mb-8 transform transition-all">
+                        <div className="text-4xl font-black text-slate-800 display-font min-h-[3rem] flex items-center justify-center">
+                            {currentDisplay}
+                        </div>
+                    </div>
+
+                    {!targetCountry && (
+                        <button onClick={startRoll} disabled={isRolling} className="px-10 py-4 bg-yellow-500 hover:bg-yellow-400 text-white rounded-full font-black text-2xl shadow-[0_6px_0_#b45309] active:translate-y-1 active:shadow-none transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            {isRolling ? "ROLLING..." : "START ROLL"}
+                        </button>
+                    )}
+
+                    {targetCountry && (
+                        <div className="glass-panel p-8 w-full max-w-5xl flex flex-col md:flex-row gap-8 animate-[fadeIn_0.5s_ease-out] mb-10">
+                            {/* Visuals */}
+                            <div className="flex-1 flex flex-col gap-6">
+                                <div className="flex items-center gap-6">
+                                    <div className="w-32 h-20 bg-slate-200 rounded-lg overflow-hidden shadow-lg border-2 border-white transform transition hover:scale-105 flex-shrink-0">
+                                        <img src={targetCountry.flag} className="w-full h-full object-cover" onError={(e)=>e.target.style.display='none'} />
+                                    </div>
+                                    <h2 className="text-3xl md:text-4xl font-black text-slate-800">{targetCountry.name}</h2>
+                                    <button onClick={() => speak(targetCountry.name)} className="text-blue-500 hover:text-blue-700 p-2"><i className="ph ph-speaker-high text-3xl"></i></button>
+                                </div>
+                                
+                                <div className="bg-blue-50 p-5 rounded-2xl border-l-4 border-blue-400 shadow-sm flex flex-col gap-3">
+                                    <p className="text-slate-700 text-sm leading-relaxed font-medium">{targetCountry.desc}</p>
+                                    
+                                    <div className="flex items-center justify-between bg-white/60 p-2 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <i className="ph ph-users text-blue-500 text-lg"></i>
+                                            <span className="text-xs font-bold text-slate-500 uppercase">Population</span>
+                                            <span className="text-sm font-bold text-slate-800">{targetCountry.pop}</span>
+                                        </div>
+                                        <button onClick={() => speak(`Population: ${targetCountry.pop}`)} className="text-slate-400 hover:text-blue-500"><i className="ph ph-speaker-high"></i></button>
+                                    </div>
+
+                                    <div className="flex items-center justify-between bg-white/60 p-2 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <i className="ph ph-star text-yellow-500 text-lg"></i>
+                                            <span className="text-xs font-bold text-slate-500 uppercase">Features</span>
+                                            <span className="text-sm font-bold text-slate-800">{targetCountry.feat}</span>
+                                        </div>
+                                        <button onClick={() => speak(`Features: ${targetCountry.feat}`)} className="text-slate-400 hover:text-blue-500"><i className="ph ph-speaker-high"></i></button>
+                                    </div>
+                                </div>
+
+                                <div 
+                                    className="w-full h-60 bg-slate-800 rounded-2xl overflow-hidden border-4 border-white shadow-lg relative cursor-pointer group"
+                                    onClick={() => { setMapBlur(false); speak("Map revealed."); }}
+                                >
+                                    <img 
+                                        src={targetCountry.map} 
+                                        className={`w-full h-full object-cover transition-all duration-700 ${mapBlur ? 'blur-md scale-110 opacity-80' : 'blur-0 scale-100 opacity-100'}`} 
+                                        onError={(e)=>e.target.parentElement.innerHTML='<div class="flex items-center justify-center h-full text-slate-400 text-sm font-bold">MAP IMAGE</div>'} 
+                                    />
+                                    {mapBlur && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition">
+                                            <div className="bg-black/60 text-white px-4 py-2 rounded-full text-sm font-bold backdrop-blur-sm shadow-xl flex items-center gap-2">
+                                                <i className="ph ph-hand-tap"></i> Tap to Reveal
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Quiz */}
+                            <div className="flex-1 flex flex-col justify-center gap-4">
+                                <h3 className="text-xl font-bold text-slate-500 text-center mb-4">What is the capital city?</h3>
+                                {options.map(opt => (
+                                    <button key={opt} onClick={() => checkAnswer(opt)} 
+                                            className={`p-5 rounded-2xl border-2 font-bold text-xl transition text-left flex justify-between items-center shadow-sm
+                                                ${feedback?.type === 'success' && opt === targetCountry.capital ? 'bg-green-100 border-green-500 text-green-700 shadow-green-200' : 
+                                                  'bg-white border-slate-200 text-slate-700 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md'}`}>
+                                        {opt}
+                                        {feedback?.type === 'success' && opt === targetCountry.capital && <i className="ph ph-check-circle text-2xl text-green-600"></i>}
+                                    </button>
+                                ))}
+                                
+                                {feedback && (
+                                    <div className={`mt-4 text-center font-black text-xl ${feedback.type === 'success' ? 'text-green-600' : 'text-red-500'} animate-bounce`}>
+                                        {feedback.msg}
+                                        {feedback.type === 'success' && (
+                                            <div className="mt-4">
+                                                <button onClick={startRoll} className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-3 rounded-full uppercase text-sm font-bold shadow-lg transition transform hover:scale-105 flex items-center gap-2 mx-auto">
+                                                    Next Country <i className="ph ph-arrow-right"></i>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- Main App Shell ---
+        const App = () => {
+            const [view, setView] = useState('mapping'); // mapping | definition | boarding | game
+
+            return (
+                <div className="w-full flex flex-col items-center justify-center p-4 md:p-8">
+                    <a href="FU303Main.html" className="nav-back">
+                        <i className="ph ph-arrow-u-up-left text-xl"></i> Back to Map
+                    </a>
+
+                    <div className="w-full max-w-7xl glass-panel relative shadow-2xl flex flex-col overflow-hidden min-h-[85vh] mt-12 mb-8">
+                        <div className="flex justify-center gap-2 pt-6 pb-2">
+                            {['mapping', 'definition', 'boarding', 'game'].map((v, i) => (
+                                <div key={v} className={`h-1.5 w-12 rounded-full transition-all ${view === v ? 'bg-blue-500 shadow-[0_0_10px_#3b82f6]' : 'bg-slate-200'}`}></div>
+                            ))}
+                        </div>
+
+                        <div className="flex-1 w-full relative">
+                            {view === 'mapping' && <MappingView onNext={() => setView('definition')} />}
+                            {view === 'definition' && <DefinitionView onNext={() => setView('boarding')} />}
+                            {view === 'boarding' && <BoardingPassView onNext={() => setView('game')} />}
+                            {view === 'game' && <GameView />}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

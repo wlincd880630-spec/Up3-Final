@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore: Indonesia (Pro V4)</title>
+    
+    <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/babel-standalone/7.22.17/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Fredoka:wght@500;600&family=Noto+Serif:ital,wght@0,500;1,500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* 全局设置 */
+        * { -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            color: #f8fafc; 
+            /* 赤道翡翠渐变 */
+            background: linear-gradient(135deg, #064e3b, #0d9488, #115e59, #022c22);
+            background-size: 400% 400%;
+            animation: tropicalFlow 25s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        @keyframes tropicalFlow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .serif { font-family: 'Noto Serif', serif; }
+        .mono { font-family: 'Space Grotesk', monospace; }
+        .fun-font { font-family: 'Fredoka', sans-serif; }
+
+        /* 主容器 */
+        .app-container {
+            width: 95vw;
+            max-width: 1400px;
+            height: 90vh;
+            background: rgba(6, 78, 59, 0.85);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        @media (max-width: 768px) {
+            .app-container { flex-direction: column; height: 100vh; width: 100vw; border-radius: 0; }
+        }
+
+        /* 动画 */
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 滚动条 */
+        .custom-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(52, 211, 153, 0.3) transparent; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(52, 211, 153, 0.3); border-radius: 10px; }
+
+        /* 滑块 */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 28px; width: 28px; border-radius: 50%;
+            background: #34d399; border: 4px solid white; cursor: pointer; margin-top: -12px;
+            box-shadow: 0 0 15px rgba(52, 211, 153, 0.6); transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; cursor: pointer; 
+            background: rgba(255,255,255,0.2); border-radius: 10px;
+        }
+
+        /* 返回按钮 */
+        .nav-back { 
+            position: absolute; top: 24px; left: 24px; z-index: 50; 
+            background: rgba(0,0,0,0.6); color: white; 
+            padding: 10px 20px; border-radius: 99px; text-decoration: none; 
+            backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); 
+            font-weight: 600; font-size: 1rem;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .nav-back:hover { background: rgba(0,0,0,0.8); transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // 🔹 Azure 语音配置
+        // ==========================================
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const azureRegion = "eastus2"; 
+        
+        let currentSynthesizer = null;
+
+        const speak = (text, onComplete) => {
+            if (currentSynthesizer) { currentSynthesizer.close(); currentSynthesizer = null; }
+            if (!text) { if(onComplete) onComplete(); return; }
+            
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+                currentSynthesizer = synthesizer;
+                
+                synthesizer.speakTextAsync(text, result => {
+                    synthesizer.close(); currentSynthesizer = null;
+                    if(onComplete) onComplete();
+                }, err => { console.error(err); synthesizer.close(); currentSynthesizer = null; if(onComplete) onComplete(); });
+            } catch (e) { console.error("Azure Error", e); if(onComplete) onComplete(); }
+        };
+
+        // ==========================================
+        // 🔹 数据配置
+        // ==========================================
+        const CONTENT = {
+            intro: "Let's explore the tropics.",
+            
+            // Step 1: Focus
+            imgs: ["Dieng Plateau.jpg", "Dieng Plateau_01.jpg", "Dieng Plateau_02.jpg", "Dieng Plateau_03.jpg"],
+            
+            // Step 2: Spell Country
+            country_word: "Indonesia",
+            country_hint: "The Emerald of the Equator",
+            country_sounds: [
+                { char: "i", w: "w-10" }, { char: "n", w: "w-10" }, { char: "d", w: "w-10" },
+                { char: "o", w: "w-10" }, { char: "n", w: "w-10" }, { char: "e", w: "w-10" },
+                { char: "s", w: "w-10" }, { char: "i", w: "w-10" }, { char: "a", w: "w-10" }
+            ],
+
+            // Step 3: Dieng Info
+            dieng_title: "Dieng Plateau",
+            dieng_en: "Located in Central Java, the Dieng Plateau is a marshy caldera complex formed by ancient volcanoes. It is famous for its cool weather, colorful lakes, and ancient Hindu temples.",
+            dieng_cn: "迪昂高原位于中爪哇，是一个由古老火山形成的沼泽火山口群。它以凉爽的天气、色彩斑斓的湖泊和古老的印度教寺庙而闻名。",
+
+            // Step 4: Spell Word (Plateau)
+            plateau_word: "Plateau",
+            plateau_hint: "A large flat area of land",
+            plateau_sounds: [
+                { char: "p", w: "w-12" }, { char: "l", w: "w-12" }, { char: "a", w: "w-12" },
+                { char: "t", w: "w-12" }, { char: "eau", w: "w-20", isSpecial: true } // Special Trigraph
+            ],
+
+            // Step 5: Indonesia Fun Facts
+            fun_title: "Did You Know?",
+            fun_en: "Indonesia is the world's largest island country, with over 17,000 islands! It lies on the 'Ring of Fire' and is home to the Komodo dragon, the world's largest lizard.",
+            fun_cn: "印度尼西亚是世界上最大的群岛国家，拥有超过17,000个岛屿！它位于“太平洋火环”上，也是世界上最大的蜥蜴——科莫多巨蜥的家园。"
+        };
+
+        // ==========================================
+        // 🔹 组件区域
+        // ==========================================
+
+        const App = () => {
+            const [view, setView] = useState('focus'); 
+            // views: 'focus' -> 'spell_indonesia' -> 'info_dieng' -> 'spell_plateau' -> 'info_indonesia'
+            
+            const [focusVal, setFocusVal] = useState(0);
+            const [imgIdx, setImgIdx] = useState(0);
+            
+            useEffect(() => { setTimeout(() => speak(CONTENT.intro), 800); }, []);
+
+            // 切换图片
+            const changeImage = (dir) => {
+                const total = CONTENT.imgs.length;
+                let next = imgIdx + dir;
+                if (next >= total) next = 0;
+                if (next < 0) next = total - 1;
+                setImgIdx(next);
+            };
+
+            // 流程控制
+            const nextStep = (nextView, speechText) => {
+                speak(speechText, () => {
+                    setTimeout(() => setView(nextView), 500);
+                });
+            };
+
+            return (
+                <div className="app-container fade-in">
+                    
+                    {/* 1. 左侧：相机取景器 */}
+                    <div className="flex-1 md:flex-[1.8] relative bg-black overflow-hidden border-b-4 md:border-b-0 md:border-r-4 border-slate-700/50 group h-[40vh] md:h-auto">
+                        <a href="FU303Main.html" className="nav-back">
+                            <i className="ph ph-arrow-u-up-left text-xl"></i> Back to Map
+                        </a>
+
+                        <div className="w-full h-full overflow-hidden relative">
+                            
+                            {/* 只有在 Focus 或 Info 阶段可以切图 */}
+                            {(view === 'focus' || view.startsWith('info')) && (
+                                <>
+                                    <button onClick={(e) => { e.stopPropagation(); changeImage(-1); }} className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-md z-30 transition border border-white/20 hover:scale-110"><i className="ph ph-caret-left text-2xl"></i></button>
+                                    <button onClick={(e) => { e.stopPropagation(); changeImage(1); }} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-md z-30 transition border border-white/20 hover:scale-110"><i className="ph ph-caret-right text-2xl"></i></button>
+                                    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+                                        {CONTENT.imgs.map((_, i) => (
+                                            <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === imgIdx ? 'bg-white w-6' : 'bg-white/40'}`}></div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+
+                            <img 
+                                key={imgIdx}
+                                src={CONTENT.imgs[imgIdx]} 
+                                className="w-full h-full object-cover transition-all duration-500 transform scale-110 animate-[fadeIn_0.5s]"
+                                style={{ 
+                                    filter: `blur(${view === 'focus' ? Math.max(0, 20 - (focusVal / 4)) : 0}px) brightness(${0.5 + (focusVal/200)})`,
+                                    transform: `scale(${1.1 - (focusVal/1000)})` 
+                                }}
+                                onError={(e) => e.target.src = 'https://placehold.co/1200x800/064e3b/34d399?text=Dieng+Plateau'}
+                            />
+                            {view !== 'focus' && !view.startsWith('info') && <div className="absolute inset-0 bg-green-900/40 mix-blend-multiply transition-all"></div>}
+                        </div>
+
+                        <div className="absolute inset-0 pointer-events-none p-8 flex flex-col justify-between z-10">
+                            <div className="flex justify-between items-start">
+                                <div className="text-red-500 font-mono font-bold animate-pulse flex items-center gap-3 bg-black/40 px-3 py-1 rounded backdrop-blur-sm">
+                                    <div className="w-3 h-3 bg-red-500 rounded-full shadow-[0_0_10px_red]"></div> REC
+                                </div>
+                                <div className="text-white/80 font-mono text-sm flex flex-col items-end gap-1">
+                                    <span>ISO 400</span> <span className="text-green-400">AF-S</span>
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-end text-white/60 font-mono text-sm">
+                                <div>INDONESIA</div>
+                                <div className={`${focusVal > 90 ? 'text-green-400 font-bold' : 'text-white'}`}>FOCUS: {focusVal}%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2. 右侧：控制面板 */}
+                    <div className="flex-1 bg-slate-900/60 backdrop-blur-3xl border-l border-white/5 relative flex flex-col h-[60vh] md:h-auto overflow-hidden">
+                        
+                        {/* 进度条 */}
+                        <div className="flex justify-center gap-2 pt-6 pb-2 shrink-0">
+                            {['focus', 'spell_indonesia', 'info_dieng', 'spell_plateau', 'info_indonesia'].map((v, i) => (
+                                <div key={v} className={`h-1.5 w-8 rounded-full transition-all ${view === v ? 'bg-green-400 shadow-[0_0_10px_#34d399]' : 'bg-slate-600'}`}></div>
+                            ))}
+                        </div>
+
+                        <div className="flex-1 relative overflow-y-auto custom-scroll p-6 md:p-8">
+                            <div className="min-h-full flex flex-col items-center justify-center">
+                            
+                                {/* --- Phase 1: Focus --- */}
+                                {view === 'focus' && (
+                                    <div className="w-full flex flex-col items-center fade-in">
+                                        <h2 className="text-green-200 font-bold uppercase tracking-[0.2em] text-xs mb-4">Step 1: Identify</h2>
+                                        <div className="bg-green-500/10 text-green-200 px-6 py-4 rounded-2xl border border-green-500/20 inline-block font-medium shadow-lg w-full max-w-sm text-center mb-10">
+                                            <i className="ph ph-aperture mr-2 align-middle"></i> "Adjust focus to reveal the landscape."
+                                        </div>
+                                        <div className="w-full max-w-sm mb-8 relative group">
+                                            <div className="flex justify-between text-xs text-slate-400 mb-3 font-mono tracking-widest">
+                                                <span>BLUR</span><span>SHARP</span>
+                                            </div>
+                                            <input type="range" min="0" max="100" value={focusVal} 
+                                                onChange={(e) => {
+                                                    const v = parseInt(e.target.value);
+                                                    setFocusVal(v);
+                                                    if(v > 90) nextStep('spell_indonesia', "Excellent! Now, spell the country.");
+                                                }}
+                                                className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-slate-700"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* --- Phase 2: Spell Indonesia --- */}
+                                {view === 'spell_indonesia' && (
+                                    <MappingInterface 
+                                        title="Step 2: Spell Country"
+                                        word={CONTENT.country_word}
+                                        sounds={CONTENT.country_sounds}
+                                        hint={CONTENT.country_hint}
+                                        onComplete={() => nextStep('info_dieng', "Correct! Welcome to Indonesia.")} 
+                                    />
+                                )}
+
+                                {/* --- Phase 3: Info Dieng --- */}
+                                {view === 'info_dieng' && (
+                                    <div className="w-full fade-in flex flex-col items-center gap-6">
+                                        <div className="text-center">
+                                            <span className="text-green-400 font-bold tracking-widest text-xs uppercase mb-2 block">Destination</span>
+                                            <h1 className="text-3xl font-black text-white mb-2">{CONTENT.country_word}</h1>
+                                        </div>
+                                        
+                                        <div className="bg-gradient-to-b from-white/10 to-white/5 p-6 rounded-3xl border border-white/10 text-left shadow-2xl relative overflow-hidden w-full">
+                                            <h3 className="text-green-400 font-bold uppercase tracking-widest text-xs mb-2">Featured Spot: {CONTENT.dieng_title}</h3>
+                                            <p className="serif text-lg text-green-50 mb-3 leading-relaxed">"{CONTENT.dieng_en}"</p>
+                                            <p className="text-slate-400 text-sm mb-4 leading-relaxed">{CONTENT.dieng_cn}</p>
+                                            <div className="flex justify-end gap-3">
+                                                <button onClick={() => speak(CONTENT.dieng_en)} className="px-4 py-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold"><i className="ph ph-speaker-high"></i> Listen</button>
+                                                <button onClick={() => nextStep('spell_plateau', "Now, let's learn a key word: Plateau.")} className="px-4 py-2 rounded-full bg-green-600 hover:bg-green-500 text-white text-sm font-bold flex items-center gap-2">Next Word <i className="ph ph-arrow-right"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* --- Phase 4: Spell Plateau --- */}
+                                {view === 'spell_plateau' && (
+                                    <MappingInterface 
+                                        title="Step 4: Spell Word"
+                                        word={CONTENT.plateau_word}
+                                        sounds={CONTENT.plateau_sounds}
+                                        hint={CONTENT.plateau_hint}
+                                        onComplete={() => nextStep('info_indonesia', "Perfect! You've mastered the word.")} 
+                                    />
+                                )}
+
+                                {/* --- Phase 5: Info Indonesia --- */}
+                                {view === 'info_indonesia' && (
+                                    <div className="w-full fade-in flex flex-col items-center gap-6">
+                                        <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-200 to-teal-200 mb-2">Mission Complete!</h1>
+                                        
+                                        <div className="bg-gradient-to-br from-teal-900/40 to-slate-900/40 p-6 rounded-3xl border border-teal-500/30 text-left shadow-2xl relative overflow-hidden w-full group">
+                                            <div className="absolute -bottom-4 -right-4 p-4 opacity-20 text-teal-500"><i className="ph ph-globe-hemisphere-east text-8xl"></i></div>
+                                            <h3 className="text-teal-400 font-bold uppercase tracking-widest text-xs mb-2 flex items-center gap-2">
+                                                <i className="ph ph-paw-print"></i> {CONTENT.fun_title}
+                                            </h3>
+                                            <p className="serif text-lg text-white mb-3 leading-relaxed font-medium">"{CONTENT.fun_en}"</p>
+                                            <p className="text-slate-400 text-sm mb-4 leading-relaxed">{CONTENT.fun_cn}</p>
+                                            <div className="text-right relative z-10">
+                                                <button onClick={() => speak(CONTENT.fun_en)} className="px-5 py-2 rounded-full bg-teal-600 hover:bg-teal-500 flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition gap-2 ml-auto font-bold text-sm">
+                                                    <i className="ph ph-speaker-high"></i> Learn Fact
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Sub-component: Mapping Interface (Reusable) ---
+        const MappingInterface = ({ title, word, sounds, hint, onComplete }) => {
+            const [inputs, setInputs] = useState(Array(sounds.length).fill(""));
+            const [status, setStatus] = useState("idle");
+            const inputsRef = useRef([]);
+
+            const handleChange = (val, i) => {
+                const maxLen = sounds[i].char.length;
+                const newInputs = [...inputs];
+                let nextVal = val.toLowerCase();
+                if (nextVal.length <= maxLen) {
+                    newInputs[i] = nextVal;
+                    setInputs(newInputs);
+                    setStatus("idle");
+                    if (nextVal.length === maxLen && i < sounds.length - 1) inputsRef.current[i + 1].focus();
+                }
+            };
+
+            const handleKeyDown = (e, i) => {
+                if (e.key === "Backspace" && !inputs[i] && i > 0) inputsRef.current[i - 1].focus();
+            };
+
+            const check = () => {
+                const isCorrect = inputs.every((val, i) => val === sounds[i].char);
+                setStatus(isCorrect ? "correct" : "wrong");
+                if (isCorrect) onComplete();
+                else speak("Try again.");
+            };
+
+            return (
+                <div className="w-full flex flex-col items-center fade-in">
+                    <h2 className="text-green-200 font-bold uppercase tracking-[0.2em] text-xs mb-6">{title}</h2>
+                    <button onClick={() => speak(word)} className="w-20 h-20 rounded-full bg-green-600 hover:bg-green-500 text-white flex items-center justify-center shadow-lg mb-4 transition animate-bounce">
+                        <i className="ph ph-speaker-high text-3xl"></i>
+                    </button>
+                    <p className="text-slate-300 mb-8 font-mono text-center">{hint}</p>
+                    
+                    <div className="flex flex-wrap justify-center gap-2 mb-10 max-w-full items-end">
+                        {sounds.map((sound, i) => (
+                            <div key={i} className="flex flex-col items-center">
+                                {sound.isSpecial && <div className="text-teal-400 text-[10px] font-bold mb-1 uppercase tracking-wider">Trigraph</div>}
+                                <input
+                                    ref={el => inputsRef.current[i] = el}
+                                    type="text"
+                                    value={inputs[i]}
+                                    maxLength={sound.char.length}
+                                    onChange={(e) => handleChange(e.target.value, i)}
+                                    onKeyDown={(e) => handleKeyDown(e, i)}
+                                    className={`${sound.w} h-12 md:h-16 rounded-xl border-4 text-center text-xl md:text-3xl font-bold mono focus:outline-none focus:-translate-y-1 transition shadow-sm
+                                        ${status === 'correct' ? 'border-green-400 bg-green-50 text-green-700' : 
+                                          status === 'wrong' ? 'border-red-400 bg-red-50 text-red-700' : 
+                                          'border-slate-200 bg-white text-slate-800 focus:border-green-400'}`}
+                                />
+                            </div>
+                        ))}
+                    </div>
+
+                    <button onClick={check} className="px-10 py-4 bg-slate-800 text-white rounded-full font-bold text-lg shadow-xl hover:bg-slate-700 transition active:scale-95 flex items-center gap-3">
+                        Check Spelling <i className="ph ph-check-circle text-xl"></i>
+                    </button>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

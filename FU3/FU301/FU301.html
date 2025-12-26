@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson: Hook (Large & Scrollable)</title>
+    
+    <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/babel-standalone/7.22.17/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Serif:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+
+    <style>
+        /* 全局设置 - 解除高度限制 */
+        * { -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            color: #0f172a; 
+            /* 极光背景固定，内容滚动 */
+            background: linear-gradient(-45deg, #0f172a, #1e3a8a, #312e81, #4c1d95);
+            background-size: 400% 400%;
+            background-attachment: fixed; /* 背景不随内容滚动 */
+            animation: gradient 20s ease infinite;
+            min-height: 100vh;
+            padding-bottom: 120px; /* 给底部导航留出空间 */
+        }
+        @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .serif { font-family: 'Noto Serif', serif; }
+        
+        /* 玻璃拟态 - 更加通透大气 */
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.96); 
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5); 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+            border-radius: 2rem;
+        }
+
+        /* 动画 */
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 返回按钮 - 固定在左上角，不随滚动消失 */
+        .nav-home { 
+            position: fixed; top: 20px; left: 20px; z-index: 100; 
+            background: rgba(0,0,0,0.4); color: white; 
+            padding: 10px 20px; border-radius: 99px; text-decoration: none; 
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); 
+            font-weight: 600; font-size: 1.1rem;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .nav-home:hover { background: rgba(0,0,0,0.6); transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // 🔹 Azure 语音配置
+        // ==========================================
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const azureRegion = "eastus2"; 
+        
+        let currentSynthesizer = null;
+
+        const speak = (text) => {
+            if (currentSynthesizer) { currentSynthesizer.close(); currentSynthesizer = null; }
+            if (!text) return;
+            if (window.isSpeaking) return;
+            window.isSpeaking = true; setTimeout(() => window.isSpeaking = false, 300);
+
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+                currentSynthesizer = synthesizer;
+                
+                synthesizer.speakTextAsync(text, result => {
+                    synthesizer.close(); currentSynthesizer = null;
+                }, err => { console.error(err); synthesizer.close(); currentSynthesizer = null; });
+            } catch (e) { console.error("Azure Error", e); }
+        };
+
+        // ==========================================
+        // 🔹 页面组件 (放大版 + 流式布局)
+        // ==========================================
+
+        // 1. Intro Page (放大版)
+        const IntroPage = () => {
+            const [step, setStep] = useState(0);
+
+            return (
+                <div className="w-full max-w-6xl mx-auto p-6 md:p-12 fade-in">
+                    <div className="glass-panel p-8 md:p-16 flex flex-col items-center text-center">
+                        
+                        <span className="bg-blue-100 text-blue-700 px-6 py-2 rounded-full text-lg font-bold mb-8 uppercase tracking-widest">
+                            <i className="ph ph-sparkle mr-2"></i> Lesson Intro
+                        </span>
+                        
+                        <h1 className="text-4xl md:text-7xl font-black text-slate-800 mb-10 leading-tight">
+                            "Do you know what words <br/>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Steven would like to say most?</span>"
+                        </h1>
+                        
+                        <button onClick={() => speak("Do you know what words Steven would like to say most?")} 
+                                className="w-24 h-24 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xl hover:scale-110 hover:shadow-2xl transition active:scale-95 mb-12 group">
+                            <i className="ph ph-speaker-high text-5xl group-hover:animate-pulse"></i>
+                        </button>
+
+                        <div className="w-full flex flex-col items-center gap-8">
+                            {step >= 0 && (
+                                <button onClick={() => setStep(1)} 
+                                        className={`px-10 py-4 text-xl rounded-2xl font-bold transition-all transform hover:scale-105 ${step > 0 ? 'bg-slate-100 text-slate-400' : 'bg-white border-2 border-blue-500 text-blue-600 shadow-lg'}`}>
+                                    Step 1: Reveal Clue
+                                </button>
+                            )}
+
+                            {step >= 1 && (
+                                <div className="w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl border-8 border-white bg-slate-200 animate-[fadeIn_0.5s_ease-out]">
+                                    <img src="hook.jpg" alt="Teacher Hook" className="w-full h-auto object-cover" 
+                                         onError={(e) => e.target.parentElement.innerHTML = '<div class="p-12 text-2xl bg-slate-200 text-slate-500 font-bold">🖼️ Please put hook.jpg in folder</div>'} />
+                                </div>
+                            )}
+
+                            {step >= 1 && (
+                                <button onClick={() => setStep(2)} 
+                                        className="mt-6 px-10 py-4 text-xl rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold shadow-xl hover:scale-105 transition animate-[fadeIn_0.5s_ease-out_0.2s_forwards] opacity-0">
+                                    Step 2: Reveal Answer
+                                </button>
+                            )}
+
+                            {step >= 2 && (
+                                <div className="mt-8 p-10 bg-yellow-50 border-l-[12px] border-yellow-400 rounded-r-2xl w-full max-w-4xl shadow-lg animate-[fadeIn_0.5s_ease-out]">
+                                    <h2 className="text-3xl md:text-5xl font-bold text-slate-800 mb-6 leading-snug">
+                                        "I hope you <span className="text-blue-700 border-b-8 border-yellow-300 cursor-pointer hover:bg-yellow-200 px-2 transition rounded" onClick={()=>speak('are hooked on')}>are hooked on</span> my teaching."
+                                    </h2>
+                                    <div className="flex justify-end">
+                                        <button onClick={() => speak("I hope you are hooked on my teaching")} className="text-slate-400 hover:text-blue-600 transition p-2"><i className="ph ph-speaker-high text-4xl"></i></button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 2. Examples Page (放大版)
+        const ExamplesPage = () => {
+            const [reveal, setReveal] = useState({ s1: false, s2: false });
+
+            return (
+                <div className="w-full max-w-7xl mx-auto p-6 md:p-12 fade-in">
+                    <h1 className="text-5xl md:text-8xl font-black text-white mb-12 drop-shadow-2xl text-center">be hooked on</h1>
+                    
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+                        {/* Card 1 */}
+                        <div className="glass-panel p-8 md:p-10 flex flex-col items-center">
+                            <button onClick={() => setReveal({...reveal, s1: true})} className="w-full py-5 text-xl mb-6 rounded-2xl bg-white/60 hover:bg-white text-slate-800 font-bold border-2 border-white transition shadow-sm">
+                                1. Show Girl Scene
+                            </button>
+                            {reveal.s1 && (
+                                <div className="w-full flex flex-col items-center animate-[fadeIn_0.5s]">
+                                    <div className="w-full bg-slate-200 rounded-3xl overflow-hidden mb-6 border-8 border-white shadow-lg">
+                                        <img src="hook 02.jpg" className="w-full h-auto object-cover" onError={(e) => e.target.src = 'https://placehold.co/800x600?text=Girl+Reading'} />
+                                    </div>
+                                    <div className="bg-white p-8 rounded-3xl shadow-md w-full text-center border border-slate-100">
+                                        <p className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">"She is hooked on the book."</p>
+                                        <button onClick={() => speak("She is hooked on the book")} className="p-4 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition"><i className="ph ph-speaker-high text-3xl"></i></button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Card 2 */}
+                        <div className="glass-panel p-8 md:p-10 flex flex-col items-center">
+                            <button onClick={() => setReveal({...reveal, s2: true})} className="w-full py-5 text-xl mb-6 rounded-2xl bg-white/60 hover:bg-white text-slate-800 font-bold border-2 border-white transition shadow-sm">
+                                2. Show Boy Scene
+                            </button>
+                            {reveal.s2 && (
+                                <div className="w-full flex flex-col items-center animate-[fadeIn_0.5s]">
+                                    <div className="w-full bg-slate-200 rounded-3xl overflow-hidden mb-6 border-8 border-white shadow-lg">
+                                        <img src="hook 03.jpg" className="w-full h-auto object-cover" onError={(e) => e.target.src = 'https://placehold.co/800x600?text=Boy+Coke'} />
+                                    </div>
+                                    <div className="bg-white p-8 rounded-3xl shadow-md w-full text-center border border-slate-100">
+                                        <p className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">"He got hooked on Coke."</p>
+                                        <button onClick={() => speak("He got hooked on Coke")} className="p-4 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition"><i className="ph ph-speaker-high text-3xl"></i></button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. Quiz Page (放大版)
+        const QuizPage = () => {
+            const [sel, setSel] = useState([]);
+            const [feedback, setFeedback] = useState(null);
+            const [showDef, setShowDef] = useState(false);
+
+            const toggle = (opt) => {
+                if (sel.includes(opt)) setSel(sel.filter(x => x !== opt));
+                else if (sel.length < 2) setSel([...sel, opt]);
+            };
+
+            const submit = () => {
+                const correct = ['B', 'C'];
+                const isCorrect = sel.length === 2 && sel.every(v => correct.includes(v));
+                setFeedback(isCorrect ? 'success' : 'error');
+                if (isCorrect) setShowDef(true);
+            };
+
+            return (
+                <div className="w-full max-w-5xl mx-auto p-6 md:p-12 fade-in">
+                    <div className="glass-panel p-10 md:p-16 w-full mb-10">
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-8">
+                            <span className="bg-purple-100 text-purple-700 font-black px-5 py-2 rounded-xl text-xl shadow-sm">QUIZ TIME</span>
+                            <h2 className="text-3xl md:text-4xl font-bold text-slate-800">What does <span className="text-blue-600 bg-blue-50 px-2 rounded">'be/get hooked on'</span> mean?</h2>
+                        </div>
+                        <p className="text-slate-500 text-lg mb-8 font-medium bg-slate-50 p-4 rounded-xl border border-slate-200 inline-block">
+                            <i className="ph ph-info mr-2"></i> Select 2 Correct Answers
+                        </p>
+
+                        <div className="space-y-4">
+                            {[
+                                {k:'A', t:'To be hung on a wall.'},
+                                {k:'B', t:'To enjoy something very much.'},
+                                {k:'C', t:'To be addicted to something bad.'},
+                                {k:'D', t:'To catch a fish.'}
+                            ].map(opt => (
+                                <div key={opt.k} onClick={() => toggle(opt.k)} 
+                                     className={`p-6 rounded-2xl border-4 cursor-pointer flex items-center gap-6 transition-all shadow-sm ${sel.includes(opt.k) ? 'border-blue-500 bg-blue-50' : 'border-transparent bg-slate-100 hover:bg-slate-200'}`}>
+                                    <div className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center flex-shrink-0 ${sel.includes(opt.k) ? 'border-blue-500 bg-blue-500 text-white' : 'border-slate-400 bg-white'}`}>
+                                        {sel.includes(opt.k) && <i className="ph ph-check text-xl font-bold"></i>}
+                                    </div>
+                                    <span className="font-bold text-xl text-slate-700">{opt.t}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button onClick={submit} className="w-full mt-10 py-5 bg-slate-800 text-white rounded-2xl font-bold text-2xl shadow-xl hover:bg-slate-700 active:scale-95 transition">Submit Answer</button>
+                        
+                        {feedback && (
+                            <div className={`mt-8 p-6 rounded-2xl text-center text-xl font-bold animate-[fadeIn_0.3s] shadow-md border-2 ${feedback === 'success' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}`}>
+                                {feedback === 'success' ? <span><i className="ph ph-check-circle text-3xl align-middle mr-2"></i>Correct! Well done.</span> : "Try Again. Correct answers: B & C"}
+                            </div>
+                        )}
+                    </div>
+
+                    {showDef && (
+                        <div className="glass-panel p-10 md:p-16 w-full border-l-[16px] border-green-500 animate-[fadeIn_0.6s]">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest mb-2">Definition</h3>
+                                    <p className="text-3xl md:text-4xl font-bold text-slate-800">Strongly attracted to something or addicted to something.</p>
+                                </div>
+                                <button onClick={() => speak("Strongly attracted to something or addicted to something")} className="p-4 bg-white rounded-full shadow-lg hover:scale-110 transition flex-shrink-0"><i className="ph ph-speaker-high text-3xl text-green-600"></i></button>
+                            </div>
+                            
+                            <div className="space-y-6">
+                                <ExampleRow en="I watched the first episode of Friends, and now I am hooked on it!" cn="我看过《老友记》第一集，现在我迷上它了！" />
+                                <ExampleRow en="Sadly, the poor man got hooked on drugs." cn="可悲的是，那个可怜人染上了毒瘾。" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const ExampleRow = ({ en, cn }) => {
+            const [blur, setBlur] = useState(true);
+            return (
+                <div className="bg-white/60 p-6 md:p-8 rounded-3xl border-2 border-white shadow-sm hover:shadow-md transition">
+                    <p className={`serif text-2xl md:text-3xl text-slate-800 mb-3 transition-all duration-500 cursor-pointer ${blur ? 'blur-md select-none opacity-40' : 'blur-0 opacity-100'}`} onClick={() => setBlur(false)}>{en}</p>
+                    <p className="text-lg text-slate-500 font-medium">{cn}</p>
+                    <div className="flex justify-end gap-4 mt-4">
+                        <button onClick={() => setBlur(!blur)} className="text-sm font-bold text-blue-600 uppercase px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg transition">{blur ? 'Show English' : 'Hide'}</button>
+                        <button onClick={() => speak(en)} className="text-slate-400 hover:text-blue-600 p-2"><i className="ph ph-speaker-high text-2xl"></i></button>
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. Dictionary Page (放大版)
+        const DictionaryPage = () => {
+            return (
+                <div className="w-full max-w-7xl mx-auto p-6 md:p-12 fade-in">
+                    <h1 className="text-6xl md:text-9xl font-black text-white mb-16 drop-shadow-2xl text-center">Word: "Hook"</h1>
+                    
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 pb-24">
+                        
+                        {/* Noun Card */}
+                        <div className="glass-panel p-10 border-t-[16px] border-blue-500 flex flex-col">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-4xl md:text-5xl font-bold text-blue-600">1. Noun</h2>
+                                <button onClick={() => speak("A curved device used for catching or holding things")} className="p-4 bg-blue-50 rounded-full text-blue-600 hover:bg-blue-100 hover:scale-110 transition"><i className="ph ph-speaker-high text-3xl"></i></button>
+                            </div>
+                            <p className="text-slate-600 text-2xl italic mb-10 font-serif border-l-4 border-slate-300 pl-4">Def: A curved device used for catching or holding things.</p>
+                            <div className="space-y-6">
+                                <ExampleRow en="Please hang your coat on the hook behind the door." cn="请把你的外套挂在门后的钩子上。" />
+                                <ExampleRow en="The fish swallowed the bait and the hook." cn="那条鱼吞下了诱饵和鱼钩。" />
+                            </div>
+                        </div>
+
+                        {/* Verb Card */}
+                        <div className="glass-panel p-10 border-t-[16px] border-yellow-500 flex flex-col">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-4xl md:text-5xl font-bold text-yellow-600">2. Verb</h2>
+                                <button onClick={() => speak("To fasten or catch something with a hook")} className="p-4 bg-yellow-50 rounded-full text-yellow-600 hover:bg-yellow-100 hover:scale-110 transition"><i className="ph ph-speaker-high text-3xl"></i></button>
+                            </div>
+                            <p className="text-slate-600 text-2xl italic mb-10 font-serif border-l-4 border-slate-300 pl-4">Def: To fasten or catch something with a hook.</p>
+                            <div className="space-y-6">
+                                <ExampleRow en="Can you help me hook this dress at the back?" cn="你能帮我把这件裙子后面的扣子扣上吗？" />
+                                <ExampleRow en="He hooked a big fish during his holiday." cn="他在假期里钓到了一条大鱼。" />
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Main App Shell ---
+        const App = () => {
+            const [page, setPage] = useState(0);
+            const totalPages = 4;
+
+            const changePage = (dir) => {
+                const next = page + dir;
+                if (next >= 0 && next < totalPages) {
+                    setPage(next);
+                    window.scrollTo({ top: 0, behavior: 'smooth' }); // 切页自动回顶
+                }
+            };
+
+            return (
+                <div className="w-full min-h-screen">
+                    
+                    {/* 返回首页 - 固定悬浮在左上角 */}
+                    <a href="../../index.html" className="nav-home">
+                        <i className="ph ph-house text-2xl"></i> <span className="hidden md:inline">Home</span>
+                    </a>
+
+                    {/* 页面内容区 */}
+                    <div className="w-full pt-16">
+                        {page === 0 && <IntroPage />}
+                        {page === 1 && <ExamplesPage />}
+                        {page === 2 && <QuizPage />}
+                        {page === 3 && <DictionaryPage />}
+                    </div>
+
+                    {/* 底部悬浮导航栏 */}
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-white/90 backdrop-blur-2xl p-3 rounded-full shadow-2xl border border-white/60 flex justify-between items-center z-50 transition-all hover:scale-[1.02]">
+                        <button onClick={() => changePage(-1)} disabled={page === 0} className="w-14 h-14 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 transition text-slate-600">
+                            <i className="ph ph-caret-left text-2xl"></i>
+                        </button>
+                        
+                        <div className="flex gap-3">
+                            {[...Array(totalPages)].map((_, i) => (
+                                <div key={i} onClick={()=>setPage(i)} className={`h-3 rounded-full cursor-pointer transition-all duration-300 ${i === page ? 'bg-blue-600 w-10 shadow-lg shadow-blue-300' : 'bg-slate-300 w-3 hover:bg-slate-400'}`}></div>
+                            ))}
+                        </div>
+
+                        <button onClick={() => changePage(1)} disabled={page === totalPages - 1} className="w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 disabled:opacity-30 disabled:bg-none disabled:bg-slate-300 transition shadow-lg shadow-blue-500/30">
+                            <i className="ph ph-caret-right text-2xl"></i>
+                        </button>
+                    </div>
+
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

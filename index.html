@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit 3: Adventure & Unusual Destinations | Portal</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            /* Theme Colors */
+            --bg-deep: #0f172a;
+            --bg-gradient: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #312e81 100%);
+            --glass-surface: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            /* Accent Colors */
+            --accent-gold: #f59e0b;   /* Discovery */
+            --accent-cyan: #22d3ee;   /* Cyberpunk */
+            --accent-green: #10b981;  /* Nature */
+            --accent-purple: #a855f7; /* Mystery */
+            --accent-rose: #f43f5e;   /* Action */
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- Hero Section --- */
+        header {
+            position: relative;
+            height: 55vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center/cover;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(to bottom, rgba(2, 6, 23, 0.4), var(--bg-deep));
+        }
+
+        .hero-content { position: relative; z-index: 10; max-width: 900px; animation: fadeInUp 1s ease-out; }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 4.5rem; margin: 0;
+            background: linear-gradient(to right, #fff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem; letter-spacing: 4px; text-transform: uppercase;
+            color: var(--accent-gold); margin-top: 15px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+        }
+        .subtitle::before, .subtitle::after { content: ''; height: 1px; width: 50px; background: var(--accent-gold); opacity: 0.5; }
+
+        .hero-desc {
+            margin-top: 25px; font-size: 1.15rem; line-height: 1.7; color: #e2e8f0;
+            font-weight: 300; opacity: 0.9;
+        }
+
+        /* --- Layout --- */
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 40px 20px 100px;
+            position: relative; z-index: 20;
+        }
+
+        .section-label {
+            font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px;
+            color: var(--text-muted); margin: 60px 0 20px; padding-left: 10px;
+            border-left: 3px solid var(--accent-cyan); font-weight: 700;
+        }
+
+        /* --- Grid System --- */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .grid-wide {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        /* --- Cards --- */
+        .card {
+            background: var(--glass-surface);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 30px;
+            text-decoration: none; color: white;
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+            backdrop-filter: blur(12px);
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+        }
+
+        /* Card Elements */
+        .card-badge {
+            position: absolute; top: 20px; right: 20px;
+            font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+            padding: 6px 12px; border-radius: 50px; letter-spacing: 1px;
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(5px);
+        }
+
+        .card-icon {
+            font-size: 2.5rem; margin-bottom: 20px; width: 60px; height: 60px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 16px; background: rgba(255,255,255,0.05);
+            transition: 0.4s;
+        }
+        .card:hover .card-icon { transform: scale(1.1) rotate(5deg); background: white; }
+
+        .card h3 { font-size: 1.6rem; margin: 0 0 10px; font-weight: 700; letter-spacing: -0.5px; }
+        .card p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin: 0; }
+
+        .card-footer {
+            margin-top: auto; padding-top: 20px;
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.9rem; font-weight: 700; opacity: 0; transform: translateX(-10px);
+            transition: 0.3s;
+        }
+        .card:hover .card-footer { opacity: 1; transform: translateX(0); }
+
+        /* --- Specific Card Themes --- */
+        /* FU303 Main Map (Feature Card) */
+        .card-feature {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.02));
+            border-color: rgba(245, 158, 11, 0.3);
+            flex-direction: row; align-items: center; gap: 40px; padding: 50px;
+        }
+        .card-feature .card-icon { width: 100px; height: 100px; font-size: 3.5rem; color: var(--accent-gold); }
+        .card-feature:hover .card-icon { background: var(--accent-gold); color: #000; }
+        .card-feature h3 { font-size: 2.5rem; font-family: 'Playfair Display'; }
+        
+        /* FU307 Cyberpunk */
+        .theme-cyber .card-icon { color: var(--accent-cyan); }
+        .theme-cyber:hover { border-color: var(--accent-cyan); box-shadow: 0 0 30px rgba(34, 211, 238, 0.15); }
+        .theme-cyber:hover .card-icon { color: #000; background: var(--accent-cyan); }
+        .theme-cyber .card-footer { color: var(--accent-cyan); }
+
+        /* FU305 Zootopia */
+        .theme-zoo .card-icon { color: var(--accent-purple); }
+        .theme-zoo:hover { border-color: var(--accent-purple); }
+        .theme-zoo:hover .card-icon { color: #fff; background: var(--accent-purple); }
+        .theme-zoo .card-footer { color: var(--accent-purple); }
+
+        /* FU304 Nature */
+        .theme-nature .card-icon { color: var(--accent-green); }
+        .theme-nature:hover { border-color: var(--accent-green); }
+        .theme-nature:hover .card-icon { color: #fff; background: var(--accent-green); }
+        .theme-nature .card-footer { color: var(--accent-green); }
+
+        /* FU306 Adventure */
+        .theme-adv .card-icon { color: var(--accent-rose); }
+        .theme-adv:hover { border-color: var(--accent-rose); }
+        .theme-adv:hover .card-icon { color: #fff; background: var(--accent-rose); }
+        .theme-adv .card-footer { color: var(--accent-rose); }
+
+        /* --- Homework Section --- */
+        .mission-card {
+            background: #1e293b; border-radius: 20px; overflow: hidden;
+            display: flex; border: 1px solid rgba(255,255,255,0.1);
+            text-decoration: none; color: white; transition: 0.3s;
+        }
+        .mission-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.4); border-color: var(--text-muted); }
+        
+        .mission-img-col { width: 35%; position: relative; overflow: hidden; }
+        .mission-img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+        .mission-card:hover .mission-img { transform: scale(1.1); }
+        
+        .mission-content { padding: 30px; width: 65%; display: flex; flex-direction: column; justify-content: center; }
+        .mission-tag { font-size: 0.8rem; color: var(--accent-gold); font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
+        .mission-content h3 { font-size: 1.8rem; margin: 0 0 10px; font-family: 'Playfair Display'; }
+        .mission-btn { 
+            margin-top: 15px; align-self: flex-start; 
+            padding: 8px 20px; border: 1px solid rgba(255,255,255,0.3); border-radius: 50px;
+            font-size: 0.9rem; font-weight: 600; transition: 0.2s;
+        }
+        .mission-card:hover .mission-btn { background: white; color: black; border-color: white; }
+
+        /* --- Footer Link --- */
+        .doc-link {
+            display: block; margin-top: 60px; padding: 40px; text-align: center;
+            background: linear-gradient(to right, rgba(255,255,255,0.02), rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+            border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-decoration: none; color: var(--text-muted); transition: 0.3s;
+        }
+        .doc-link:hover { color: white; background: rgba(255,255,255,0.05); }
+        .doc-link h4 { font-size: 1.5rem; margin: 0 0 10px; color: var(--text-main); }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 3rem; }
+            .grid-wide { grid-template-columns: 1fr; }
+            .card-feature { flex-direction: column; text-align: center; padding: 30px; gap: 20px; }
+            .mission-card { flex-direction: column; }
+            .mission-img-col { width: 100%; height: 200px; }
+            .mission-content { width: 100%; }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="hero-content">
+            <div class="subtitle">
+                <i class="fas fa-compass"></i>
+                <span>Semester 2 • Unit 3</span>
+                <i class="fas fa-compass"></i>
+            </div>
+            <h1>Adventure & Unusual Destinations</h1>
+            <p class="hero-desc">
+                From the bustling streets of London to the cyberpunk future, and from microscopic worlds to grand landscapes. 
+                Explore the vocabulary that defines our world and beyond.
+            </p>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <div class="section-label">Core Exploration</div>
+        <div class="grid">
+            <a href="FU3/FU303/FU303Main.html" class="card card-feature">
+                <div class="card-icon"><i class="fas fa-map-marked-alt"></i></div>
+                <div>
+                    <h3>Interactive World Map</h3>
+                    <p>The central hub of our journey. Explore 9 different countries, unlock cultural facts, and master spelling with geographical context.</p>
+                    <div class="card-footer" style="color:var(--accent-gold); opacity:1; transform:none; margin-top:20px;">
+                        Launch Map Interface <i class="fas fa-arrow-right" style="margin-left:10px;"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="section-label">Learning Modules</div>
+        <div class="grid">
+            
+            <a href="FU3/FU301/FU301.html" class="card theme-adv">
+                <span class="card-badge">Lesson 01</span>
+                <div class="card-icon"><i class="fas fa-plane-departure"></i></div>
+                <h3>The Departure</h3>
+                <p>Essential vocabulary for travel logistics, airports, and beginning a journey.</p>
+                <div class="card-footer">Start Lesson <i class="fas fa-chevron-right"></i></div>
+            </a>
+
+            <a href="FU3/FU302/FU302.html" class="card theme-nature">
+                <span class="card-badge">Lesson 02</span>
+                <div class="card-icon"><i class="fas fa-mountain"></i></div>
+                <h3>Hidden Paths</h3>
+                <p>Words describing remote locations, unusual paths, and hidden gems.</p>
+                <div class="card-footer">Start Lesson <i class="fas fa-chevron-right"></i></div>
+            </a>
+
+            <a href="FU3/FU304/FU304.html" class="card theme-nature">
+                <span class="card-badge">Grammar</span>
+                <div class="card-icon"><i class="fas fa-leaf"></i></div>
+                <h3>Restoration Project</h3>
+                <p>Eco-themed puzzle and sentence building: "It is important for us to..."</p>
+                <div class="card-footer">Start Lesson <i class="fas fa-chevron-right"></i></div>
+            </a>
+
+            <a href="FU3/FU305/FU305.html" class="card theme-zoo">
+                <span class="card-badge">Prefixes</span>
+                <div class="card-icon"><i class="fas fa-paw"></i></div>
+                <h3>Micro vs Macro</h3>
+                <p>Join the Zootopia Academy. Learn scale prefixes through sound and vision.</p>
+                <div class="card-footer">Start Lesson <i class="fas fa-chevron-right"></i></div>
+            </a>
+
+            <a href="FU3/FU306/FU306.html" class="card theme-adv">
+                <span class="card-badge">Story Mode</span>
+                <div class="card-icon"><i class="fas fa-hiking"></i></div>
+                <h3>Defining Adventure</h3>
+                <p>Interactive comic strip and etymology. What makes a trip an "adventure"?</p>
+                <div class="card-footer">Start Lesson <i class="fas fa-chevron-right"></i></div>
+            </a>
+
+            <a href="FU3/FU307/FU307.html" class="card theme-cyber">
+                <span class="card-badge">Cyberpunk</span>
+                <div class="card-icon"><i class="fas fa-vr-cardboard"></i></div>
+                <h3>Dream Lab</h3>
+                <p>Enter the Neural Link. Explore "Imagine" and its derivatives in a futuristic UI.</p>
+                <div class="card-footer">Start Lesson <i class="fas fa-chevron-right"></i></div>
+            </a>
+
+        </div>
+
+        <div class="section-label">Field Missions (Homework)</div>
+        <div class="grid-wide">
+            
+            <a href="FU3/FU3HW/week15/Tower_Bridge/Tower_Bridge.html" class="mission-card">
+                <div class="mission-img-col">
+                    <img src="https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" class="mission-img" alt="London">
+                </div>
+                <div class="mission-content">
+                    <div class="mission-tag">Week 15 Assignment</div>
+                    <h3>Operation: London</h3>
+                    <p>Tower Bridge interactive exploration. Complete the history tasks.</p>
+                    <div class="mission-btn">Begin Mission</div>
+                </div>
+            </a>
+
+            <a href="FU3/FU3HW/Week15/Boston_tour/Boston_Tour.html" class="mission-card">
+                <div class="mission-img-col">
+                    <img src="https://images.unsplash.com/photo-1505238276332-9b777a292445?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" class="mission-img" alt="Boston">
+                </div>
+                <div class="mission-content">
+                    <div class="mission-tag">Week 15 Assignment</div>
+                    <h3>Operation: Boston</h3>
+                    <p>Virtual guided tour. Navigate the city and learn local culture.</p>
+                    <div class="mission-btn">Begin Mission</div>
+                </div>
+            </a>
+
+        </div>
+
+        <a href="FU3/Unit 3 words study V1.html" class="doc-link">
+            <h4><i class="fas fa-book-open"></i> Master Vocabulary Database</h4>
+            <p>Access the full document containing all Unit 3 words, definitions, and examples.</p>
+        </a>
+
+    </div>
+
+</body>
+</html>

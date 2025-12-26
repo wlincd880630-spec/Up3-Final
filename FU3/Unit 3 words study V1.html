@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Unit 3 Ultimate Vocab Lab (Pro)</title>
+    
+    <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/babel-standalone/7.22.17/babel.min.js"></script>
+    <script src="https://cdn.staticfile.net/phosphor-icons/1.4.2/web/index.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    
+    <style>
+        /* 基础重置 */
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            color: #0f172a; 
+            margin: 0; padding: 0;
+            overflow-x: hidden;
+            background: #0f172a; /* Fallback */
+        }
+
+        /* 动态极光背景 */
+        .bg-animate { 
+            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #0f172a); 
+            background-size: 400% 400%; 
+            animation: gradient 20s ease infinite; 
+            min-height: 100vh;
+            width: 100%;
+            position: fixed;
+            top: 0; left: 0; z-index: -1;
+        }
+        @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        /* Home 按钮样式 */
+        .home-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 5000;
+            background: rgba(255,255,255,0.1); color: #a5b4fc;
+            padding: 8px 16px; border-radius: 50px; text-decoration: none;
+            font-weight: 700; border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px); transition: 0.3s; display: flex; align-items: center; gap: 8px;
+            font-size: 0.9rem; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .home-btn:hover { background: #a5b4fc; color: #0f172a; transform: translateY(-2px); }
+
+        /* 3D 翻转相关 */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        
+        /* 玻璃拟态 */
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.92); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255, 255, 255, 0.5); 
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5); 
+        }
+        
+        /* 动画 */
+        .fade-in { animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @keyframes shrink { from { width: 100%; } to { width: 0%; } }
+        .animate-shrink { animation: shrink 10s linear forwards; }
+
+        /* 滚动条优化 */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    </style>
+</head>
+<body>
+
+    <div class="bg-animate"></div>
+    <a href="../index.html" class="home-btn"><i class="ph-bold ph-house"></i> Home</a>
+
+    <div id="root" class="w-full min-h-screen flex flex-col pt-16"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // Azure Configuration
+        // ==========================================
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const azureRegion = "eastus2"; 
+        // ==========================================
+
+        let synthesizer = null;
+
+        const speak = (text, onComplete) => {
+            // 1. Clean up previous
+            if (synthesizer) {
+                try { synthesizer.close(); } catch(e) {}
+                synthesizer = null;
+            }
+            if (!text) return;
+
+            // 2. Init Azure
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-AriaNeural"; // Upgraded Voice
+
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+                
+                synthesizer.speakTextAsync(
+                    text,
+                    result => {
+                        if (onComplete) onComplete();
+                        synthesizer.close();
+                        synthesizer = null;
+                    },
+                    error => {
+                        console.error(error);
+                        synthesizer.close();
+                        synthesizer = null;
+                    }
+                );
+            } catch (e) {
+                console.error("Azure Init Error:", e);
+                // Fallback
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'en-US';
+                window.speechSynthesis.speak(u);
+            }
+        };
+
+        const stopSpeech = () => {
+            if (synthesizer) {
+                try { synthesizer.close(); } catch(e) {}
+                synthesizer = null;
+            }
+            window.speechSynthesis.cancel();
+        };
+
+        // --- 69 Words Database ---
+        const VOCAB_SOURCE = [
+            // [Word, Syllables, CN, Definition, Ex1, Cn1, Ex2, Cn2, Ex3, Cn3, Hint3]
+            ["Adventure", "ad-ven-ture", "冒险", "An exciting and possibly dangerous activity.", "Our journey through the Amazon rainforest was an incredible adventure.", "我们穿越亚马逊雨林的旅程是一次不可思议的冒险。", "Life is a daring adventure.", "生活是一场大胆的冒险。", "The camping trip turned into a real adventure when we got lost.", "当我们迷路时，露营旅行变成了一场真正的冒险。", "The camping trip turned into a real [exciting experience] when we got lost."],
+            ["Micro", "mi-cro", "极小的", "Extremely small; relating to a small scale.", "We need a microscope to examine the micro organisms in the water.", "我们需要显微镜来检查水中的微生物。", "The micro economy focuses on individual consumers and businesses.", "微观经济关注个人消费者和企业。", "This camera lens allows you to take amazing micro photographs.", "这个相机镜头让你能拍出惊人的微距照片。", "This camera lens allows you to take amazing [extremely small] photographs."],
+            ["Information", "in-for-ma-tion", "信息", "Facts provided or learned about something.", "Please read the brochure for more information about the course.", "请阅读小册子以获取有关课程的更多信息。", "The witness provided crucial information to the police investigation.", "证人向警方调查提供了关键信息。", "We live in an age where information is instantly accessible.", "我们生活在一个信息触手可及的时代。", "We live in an age where [knowledge and data] is instantly accessible."],
+            ["Millennials", "mil-len-ni-als", "千禧一代", "People reaching young adulthood in the early 21st century.", "Millennials are often characterized by their familiarity with digital technology.", "千禧一代的特点通常是熟悉数字技术。", "Many millennials value experiences, such as travel, over material possessions.", "许多千禧一代看重体验（如旅行）胜过物质财富。", "Marketing strategies need to adapt to the preferences of millennials.", "营销策略需要适应千禧一代的偏好。", "Marketing strategies need to adapt to the preferences of [Gen Y people]."],
+            ["Pyramid", "pyr-a-mid", "金字塔", "A monumental structure with a square base and sloping sides.", "The Great Pyramid of Giza is one of the Seven Wonders of the Ancient World.", "吉萨大金字塔是古代世界七大奇迹之一。", "The food pyramid is used to teach children about healthy eating habits.", "食物金字塔用于教孩子健康的饮食习惯。", "We climbed to the top of the Mayan pyramid in Mexico.", "我们爬上了墨西哥玛雅金字塔的顶端。", "We climbed to the top of the Mayan [triangular stone structure] in Mexico."],
+            ["The Eiffel Tower", "Ei-ffel Tow-er", "埃菲尔铁塔", "A wrought-iron lattice tower on the Champ de Mars in Paris.", "The Eiffel Tower is the most visited paid monument in the world.", "埃菲尔铁塔是世界上参观人数最多的收费古迹。", "At night, the Eiffel Tower sparkles with thousands of lights.", "夜晚，埃菲尔铁塔闪耀着成千上万的灯光。", "You can see the entire city of Paris from the top of the Eiffel Tower.", "你可以从埃菲尔铁塔顶端俯瞰整个巴黎城。", "You can see the entire city of Paris from the top of [the Paris landmark]."],
+            ["The Statue of Liberty", "Stat-ue of Lib-er-ty", "自由女神像", "A colossal sculpture on Liberty Island in New York.", "The Statue of Liberty was a gift of friendship from France to the United States.", "自由女神像是法国送给美国的友谊礼物。", "Immigrants arriving by ship saw the Statue of Liberty as a symbol of hope.", "乘船抵达的移民将自由女神像视为希望的象征。", "We took a ferry to see the Statue of Liberty up close.", "我们乘渡轮去近距离观看自由女神像。", "We took a ferry to see [Lady Liberty] up close."],
+            ["Atlantic Ocean", "At-lan-tic O-cean", "大西洋", "The ocean separating the Americas from Europe and Africa.", "The Titanic tragically sank in the freezing waters of the Atlantic Ocean.", "泰坦尼克号悲剧性地沉没在大西洋冰冷的水域中。", "Amelia Earhart was the first woman to fly solo across the Atlantic Ocean.", "阿梅莉亚·埃尔哈特是第一位独自飞越大西洋的女性。", "Hurricanes often form in the warm waters of the Atlantic Ocean.", "飓风经常在大西洋的温暖水域形成。", "Hurricanes often form in the warm waters of the [ocean between US and Europe]."],
+            ["Aurora borealis", "au-ro-ra bo-re-a-lis", "北极光", "A natural light display in the Earth's sky.", "Seeing the aurora borealis is on many people's bucket list.", "看北极光在许多人的愿望清单上。", "The sky lit up with green and pink colors from the aurora borealis.", "天空中亮起了北极光的绿色和粉色。", "We traveled to Norway specifically to witness the aurora borealis.", "我们特地去挪威观看北极光。", "We traveled to Norway specifically to witness the [Northern Lights]."],
+            ["Destination", "des-ti-na-tion", "目的地", "The place to which someone or something is going.", "After a long flight, we finally arrived at our holiday destination.", "经过长途飞行，我们终于到达了度假目的地。", "Paris is a popular tourist destination for couples.", "巴黎是情侣们的热门旅游目的地。", "Make sure to enter your destination correctly in the GPS.", "确保在GPS中正确输入你的目的地。", "Make sure to enter your [target location] correctly in the GPS."],
+            ["France", "France", "法国", "A country in Western Europe known for its culture.", "France is famous for its wines, cheeses, and fashion.", "法国以其葡萄酒、奶酪和时尚而闻名。", "My sister is studying art history in the south of France.", "我姐姐正在法国南部学习艺术史。", "We are planning a road trip through rural France next summer.", "我们计划明年夏天在法国乡村进行公路旅行。", "We are planning a road trip through rural [Western European country] next summer."],
+            ["Britain", "Brit-ain", "英国", "The island containing England, Wales, and Scotland.", "Great Britain is the largest island in Europe.", "大不列颠是欧洲最大的岛屿。", "The industrial revolution began in Britain in the 18th century.", "工业革命于18世纪在英国开始。", "Railways were first developed and widely used in Britain.", "铁路最早在英国开发并广泛使用。", "Railways were first developed and widely used in [the UK island]."],
+            ["Thailand", "Thai-land", "泰国", "A country in Southeast Asia known for beaches.", "Thailand attracts millions of tourists every year with its beautiful islands.", "泰国每年以其美丽的岛屿吸引数百万游客。", "Thai food is famous around the world for its spicy and sour flavors.", "泰国菜以其酸辣口味闻名于世。", "Bangkok is the bustling capital city of Thailand.", "曼谷是泰国繁华的首都。", "Bangkok is the bustling capital city of [this Asian nation]."],
+            ["New Zealand", "New Zea-land", "新西兰", "An island country in the southwestern Pacific Ocean.", "New Zealand is renowned for its stunning landscapes.", "新西兰以其迷人的风景和户外活动而闻名。", "Rugby is the most popular sport in New Zealand.", "橄榄球是新西兰最受欢迎的运动。", "The 'Lord of the Rings' movies were filmed entirely in New Zealand.", "《指环王》电影完全是在新西兰拍摄的。", "The 'Lord of the Rings' movies were filmed entirely in [this Pacific island nation]."],
+            ["Indonesia", "In-do-ne-sia", "印度尼西亚", "A country in Southeast Asia creating a massive archipelago.", "Indonesia consists of thousands of volcanic islands.", "印度尼西亚由数千个火山岛组成。", "Bali is the most famous tourist destination in Indonesia.", "巴厘岛是印度尼西亚最著名的旅游目的地。", "The komodo dragon can only be found in the wild in Indonesia.", "科莫多巨蜥只能在印度尼西亚的野外找到。", "The komodo dragon can only be found in the wild in [this archipelago nation]."],
+            ["Vietnam", "Viet-nam", "越南", "A Southeast Asian country known for its rivers.", "Vietnam has a rapidly growing economy and a vibrant culture.", "越南拥有快速增长的经济和充满活力的文化。", "We took a boat tour through Ha Long Bay in Vietnam.", "我们乘船游览了越南的下龙湾。", "Coffee culture is very strong in the cities of Vietnam.", "咖啡文化在越南的城市中非常盛行。", "Coffee culture is very strong in the cities of [this Southeast Asian country]."],
+            ["Mongolia", "Mon-go-lia", "蒙古", "A landlocked country in East Asia.", "Mongolia is famous for its vast, rugged expanses and nomadic culture.", "蒙古以其广阔崎岖的地域和游牧文化而闻名。", "Horse riding is an essential skill for many people in Mongolia.", "骑马是许多蒙古人的一项基本技能。", "The Gobi Desert covers a large part of southern Mongolia.", "戈壁沙漠覆盖了蒙古南部的很大一部分。", "The Gobi Desert covers a large part of southern [this landlocked country]."],
+            ["It is", "It is", "对于某人做...是...的 (Grammar)", "Structure: It is + adj + for sb to do.", "It is difficult for me to wake up early.", "早上早起对我来说很难。", "It is important for students to review notes.", "学生定期复习笔记很重要。", "It is dangerous for children to play near the road.", "孩子们在路边玩耍是危险的。", "Structure practice: [Playing near the road is dangerous for children] (Start with: It is...)."],
+            ["Include", "in-clude", "包括", "To contain as part of a whole.", "The price of the hotel room includes breakfast.", "酒店房间的价格包括早餐。", "Please include your contact details on the application form.", "请在申请表上包含您的联系方式。", "Does the tour include a visit to the museum?", "旅行团包括参观博物馆吗？", "Does the tour [contain] a visit to the museum?"],
+            ["Discover", "dis-cov-er", "发现", "To find something unexpectedly.", "Scientists hope to discover a cure for the disease soon.", "科学家希望很快发现治愈这种疾病的方法。", "We were surprised to discover a hidden cave behind the waterfall.", "我们惊讶地发现瀑布后面有一个隐藏的洞穴。", "Traveling helps you discover new cultures and perspectives.", "旅行有助于你发现新的文化和视角。", "Traveling helps you [find/uncover] new cultures and perspectives."],
+            ["Random", "ran-dom", "随机的", "Done without a method or conscious decision.", "The computer will generate a random password for you.", "电脑会为你生成一个随机密码。", "We met by random chance at the train station.", "我们在火车站偶然相遇。", "He asked a random question that had nothing to do with the topic.", "他问了一个与话题无关的随机问题。", "He asked a [unplanned] question that had nothing to do with the topic."],
+            ["Accept", "ac-cept", "接受", "To consent to receive something offered.", "Please accept this small gift as a token of my appreciation.", "请接受这份小礼物作为我的一点心意。", "She was happy to accept the job offer immediately.", "她很高兴立即接受了这份工作录用。", "It is difficult to accept that he is leaving the company.", "很难接受他要离开公司的现实。", "It is difficult to [agree/come to terms] that he is leaving the company."],
+            ["Row", "row", "划船", "To propel a boat with oars.", "We decided to row the boat across the calm lake.", "我们决定把船划过平静的湖面。", "He taught me how to row efficiently without getting tired.", "他教我如何高效划船而不累。", "My arms ached after we had to row against the current.", "我们需要逆流划船，之后我的手臂很痛。", "My arms ached after we had to [paddle] against the current."],
+            ["Apply to", "ap-ply to", "应用；涂抹", "To make use of as relevant; or put onto a surface.", "This rule does not apply to children under the age of five.", "这条规则不适用于五岁以下的儿童。", "You should apply sunscreen to your skin before going out.", "你在阳光下外出前应该在皮肤上涂防晒霜。", "He wants to apply what he learned in school to real life.", "他想把在学校学到的东西应用到现实生活中。", "He wants to [use/utilize] what he learned in school to real life."],
+            ["Introduce", "in-tro-duce", "介绍", "To make someone known by name to another.", "Let me introduce you to my colleague, Sarah.", "让我把你介绍给我的同事莎拉。", "The company plans to introduce a new product next month.", "公司计划下个月推出一款新产品。", "The teacher introduced a complex topic in a simple way.", "老师用简单的方式介绍了一个复杂的话题。", "The teacher [presented] a complex topic in a simple way."],
+            ["Thrilling", "thrill-ing", "令人兴奋的", "Causing excitement and pleasure.", "The roller coaster ride was absolutely thrilling.", "过山车之旅绝对令人兴奋。", "It was a thrilling match that kept us on the edge of our seats.", "这是一场扣人心弦的比赛，让我们一直坐在座位边缘。", "Reading a thriller novel can be a thrilling experience.", "读惊悚小说可能是一种刺激的体验。", "Reading a thriller novel can be a [very exciting] experience."],
+            ["Hooked", "hooked", "入迷的", "Addicted or extremely interested in something.", "I watched the first episode and got hooked immediately.", "我看了一集就立刻入迷了。", "He is completely hooked on video games.", "他完全沉迷于电子游戏。", "Once you start reading this book, you will be hooked.", "一旦你开始读这本书，你就会上瘾。", "Once you start reading this book, you will be [addicted]."],
+            ["Graduate", "grad-u-ate", "毕业", "To successfully complete an academic degree.", "She will graduate from medical school next year.", "她明年将从医学院毕业。", "After you graduate, do you plan to travel or work?", "毕业后，你打算旅行还是工作？", "He is a graduate of a prestigious university.", "他是一所名牌大学的毕业生。", "He is a [alumnus/degree holder] of a prestigious university."],
+            ["Stop from", "stop from", "阻止某人做...", "To prevent someone from performing an action.", "The heavy rain didn't stop us from playing football.", "大雨并没有阻止我们踢足球。", "You cannot stop him from following his dreams.", "你不能阻止他追随他的梦想。", "We must take action to stop the pollution from spreading.", "我们必须采取行动阻止污染蔓延。", "We must take action to [prevent] the pollution from spreading."],
+            ["Project", "proj-ect", "项目", "An enterprise that is carefully planned.", "The construction project is scheduled to be completed in 2025.", "该建设项目计划于2025年完工。", "We are working on a group project for our science class.", "我们正在为科学课做一个小组项目。", "Managing a large project requires good organizational skills.", "管理一个大项目需要良好的组织能力。", "Managing a large [assignment/task] requires good organizational skills."],
+            ["Daunting", "daunt-ing", "令人畏惧的", "Seeming difficult to deal with; intimidating.", "The idea of speaking in public can be daunting for many people.", "对许多人来说，在公共场合演讲的想法可能令人畏惧。", "Climbing the mountain looked like a daunting task.", "爬山看起来是一项艰巨的任务。", "Don't let the daunting challenge discourage you from trying.", "不要让令人生畏的挑战阻碍你的尝试。", "Don't let the [intimidating] challenge discourage you from trying."],
+            ["Commit to", "com-mit to", "致力于；承诺", "To pledge oneself to a certain course.", "You need to commit to practicing daily if you want to improve.", "如果你想进步，你需要承诺每天练习。", "He was afraid to commit to a long-term contract.", "他不敢承诺长期合同。", "The government must commit to reducing carbon emissions.", "政府必须致力于减少碳排放。", "The government must [promise/pledge] to reducing carbon emissions."],
+            ["Put up", "put up", "留宿某人", "To give someone a place to stay.", "Can you put me up for the night when I come to London?", "我来伦敦时你能留宿我一晚吗？", "My aunt agreed to put us up for the weekend.", "我阿姨同意留宿我们过周末。", "The hotel had to put up the passengers whose flight was cancelled.", "酒店不得不安置航班被取消的乘客。", "The hotel had to [accommodate] the passengers whose flight was cancelled."],
+            ["Fluffy", "fluf-fy", "蓬松的", "Soft and distinct, like fur or feathers.", "The kitten has very fluffy white fur.", "这只小猫有非常蓬松的白色皮毛。", "I love sleeping on a big, fluffy pillow.", "我喜欢睡在一个大而蓬松的枕头上。", "She made pancakes that were light and fluffy.", "她做的煎饼又轻又松软。", "She made pancakes that were light and [soft/airy]."],
+            ["Dressing gown", "dress-ing gown", "晨衣", "A loose robe worn around the house.", "He likes to wear his dressing gown while drinking coffee in the morning.", "他喜欢早上穿着晨衣喝咖啡。", "It was cold, so she wrapped herself in a warm dressing gown.", "天气很冷，所以她裹着一件温暖的晨衣。", "She bought a silk dressing gown for her vacation.", "她为假期买了一件丝绸晨衣。", "She bought a silk [robe] for her vacation."],
+            ["Perspective", "per-spec-tive", "视角；观点", "A particular attitude toward something.", "Traveling to different countries changes your perspective on the world.", "去不同的国家旅行会改变你对世界的看法。", "Try to look at the argument from my perspective.", "试着从我的角度看这场争论。", "The artist used perspective to create a sense of depth in the painting.", "艺术家利用透视法在绘画中创造深度感。", "The artist used [viewpoint/angle] to create a sense of depth in the painting."],
+            ["Concept", "con-cept", "概念", "An abstract idea; a general notion.", "The concept of time travel has always fascinated writers.", "时间旅行的概念一直让作家们着迷。", "Democracy is a difficult concept to explain to a child.", "民主对孩子来说是一个很难解释的概念。", "The architect presented a new concept for the building design.", "建筑师提出了建筑设计的新概念。", "The architect presented a new [idea] for the building design."],
+            ["A bunch of", "bunch of", "一堆；一群", "A large number or quantity; a group.", "I have a bunch of keys but I don't know which one opens the door.", "我有一串钥匙，但我不知道哪一把能开门。", "There were a bunch of people waiting outside the theater.", "剧院外面有一群人在等候。", "He brought her a bunch of flowers for her birthday.", "他给她带了一束花过生日。", "He brought her a [bouquet] of flowers for her birthday."],
+            ["Memorable", "mem-o-ra-ble", "难忘的", "Worth remembering or easily remembered.", "Our trip to Japan was a truly memorable experience.", "我们的日本之行是一次真正难忘的经历。", "The movie had many memorable scenes that stuck in my mind.", "这部电影有许多令我难以忘怀的场景。", "We want to make your wedding day as memorable as possible.", "我们想让你的婚礼尽可能难忘。", "We want to make your wedding day as [unforgettable] as possible."],
+            ["Remain", "re-main", "保持；剩余", "To stay in the same place or condition.", "Please remain seated until the plane has come to a complete stop.", "在飞机完全停稳之前请保持就座。", "Despite the chaos, he managed to remain calm.", "尽管一片混乱，他还是设法保持了冷静。", "Only a few ancient ruins remain of the city.", "这座城市只剩下几处古代遗迹。", "Only a few ancient ruins [stay/exist] of the city."],
+            ["Squeeze", "squeeze", "挤压", "To press something firmly.", "You need to squeeze the lemons to get the juice.", "你需要挤柠檬来取汁。", "We managed to squeeze five people into the small car.", "我们设法在小车里挤进了五个人。", "She gave his hand a gentle squeeze to reassure him.", "她轻轻捏了一下他的手来安慰他。", "She gave his hand a gentle [press] to reassure him."],
+            ["Meaningful", "mean-ing-ful", "有意义的", "Having a serious, important, or useful quality.", "She wants to do meaningful work that helps other people.", "她想做有意义的工作来帮助别人。", "We had a deep and meaningful conversation about our future.", "我们对未来进行了一次深刻而有意义的谈话。", "A small gesture of kindness can be very meaningful.", "一个小小的善意举动可能非常有意义。", "A small gesture of kindness can be very [significant]."],
+            ["Rewarding", "re-ward-ing", "有回报的；值得的", "Providing satisfaction; gratifying.", "Teaching children can be a financially modest but emotionally rewarding job.", "教孩子可能在经济上回报不高，但在情感上是一份非常有回报的工作。", "Completing the marathon was a grueling but rewarding experience.", "完成马拉松是一次累人但值得的经历。", "It is rewarding to see your hard work finally pay off.", "看到你的努力终于得到回报是值得的。", "It is [satisfying] to see your hard work finally pay off."],
+            ["Accessible to", "ac-ces-si-ble", "可进入的；易获得的", "Able to be reached or entered.", "The new library building is fully accessible to people with disabilities.", "新图书馆大楼对残疾人完全无障碍。", "Quality education should be accessible to everyone, regardless of income.", "无论收入如何，每个人都应该能接受优质教育。", "The data is easily accessible to all employees via the cloud.", "所有员工都可以通过云端轻松访问这些数据。", "The data is easily [available] to all employees via the cloud."],
+            ["Encourage", "en-cour-age", "鼓励", "To give support, confidence, or hope.", "My parents always encourage me to follow my dreams.", "我父母总是鼓励我追随我的梦想。", "Teachers should encourage students to think critically.", "教师应鼓励学生进行批判性思考。", "The coach encouraged the team even when they were losing.", "即使在输球时，教练也鼓励球队。", "The coach [supported/cheered] the team even when they were losing."],
+            ["Predict", "pre-dict", "预测", "To say or estimate that something will happen.", "It is often difficult to predict the weather accurately.", "通常很难准确预测天气。", "Economists predict that inflation will rise next year.", "经济学家预测明年通货膨胀将上升。", "I cannot predict how he will react to the news.", "我无法预测他对这个消息会有什么反应。", "I cannot [guess/foresee] how he will react to the news."],
+            ["Benefit", "ben-e-fit", "益处；受益", "An advantage or profit gained from something.", "There are many health benefits to eating a balanced diet.", "均衡饮食对健康有很多好处。", "The new public transport system will benefit the whole city.", "新的公共交通系统将造福整个城市。", "Who stands to benefit most from this policy change?", "谁将从这次政策变化中受益最大？", "Who stands to [gain] most from this policy change?"],
+            ["Check out", "check out", "查看；结账", "To look at or investigate; to pay and leave.", "You should check out that new Italian restaurant downtown.", "你应该去看看市中心那家新的意大利餐馆。", "We need to check out of the hotel by 11 AM.", "我们需要在上午11点前退房。", "Hey, check out this amazing view from the window!", "嘿，看看窗外这迷人的景色！", "Hey, [look at] this amazing view from the window!"],
+            ["Location", "lo-ca-tion", "位置", "A particular place or position.", "The hotel is in a prime location near the beach.", "酒店地理位置优越，靠近海滩。", "Please send me your current location so I can find you.", "请把你的当前位置发给我，以便我找到你。", "They are scouting a location for the new movie shoot.", "他们正在为新电影拍摄寻找地点。", "They are scouting a [place] for the new movie shoot."],
+            ["Relaxation", "re-lax-a-tion", "放松", "The state of being free from tension.", "Yoga and meditation are excellent techniques for relaxation.", "瑜伽和冥想是极好的放松技巧。", "After a hard week at work, I need some rest and relaxation.", "辛苦工作一周后，我需要一些休息和放松。", "Reading a book is my favorite form of relaxation.", "读书是我最喜欢的放松方式。", "Reading a book is my favorite form of [resting]."],
+            ["Imperative", "im-per-a-tive", "必要的；紧急的", "Of vital importance; crucial.", "It is imperative that we act now to stop climate change.", "我们现在必须采取行动阻止气候变化。", "Safety instructions are imperative on a construction site.", "在建筑工地上，安全指示是必不可少的。", "It is imperative to drink plenty of water during the marathon.", "在马拉松比赛中喝大量的水是至关重要的。", "It is [vital/crucial] to drink plenty of water during the marathon."],
+            ["Prosperity", "pros-per-i-ty", "繁荣", "The state of being prosperous; wealth.", "Political stability is a key factor in a nation's economic prosperity.", "政治稳定是国家经济繁荣的关键因素。", "The country enjoyed a long period of peace and prosperity.", "这个国家享受了长期的和平与繁荣。", "We wish you health, happiness, and prosperity in the new year.", "我们祝你在新的一年里健康、幸福、繁荣。", "We wish you health, happiness, and [wealth] in the new year."],
+            ["Resident", "res-i-dent", "居民", "A person who lives somewhere permanently.", "He has been a resident of this neighborhood for twenty years.", "他在这附近住了二十年了。", "The local residents complained about the noise from the construction.", "当地居民抱怨施工噪音。", "She is a permanent resident of Canada.", "她是加拿大的永久居民。", "She is a permanent [inhabitant] of Canada."],
+            ["Macaque", "ma-caque", "猕猴", "A medium-sized monkey found in Asia.", "The long-tailed macaque is common in Southeast Asian forests.", "长尾猕猴在东南亚森林中很常见。", "Tourists were warned that the macaque might steal their food.", "游客被警告说猕猴可能会偷他们的食物。", "We saw a mother macaque carrying her baby in the tree.", "我们看到一只母猕猴抱着它的孩子在树上。", "We saw a mother [monkey] carrying her baby in the tree."],
+            ["Hanuman", "Ha-nu-man", "哈努曼", "A Hindu god resembling a monkey.", "Hanuman is a central character in the ancient epic Ramayana.", "哈努曼是古代史诗《罗摩衍那》中的核心人物。", "Many temples in India are dedicated to Lord Hanuman.", "印度的许多寺庙都是供奉哈努曼勋爵的。", "Devotees pray to Hanuman for strength and protection.", "信徒们向哈努曼祈求力量和保护。", "Devotees pray to [The Monkey God] for strength and protection."],
+            ["Sponsor", "spon-sor", "赞助", "To provide funds for a project or activity.", "The bank agreed to sponsor the local football team for the season.", "银行同意赞助当地足球队这个赛季。", "We are looking for a company to sponsor our charity event.", "我们正在寻找一家公司来赞助我们的慈善活动。", "My uncle offered to sponsor my university education.", "我叔叔提出资助我的大学教育。", "My uncle offered to [pay for] my university education."],
+            ["Entrance", "en-trance", "入口", "An opening that allows access.", "Please wait for me at the main entrance of the mall.", "请在商场的主入口等我。", "The entrance fee to the museum is twenty dollars.", "博物馆的入场费是二十美元。", "Guards were standing at the entrance to the palace.", "卫兵站在宫殿的入口处。", "Guards were standing at the [doorway] to the palace."],
+            ["Naughty", "naugh-ty", "淘气的", "Disobedient; badly behaved.", "The naughty puppy chewed up my favorite pair of shoes.", "这只淘气的小狗咬坏了我最喜欢的一双鞋。", "He was a naughty child who was always getting into trouble.", "他是个淘气的孩子，总是惹麻烦。", "Santa Claus knows if you have been naughty or nice.", "圣诞老人知道你是淘气还是乖。", "Santa Claus knows if you have been [bad/mischievous] or nice."],
+            ["Swipe off", "Swipe off", "刷掉；打掉", "To hit or brush something off a surface.", "The cat swiped the glass off the table with its paw.", "猫用爪子把玻璃杯从桌子上打掉了。", "He swiped the crumbs off his shirt.", "他掸掉了衬衫上的面包屑。", "Please swipe off the notification from your screen.", "请从屏幕上划掉通知。", "Please [clear] the notification from your screen."],
+            ["Electrical cable", "e-lec-tri-cal ca-ble", "电缆", "A thick wire used for carrying electricity.", "Be careful not to trip over the loose electrical cable.", "小心不要被松动的电缆绊倒。", "The storm damaged the underground electrical cable.", "暴风雨损坏了地下电缆。", "You need a heavy-duty electrical cable for this machine.", "这台机器需要一根重型电缆。", "You need a heavy-duty [power wire] for this machine."],
+            ["Costume", "cos-tume", "服装；戏服", "A set of clothes in a style typical of a particular period.", "She won the prize for the best costume at the Halloween party.", "她赢得了万圣节派对的最佳服装奖。", "The dancers wore traditional folk costumes from their country.", "舞者穿着他们国家的传统民族服装。", "The actor took a long time to put on his elaborate costume.", "演员花了很长时间穿上他那精致的戏服。", "The actor took a long time to put on his elaborate [outfit]."],
+            ["Decorate", "dec-o-rate", "装饰", "To make something look more attractive.", "We decorate the house with lights every Christmas.", "我们每年圣诞节都用灯光装饰房子。", "She wants to decorate her bedroom with posters of her favorite band.", "她想用她最喜欢的乐队的海报装饰她的卧室。", "The wedding cake was decorated with real flowers.", "婚礼蛋糕上装饰着鲜花。", "The wedding cake was [adorned] with real flowers."],
+            ["Crowded", "crowd-ed", "拥挤的", "Full of people.", "The subway is always crowded during rush hour.", "地铁在高峰时段总是很拥挤。", "I avoid going to crowded shopping malls on weekends.", "我避免在周末去拥挤的购物中心。", "The beach was so crowded that we couldn't find a spot to sit.", "海滩太拥挤了，我们找不到坐的地方。", "The beach was so [packed] that we couldn't find a spot to sit."],
+            ["Glacier", "gla-cier", "冰川", "A slowly moving mass or river of ice.", "Climate change is causing glaciers to melt at an alarming rate.", "气候变化正导致冰川以惊人的速度融化。", "We hiked up the mountain to see the massive glacier.", "我们爬上山去看那巨大的冰川。", "The valley was carved out by a glacier thousands of years ago.", "这个山谷是几千年前由冰川雕刻而成的。", "The valley was carved out by a [ice river] thousands of years ago."],
+            ["Temple", "tem-ple", "寺庙", "A building devoted to the worship of a god.", "The ancient temple was built over a thousand years ago.", "这座古庙建于一千多年前。", "Monks wake up early to pray in the temple.", "僧侣们很早醒来在寺庙里祈祷。", "Visitors must remove their shoes before entering the temple.", "游客进入寺庙前必须脱鞋。", "Visitors must remove their shoes before entering the [shrine]."],
+            ["Palace", "pal-ace", "宫殿", "The official residence of a royal family.", "Buckingham Palace is the official residence of the British monarch.", "白金汉宫是英国君主的官邸。", "The palace gardens are open to the public during the summer.", "御花园在夏季向公众开放。", "We took a guided tour of the historic royal palace.", "我们在这座历史悠久的皇宫进行了导游参观。", "We took a guided tour of the historic [royal castle]."],
+            ["Paddy", "pad-dy", "稻田", "A field where rice is grown.", "The farmers were working knee-deep in the muddy paddy.", "农民们在泥泞的稻田里劳作，泥水没过膝盖。", "The terraced paddy fields looked beautiful in the sunlight.", "梯田稻田在阳光下看起来很美。", "Water buffalo are often used to plow the paddy.", "水牛常被用来耕稻田。", "Water buffalo are often used to plow the [rice field]."],
+            ["Breathtaking", "breath-tak-ing", "美得惊人的", "Astonishing or awe-inspiring.", "The view from the top of the mountain was absolutely breathtaking.", "山顶的景色绝对令人叹为观止。", "She looked breathtaking in her wedding dress.", "她穿着婚纱看起来美极了。", "The athlete showed breathtaking speed on the track.", "运动员在跑道上展示了惊人的速度。", "The athlete showed [stunning] speed on the track."],
+            ["Temperature", "tem-per-a-ture", "温度", "The intensity of heat.", "The temperature dropped significantly after the sun went down.", "太阳下山后气温显著下降。", "You should check your body temperature if you feel feverish.", "如果你发烧了，你应该量量体温。", "Water boils when the temperature reaches 100 degrees Celsius.", "当温度达到100摄氏度时，水会沸腾。", "Water boils when the [heat level] reaches 100 degrees Celsius."]
+        ];
+
+        const FULL_VOCAB = VOCAB_SOURCE.map((d, i) => ({
+            id: i+1, w: d[0], syl: d[1], cn: d[2], def: d[3],
+            exA: d[4], cnA: d[5],
+            exB: d[6], cnB: d[7],
+            exC: d[8], cnC: d[9], hintC: d[10]
+        }));
+
+        const BATCH_SIZE = 15;
+
+        const cleanTarget = (str) => {
+            return str.toLowerCase()
+                .replace(/\b(sb|sth|somebody|something)\b/g, '')
+                .replace(/\+\s*adj\s*\+/g, '')
+                .replace(/from\s+doing/g, '')
+                .replace(/[^a-z ]/g, '') 
+                .replace(/\s+/g, ' ')
+                .trim();
+        };
+
+        // --- Components ---
+
+        const Dashboard = ({ onStart }) => {
+            const batches = Math.ceil(FULL_VOCAB.length / BATCH_SIZE);
+            return (
+                <div className="h-full w-full flex flex-col items-center justify-center p-6 overflow-y-auto custom-scroll">
+                    <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-2 drop-shadow-xl text-center tracking-tight">Unit 3 Vocab Lab</h1>
+                    <div className="glass-panel p-6 rounded-2xl mb-8 border border-white/30 text-slate-700 max-w-2xl text-center shadow-lg">
+                        <h2 className="text-2xl font-bold mb-2 flex items-center justify-center gap-2"><i className="ph ph-star-fill text-yellow-500"></i> 积分规则</h2>
+                        <p className="text-lg opacity-90">学习每组词汇均累计积分。<br/>每组完成后，请<span className="font-bold text-indigo-600">截图</span>发送给 <strong className="text-indigo-600">Steven</strong> 兑换 Up Star。</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl pb-24">
+                        {Array.from({ length: batches }).map((_, i) => (
+                            <button key={i} onClick={() => onStart(i)} className="group bg-white/90 hover:bg-white rounded-3xl p-8 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 text-left relative overflow-hidden border-4 border-transparent hover:border-indigo-300">
+                                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition"><i className="ph ph-trophy text-9xl text-indigo-900"></i></div>
+                                <h3 className="text-3xl font-bold text-slate-800 mb-2">Batch {i + 1}</h3>
+                                <p className="text-slate-500 font-medium text-lg mb-6">Words {i * BATCH_SIZE + 1} - {Math.min((i + 1) * BATCH_SIZE, FULL_VOCAB.length)}</p>
+                                <div className="inline-flex items-center px-6 py-2 bg-indigo-600 text-white rounded-full font-bold text-sm shadow-lg group-hover:bg-indigo-700 transition">Start Challenge</div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const Flashcards = ({ words, onNextModule, updateScore, score }) => {
+            const [idx, setIdx] = useState(0);
+            const [flipped, setFlipped] = useState(false);
+            const [paidTTS, setPaidTTS] = useState(new Set()); 
+            const [paidBlind, setPaidBlind] = useState(new Set()); 
+            const [blindStates, setBlindStates] = useState(new Set()); 
+            const timerRef = useRef(Date.now());
+            const w = words[idx];
+
+            useEffect(() => { 
+                timerRef.current = Date.now();
+                setPaidTTS(new Set()); 
+                setPaidBlind(new Set());
+                setBlindStates(new Set());
+                stopSpeech();
+            }, [idx]);
+
+            const handleTTS = (text, id) => {
+                speak(text);
+                if (!paidTTS.has(id)) {
+                    updateScore(2); 
+                    setPaidTTS(prev => new Set(prev).add(id));
+                }
+            };
+
+            const toggleBlind = (id) => {
+                const newBlinds = new Set(blindStates);
+                if (newBlinds.has(id)) newBlinds.delete(id);
+                else newBlinds.add(id);
+                setBlindStates(newBlinds);
+
+                if (!paidBlind.has(id)) {
+                    updateScore(2);
+                    setPaidBlind(prev => new Set(prev).add(id));
+                }
+            };
+
+            const next = () => {
+                const duration = (Date.now() - timerRef.current) / 1000;
+                if (duration < 30) updateScore(-5);
+                else if (duration > 60) updateScore(5);
+
+                stopSpeech();
+                setFlipped(false);
+                setTimeout(() => {
+                    if (idx < words.length - 1) setIdx(idx + 1);
+                    else onNextModule();
+                }, 300);
+            };
+
+            return (
+            <div className="h-full flex flex-col p-4 md:p-8 max-w-7xl mx-auto w-full fade-in overflow-y-auto pb-24 custom-scroll">
+                    <div className="flex justify-between items-center text-white mb-6 bg-black/20 p-4 rounded-2xl backdrop-blur-md border border-white/10">
+                        <div className="flex items-center gap-3"><i className="ph ph-cards text-3xl text-yellow-300"></i> <h2 className="text-2xl font-bold tracking-wide">Flashcards</h2></div>
+                        <div className="flex gap-6 items-center">
+                            <span className="text-yellow-300 font-bold flex gap-2 text-xl bg-black/20 px-4 py-1 rounded-full"><i className="ph ph-star-fill text-yellow-400"></i> {score}</span>
+                            <span className="font-mono bg-white/20 px-4 py-1 rounded-full text-lg">{idx + 1} / {words.length}</span>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 perspective-1000 relative group cursor-pointer mb-6" onClick={() => setFlipped(!flipped)}>
+                        <div className={`w-full h-full min-h-[500px] duration-500 transform-style-3d transition-transform ${flipped ? 'rotate-y-180' : ''}`}>
+                            <div className="absolute w-full h-full backface-hidden glass-panel rounded-[2rem] flex flex-col items-center justify-center p-10 border-b-[12px] border-indigo-500 shadow-2xl">
+                                <span className="text-indigo-600 font-mono text-2xl mb-6 uppercase tracking-widest bg-indigo-50 px-4 py-1 rounded-lg">{w.syl}</span>
+                                <h1 className="text-6xl md:text-8xl font-bold text-slate-800 text-center leading-tight break-words">{w.w}</h1>
+                                <p className="text-slate-400 mt-12 text-base font-medium animate-pulse flex items-center gap-2"><i className="ph ph-hand-tap"></i> Tap to flip</p>
+                            </div>
+                            <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-white rounded-[2rem] flex flex-col p-6 md:p-12 border-b-[12px] border-pink-500 overflow-y-auto custom-scroll shadow-2xl" onClick={e=>e.stopPropagation()}>
+                                <div className="flex justify-between items-start mb-8 border-b pb-6">
+                                    <div><h2 className="text-4xl md:text-5xl font-bold text-slate-800 mb-2">{w.cn}</h2><p className="text-slate-600 text-lg md:text-xl font-medium leading-relaxed max-w-2xl">{w.def}</p></div>
+                                    <button onClick={(e) => { e.stopPropagation(); handleTTS(w.w, 'main'); }} className={`p-4 rounded-full transition transform hover:scale-105 shadow-md ${paidTTS.has('main') ? 'bg-gray-200 text-gray-500' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'}`}>
+                                        <i className="ph ph-speaker-high text-3xl"></i>
+                                    </button>
+                                </div>
+                                <div className="space-y-6">
+                                    {[{t:"Context A", e:w.exA, c:w.cnA, col:"blue", id:"exA"},{t:"Context B", e:w.exB, c:w.cnB, col:"purple", id:"exB"},{t:"Context C", e:w.exC, c:w.cnC, col:"pink", id:"exC"}].map((x, i) => (
+                                        <div key={i} className={`p-5 rounded-2xl bg-${x.col}-50 border border-${x.col}-100 flex gap-4 items-start hover:shadow-md transition`}>
+                                            <div className="flex flex-col gap-2 shrink-0">
+                                                <button onClick={(e) => { e.stopPropagation(); handleTTS(x.e, x.id); }} className={`p-3 rounded-full shadow hover:scale-110 transition ${paidTTS.has(x.id) ? 'bg-gray-200 text-gray-400' : 'bg-white text-'+x.col+'-600'}`}>
+                                                    <i className="ph ph-speaker-simple-high text-xl"></i>
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); toggleBlind(x.id); }} className={`p-3 rounded-full shadow hover:scale-110 transition ${paidBlind.has(x.id) ? 'bg-gray-200 text-gray-400' : 'bg-white text-gray-700'}`} title="Blind Shadowing (+2pts)">
+                                                    <i className={`ph ${blindStates.has(x.id) ? 'ph-eye-closed' : 'ph-eye'} text-xl`}></i>
+                                                </button>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className={`serif text-lg md:text-xl text-slate-800 leading-relaxed font-medium transition-all duration-300 ${blindStates.has(x.id) ? 'opacity-0 select-none blur-sm' : 'opacity-100'}`}>{x.e}</p>
+                                                <p className="text-base text-slate-500 mt-2 font-bold">{x.c}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button onClick={next} className="w-full bg-white text-indigo-700 py-5 rounded-2xl font-bold text-2xl shadow-xl hover:scale-[1.01] hover:shadow-2xl transition transform">{idx === words.length - 1 ? "Start Matching" : "Next Word"}</button>
+                </div>
+            );
+        };
+
+        const Match = ({ words, onNextModule, updateScore, score }) => {
+            const [items, setItems] = useState([]);
+            const [sel, setSel] = useState([]);
+            const [mat, setMat] = useState([]);
+
+            useEffect(() => {
+                const pairs = words.flatMap(w => [{ id:w.id, t:w.w, type:'w' }, { id:w.id, t:w.def, type:'d' }]).sort(() => Math.random() - 0.5);
+                setItems(pairs);
+            }, [words]);
+
+            const click = (i) => {
+                if (sel.includes(i) || mat.includes(items[i].id)) return;
+                const newSel = [...sel, i];
+                setSel(newSel);
+                if (newSel.length === 2) {
+                    const [a, b] = newSel;
+                    if (items[a].id === items[b].id) {
+                        setMat([...mat, items[a].id]);
+                        updateScore(2); 
+                        if (mat.length + 1 === words.length) setTimeout(onNextModule, 1000);
+                    } else {
+                        updateScore(-1); 
+                    }
+                    setTimeout(() => setSel([]), 600);
+                }
+            };
+
+            return (
+                <div className="h-full flex flex-col p-4 max-w-7xl mx-auto w-full fade-in pb-24">
+                    <div className="flex justify-between items-center text-white mb-6 bg-black/20 p-4 rounded-2xl backdrop-blur-md">
+                        <div className="flex items-center gap-2"><i className="ph ph-puzzle-piece text-3xl text-yellow-300"></i> <h2 className="text-2xl font-bold">Match</h2></div>
+                        <div className="flex items-center gap-4">
+                            <span className="text-yellow-300 font-bold flex gap-2 text-xl bg-black/20 px-4 py-1 rounded-full"><i className="ph ph-star-fill text-yellow-400"></i> {score}</span>
+                            <span className="font-mono bg-white/20 px-3 py-1 rounded-full">{mat.length}/{words.length}</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto custom-scroll">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
+                            {items.map((it, i) => {
+                                const isSel = sel.includes(i); const isMat = mat.includes(it.id);
+                                let cls = "bg-white/90 text-slate-700 hover:bg-white border-2 border-transparent";
+                                if (isSel) cls = "bg-indigo-600 text-white shadow-2xl scale-105 z-10 border-indigo-300";
+                                if (isMat) cls = "opacity-0 pointer-events-none scale-0";
+                                return <button key={i} onClick={() => click(i)} className={`min-h-[120px] p-4 rounded-2xl shadow-lg transition-all duration-300 flex items-center justify-center text-center ${cls}`}><span className={it.type==='w'?'font-bold text-xl':'text-sm font-medium leading-snug'}>{it.t}</span></button>;
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Dictation = ({ words, onNextModule, updateScore, score }) => {
+            const [idx, setIdx] = useState(0);
+            const [val, setVal] = useState("");
+            const [err, setErr] = useState(0);
+            const [st, setSt] = useState('idle');
+            const [isRetry, setIsRetry] = useState(false);
+            const [isResetting, setIsResetting] = useState(false);
+            const [btnText, setBtnText] = useState("Play");
+            const w = words[idx];
+
+            const playDictation = () => {
+                setBtnText("...");
+                speak(w.w, () => {
+                    setTimeout(() => {
+                        speak(w.w, () => {
+                            setBtnText("Play Again");
+                        });
+                    }, 300);
+                });
+            };
+
+            useEffect(() => {
+                setVal(""); setErr(0); setSt('idle'); setIsRetry(false); setIsResetting(false);
+                stopSpeech();
+                setTimeout(playDictation, 500);
+                return () => stopSpeech();
+            }, [idx]);
+
+            const check = (e) => {
+                e.preventDefault();
+                if (isResetting) return;
+
+                const cleanInput = val.toLowerCase().trim();
+                const target = w.w.toLowerCase().trim();
+
+                if (cleanInput === target) {
+                    setSt('ok'); stopSpeech(); speak("Correct!");
+                    if (!isRetry) updateScore(5); 
+                    setTimeout(() => { if(idx < words.length-1) setIdx(idx+1); else onNextModule(); }, 800);
+                } else {
+                    const newErr = err + 1;
+                    setErr(newErr);
+                    setSt('no'); updateScore(-1); 
+                    stopSpeech(); speak("Try again");
+
+                    if (newErr >= 5) {
+                        setIsResetting(true);
+                        setTimeout(() => {
+                            setIsResetting(false); setIsRetry(true); setVal(""); setErr(0); setSt('idle');
+                        }, 5000);
+                    }
+                }
+            };
+
+            return (
+                <div className="h-full flex flex-col items-center justify-center p-6 fade-in max-w-3xl mx-auto w-full pb-24">
+                     <div className="flex justify-between items-center text-white mb-6 bg-black/20 p-4 rounded-2xl backdrop-blur-md w-full">
+                        <div className="flex items-center gap-2"><i className="ph ph-headphones text-3xl text-yellow-300"></i> <h2 className="text-2xl font-bold">Dictation</h2></div>
+                        <div className="flex gap-6 items-center">
+                            <span className="text-yellow-300 font-bold flex gap-2 text-xl bg-black/20 px-4 py-1 rounded-full"><i className="ph ph-star-fill text-yellow-400"></i> {score}</span>
+                            <span className="font-mono bg-white/20 px-3 py-1 rounded-full text-lg">{idx+1} / {words.length}</span>
+                        </div>
+                    </div>
+
+                    <div className="glass-panel rounded-[2.5rem] p-12 shadow-2xl w-full text-center relative overflow-hidden">
+                        {isResetting && (
+                            <div className="absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center">
+                                <div className="text-red-500 font-bold text-3xl mb-4">Too many errors!</div>
+                                <div className="text-indigo-600 text-5xl font-bold mb-8">{w.w}</div>
+                                <p className="mt-4 text-slate-400">Retry in 5s (0 pts)</p>
+                            </div>
+                        )}
+                        <div className="absolute top-0 left-0 h-2 bg-indigo-100 w-full"><div className="h-full bg-indigo-500 transition-all duration-500" style={{width: `${(idx/words.length)*100}%`}}></div></div>
+                        
+                        <button onClick={playDictation} className="w-24 h-24 rounded-full bg-indigo-600 text-white shadow-xl flex flex-col items-center justify-center mx-auto mb-10 hover:scale-110 transition border-4 border-white ring-4 ring-indigo-200">
+                            <i className="ph ph-speaker-high text-3xl mb-1"></i>
+                            <span className="text-[10px] font-bold opacity-80">{btnText}</span>
+                        </button>
+                        
+                        <form onSubmit={check}>
+                            <input autoFocus value={val} onChange={e => setVal(e.target.value)} className={`w-full text-center text-5xl font-bold py-6 border-b-4 bg-transparent outline-none tracking-wide transition-colors ${st==='ok'?'border-green-500 text-green-600':st==='no'?'border-red-500 text-red-500':'border-slate-300 focus:border-indigo-500 text-slate-800'}`} placeholder="Type the word..." />
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        const Unscramble = ({ words, onNextModule, updateScore, score }) => {
+            const [idx, setIdx] = useState(0);
+            const [parts, setParts] = useState([]);
+            const [ord, setOrd] = useState([]);
+            const [potential, setPotential] = useState(10);
+            const [fail, setFail] = useState(0);
+            const [isResetting, setIsResetting] = useState(false);
+            const w = words[idx]; const sen = w.exB;
+
+            useEffect(() => { resetBoard(); stopSpeech(); }, [idx]);
+
+            const resetBoard = () => {
+                setParts(sen.replace(/[.,!?;]/g,'').split(' ').sort(()=>Math.random()-0.5).map((t,i)=>({id:i,t})));
+                setOrd([]); setFail(0); setIsResetting(false); setPotential(10);
+            };
+
+            const deductGlobal = (n, fn) => { updateScore(-n); fn(); };
+            
+            const hint = () => deductGlobal(15, () => { 
+                const c = sen.replace(/[.,!?;]/g,'').split(' '); const n = c[ord.length]; const f = parts.find(p=>p.t===n); 
+                if(f) { setParts(parts.filter(p=>p.id!==f.id)); setOrd([...ord, f]); }
+            });
+
+            const check = () => { 
+                if (ord.map(o=>o.t).join(' ') === sen.replace(/[.,!?;]/g,'')) { 
+                    speak("Excellent"); 
+                    updateScore(potential); 
+                    setTimeout(() => { if(idx<words.length-1) setIdx(idx+1); else onNextModule(); }, 800); 
+                } else { 
+                    const newFail = fail + 1;
+                    setFail(newFail);
+                    speak("Wrong"); 
+                    setPotential(Math.max(0, potential - 2));
+
+                    if (newFail >= 5) {
+                        setIsResetting(true);
+                        setPotential(0); 
+                        setTimeout(() => { resetBoard(); }, 5000);
+                    }
+                }
+            };
+
+            return (
+                <div className="h-full flex flex-col p-4 max-w-5xl mx-auto w-full fade-in pb-24">
+                    <div className="flex justify-between items-center text-white mb-6 bg-black/20 p-4 rounded-2xl backdrop-blur-md">
+                        <div className="flex items-center gap-2"><i className="ph ph-sort-ascending text-3xl text-yellow-300"></i> <h2 className="text-2xl font-bold">Unscramble</h2></div>
+                        <div className="flex gap-6 items-center">
+                            <span className="text-yellow-300 font-bold flex gap-2 text-xl bg-black/20 px-4 py-1 rounded-full"><i className="ph ph-star-fill text-yellow-400"></i> {score}</span>
+                            <span className="font-mono bg-white/20 px-3 py-1 rounded-full text-lg">{idx+1} / {words.length}</span>
+                        </div>
+                    </div>
+
+                    <div className="glass-panel rounded-[2rem] p-8 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
+                        {isResetting && (
+                            <div className="absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center">
+                                <div className="text-red-500 font-bold text-2xl mb-4">Correct Answer:</div>
+                                <div className="text-green-600 text-2xl font-bold text-center p-4">{sen}</div>
+                                <p className="text-slate-400 mt-8">Resetting...</p>
+                            </div>
+                        )}
+                        <div className="text-center mb-6 border-b border-slate-200 pb-6"><h3 className="text-3xl font-bold text-indigo-700 mb-2">{w.w}</h3><p className="text-slate-500 font-medium text-lg">{w.cnB}</p></div>
+                        <div className="bg-slate-50/50 rounded-2xl p-6 min-h-[120px] flex flex-wrap gap-3 justify-center items-center border-2 border-dashed border-slate-300 mb-6 shadow-inner">
+                            {ord.map(x=><button key={x.id} onClick={()=>{if(!isResetting){setOrd(ord.filter(o=>o.id!==x.id)); setParts([...parts,x])}}} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg hover:bg-red-500 transition animate-pop">{x.t}</button>)}
+                        </div>
+                        <div className="flex flex-wrap gap-3 justify-center mb-auto">
+                            {parts.map(x=><button key={x.id} onClick={()=>{if(!isResetting){setParts(parts.filter(p=>p.id!==x.id)); setOrd([...ord,x])}}} className="bg-white border border-slate-200 px-4 py-3 rounded-xl shadow-sm hover:border-indigo-300 hover:shadow-md text-lg font-medium transition text-slate-700">{x.t}</button>)}
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 mt-8">
+                            <button onClick={()=>deductGlobal(10, ()=>speak(sen))} disabled={isResetting} className="bg-orange-50 text-orange-600 font-bold py-4 rounded-2xl hover:bg-orange-100 flex items-center justify-center gap-2 border border-orange-100"><i className="ph ph-speaker-high text-xl"></i> Listen (-10)</button>
+                            <button onClick={hint} disabled={isResetting} className="bg-purple-50 text-purple-600 font-bold py-4 rounded-2xl hover:bg-purple-100 flex items-center justify-center gap-2 border border-purple-100"><i className="ph ph-lightbulb text-xl"></i> Hint (-15)</button>
+                            <button onClick={check} disabled={isResetting} className="col-span-2 bg-indigo-600 text-white font-bold py-5 rounded-2xl shadow-xl hover:bg-indigo-700 transition text-xl">Check Answer (+{potential})</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Writing = ({ words, onFinish, updateScore, score }) => {
+            const [idx, setIdx] = useState(0);
+            const [val, setVal] = useState("");
+            const [potential, setPotential] = useState(10);
+            const [fail, setFail] = useState(0);
+            const [showTarget, setShowTarget] = useState(false);
+            const [isResetting, setIsResetting] = useState(false);
+            const w = words[idx];
+
+            const cleanTarget = (str) => str.toLowerCase().replace(/[^a-z]/g, '');
+
+            useEffect(() => { 
+                setVal(""); setShowTarget(false); setFail(0); setIsResetting(false); setPotential(10);
+                stopSpeech();
+            }, [idx]);
+            
+            const deductGlobal = (n, fn) => { updateScore(-n); fn(); };
+            
+           const check = (e) => {
+                e.preventDefault();
+                const cleanIn = cleanTarget(val);
+                const target = cleanTarget(w.w);
+                
+                if (cleanIn.includes(target) && cleanIn.length > 4) {
+                    speak("Great job"); 
+                    updateScore(potential);
+                    if(idx<words.length-1) setIdx(idx+1); else onFinish();
+                } else { 
+                    const newFail = fail + 1;
+                    setFail(newFail);
+                    speak("Try again"); 
+                    setPotential(Math.max(0, potential - 2));
+
+                    if (newFail >= 5) {
+                        setIsResetting(true);
+                        setPotential(0);
+                        setTimeout(() => { 
+                            setIsResetting(false); setVal(""); setFail(0); setShowTarget(false);
+                        }, 5000);
+                    }
+                }
+            };
+
+            const renderScenario = (text) => {
+                const parts = text.split(/(\[.*?\])/);
+                return parts.map((part, i) => {
+                    if (part.startsWith('[') && part.endsWith(']')) return <span key={i} className="text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-200 mx-1">{part.slice(1, -1)}</span>;
+                    return <span key={i}>{part}</span>;
+                });
+            };
+
+            return (
+                <div className="h-full flex flex-col p-4 max-w-5xl mx-auto w-full fade-in pb-24">
+                    <div className="flex justify-between items-center text-white mb-6 bg-black/20 p-4 rounded-2xl backdrop-blur-md">
+                        <div className="flex items-center gap-2"><i className="ph ph-pencil-simple-slash text-3xl text-yellow-300"></i> <h2 className="text-2xl font-bold">Restore</h2></div>
+                        <div className="flex gap-6 items-center">
+                            <span className="text-yellow-300 font-bold flex gap-2 text-xl bg-black/20 px-4 py-1 rounded-full"><i className="ph ph-star-fill text-yellow-400"></i> {score}</span>
+                            <span className="font-mono bg-white/20 px-3 py-1 rounded-full text-lg">{idx+1} / {words.length}</span>
+                        </div>
+                    </div>
+
+                    <div className="glass-panel rounded-[2rem] p-8 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
+                        {isResetting && (
+                            <div className="absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center">
+                                <div className="text-red-500 font-bold text-2xl mb-4">Too many errors! Answer:</div>
+                                <div className="text-green-600 text-xl font-bold text-center p-4 border border-green-200 rounded-xl bg-green-50">{w.exC}</div>
+                                <p className="mt-4 text-slate-400">Retry in 5s (0 pts)</p>
+                            </div>
+                        )}
+
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 mb-8 shadow-sm">
+                            <p className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-widest">Scenario Sentence</p>
+                            <div className="text-2xl serif text-slate-800 leading-relaxed font-medium">
+                                {renderScenario(w.hintC)}
+                            </div>
+                            <div className="mt-4 text-sm text-slate-500 flex items-center gap-2">
+                                <i className="ph ph-info text-indigo-500"></i> Replace the text in red with the vocabulary word.
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 mb-6">
+                            <button onClick={()=>deductGlobal(10, ()=>setShowTarget(true))} disabled={showTarget} className="bg-pink-50 text-pink-600 px-6 py-3 rounded-xl font-bold hover:bg-pink-100 disabled:opacity-50 transition border border-pink-200 flex items-center gap-2">
+                                <i className="ph ph-eye"></i> Reveal Target Word (-10)
+                            </button>
+                            {showTarget ? (
+                                <div className="text-xl animate-fade-in flex items-center gap-2">Target: <span className="text-indigo-600 font-bold text-3xl bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100">{w.w}</span></div>
+                            ) : null}
+                        </div>
+
+                        <form onSubmit={check} className="flex-1 flex flex-col">
+                            <textarea value={val} onChange={e=>setVal(e.target.value)} className="w-full flex-1 p-6 border-2 border-slate-200 rounded-2xl focus:border-indigo-500 outline-none text-2xl resize-none bg-white shadow-inner font-serif text-slate-700" placeholder="Type the restored sentence here..." />
+                            <button className="w-full mt-6 bg-pink-600 text-white py-5 rounded-2xl font-bold text-2xl shadow-xl hover:bg-pink-700 transition transform hover:scale-[1.01]">Submit Answer (+{potential})</button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        const Summary = ({ s }) => {
+            const m = Math.floor(s.time/60);
+            return (
+                <div className="h-full flex flex-col items-center justify-center p-8 text-white text-center fade-in pb-24 overflow-y-auto">
+                    <i className="ph ph-trophy text-9xl text-yellow-300 mb-8 animate-bounce drop-shadow-2xl"></i>
+                    <h1 className="text-7xl font-extrabold mb-10 tracking-tight">Batch Complete!</h1>
+                    <div className="glass-panel rounded-[2.5rem] p-10 border border-white/40 mb-10 w-full max-w-2xl grid grid-cols-2 gap-8 shadow-2xl text-slate-800">
+                        <div><div className="text-sm uppercase tracking-widest opacity-60 mb-2 font-bold">Total Score</div><div className="text-6xl font-bold text-indigo-600 drop-shadow-sm">{s.pts}</div></div>
+                        <div><div className="text-sm uppercase tracking-widest opacity-60 mb-2 font-bold">Time Spent</div><div className={`text-6xl font-bold drop-shadow-sm ${m>=25?'text-green-600':'text-red-500'}`}>{m}m</div></div>
+                    </div>
+                    <div className="bg-black/40 p-8 rounded-3xl max-w-2xl border border-white/20 shadow-xl backdrop-blur-md">
+                        <h3 className="text-2xl font-bold text-yellow-400 mb-4 flex items-center justify-center gap-3"><i className="ph ph-star-fill"></i> STEVEN UP STAR</h3>
+                        <p className="text-xl text-slate-200 leading-relaxed">Screenshot this screen to redeem rewards.<br/><span className={`text-sm font-bold px-3 py-1 rounded-lg mt-2 inline-block ${m>=25?'bg-green-500 text-white':'bg-red-500 text-white'}`}>Requirement: Study Time > 25 mins</span></p>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [mode, setMode] = useState('dash');
+            const [batch, setBatch] = useState(0);
+            const [words, setWords] = useState([]);
+            const [startT, setStartT] = useState(0);
+            const [score, setScore] = useState(150);
+            const [fin, setFin] = useState({pts:0, time:0});
+
+            const start = (i) => { 
+                setBatch(i); 
+                setWords(FULL_VOCAB.slice(i*BATCH_SIZE, (i+1)*BATCH_SIZE)); 
+                setStartT(Date.now()); 
+                setScore(150); 
+                setMode('flash'); 
+            };
+            const finish = () => { setFin({ pts: score, time: (Date.now()-startT)/1000 }); setMode('summary'); };
+            const updateScore = (delta) => setScore(s => s + delta);
+
+            return (
+                <>
+                    {mode==='dash' && <Dashboard onStart={start} />}
+                    {mode==='flash' && <Flashcards words={words} onNextModule={()=>setMode('match')} updateScore={updateScore} score={score} />}
+                    {mode==='match' && <Match words={words} onNextModule={()=>setMode('dictation')} updateScore={updateScore} score={score} />}
+                    {mode==='dictation' && <Dictation words={words} onNextModule={()=>setMode('unscramble')} updateScore={updateScore} score={score} />}
+                    {mode==='unscramble' && <Unscramble words={words} onNextModule={()=>setMode('writing')} updateScore={updateScore} score={score} />}
+                    {mode==='writing' && <Writing words={words} onFinish={finish} updateScore={updateScore} score={score} />}
+                    {mode==='summary' && <Summary s={fin} />}
+                </>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

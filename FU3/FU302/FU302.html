@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Power of "Mille" (Pro V7)</title>
+    
+    <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/babel-standalone/7.22.17/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Serif:ital,wght@0,500;1,500&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        /* 全局样式 */
+        * { -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            color: #0f172a; 
+            background: linear-gradient(135deg, #0f172a, #312e81, #4c1d95, #581c87);
+            background-size: 400% 400%;
+            background-attachment: fixed;
+            animation: gradient 20s ease infinite;
+            min-height: 100vh;
+            padding-bottom: 120px;
+        }
+        @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .serif { font-family: 'Noto Serif', serif; }
+        .mono-num { font-family: 'Space Grotesk', monospace; }
+        
+        /* 玻璃拟态 */
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.96); 
+            backdrop-filter: blur(24px); 
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.5); 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+            border-radius: 2rem;
+        }
+
+        /* 动画 */
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Zoom 特效 */
+        @keyframes cinematicZoom {
+            0% { transform: scale(3); filter: blur(4px); }
+            100% { transform: scale(1); filter: blur(0); }
+        }
+        .zoom-active { animation: cinematicZoom 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+        /* 返回按钮 */
+        .nav-home { 
+            position: fixed; top: 20px; left: 20px; z-index: 100; 
+            background: rgba(0,0,0,0.4); color: white; 
+            padding: 10px 20px; border-radius: 99px; text-decoration: none; 
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); 
+            font-weight: 600; font-size: 1.1rem;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .nav-home:hover { background: rgba(0,0,0,0.6); transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // 🔹 Azure 语音配置
+        // ==========================================
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const azureRegion = "eastus2"; 
+        
+        let currentSynthesizer = null;
+
+        const speak = (text) => {
+            if (currentSynthesizer) { currentSynthesizer.close(); currentSynthesizer = null; }
+            if (!text) return;
+            if (window.isSpeaking) return;
+            window.isSpeaking = true; setTimeout(() => window.isSpeaking = false, 300);
+
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+                currentSynthesizer = synthesizer;
+                
+                synthesizer.speakTextAsync(text, result => {
+                    synthesizer.close(); currentSynthesizer = null;
+                }, err => { console.error(err); synthesizer.close(); currentSynthesizer = null; });
+            } catch (e) { console.error("Azure Error", e); }
+        };
+
+        // ==========================================
+        // 🔹 数据源
+        // ==========================================
+        const MACRO_DATA = [
+            { title: "Million", img: "million_cash.jpg", def: "The number 1,000,000.", ex: "He dreams of winning a million dollars.", cn: "他梦想赢得一百万美元。", type: "counter", endVal: 1000000 },
+            { title: "Millennium", img: "millennium_castle.jpg", def: "A period of 1,000 years.", ex: "History changed over the millennium.", cn: "人类在过去的一千年里变化巨大。", type: "counter", endVal: 1000 },
+            { title: "Millennials", img: "millennials_tech.jpg", def: "Born around the turn of the millennium.", ex: "Millennials are digital natives.", cn: "千禧一代是数字原住民。", type: "range", endText: "1981 - 1996" }
+        ];
+
+        const MICRO_DATA = [
+            { title: "Millimeter", img: "millimeter_ruler.jpg", def: "1/1000 of a Meter.", ex: "The ant is 5 millimeters long.", cn: "蚂蚁只有5毫米长。", type: "zoom" },
+            { title: "Milliliter", img: "milliliter_dropper.jpg", def: "1/1000 of a Liter.", ex: "Just a few milliliters of liquid.", cn: "只有几毫升液体。", type: "zoom" }
+        ];
+
+        // 🟢 严谨音素拆分 (Strict Phonics)
+        const ORTHO_DATA = [
+            { 
+                id: "w1", 
+                word: "Million", 
+                sounds: ["m", "i", "ll", "i", "o", "n"], 
+                hint: "1,000,000" 
+            },
+            { 
+                id: "w2", 
+                word: "Millennium", 
+                sounds: ["m", "i", "ll", "e", "nn", "i", "u", "m"], 
+                hint: "1,000 Years" 
+            },
+            { 
+                id: "w3", 
+                word: "Millimeter", 
+                // er = 1 sound (2 letters)
+                sounds: ["m", "i", "ll", "i", "m", "e", "t", "er"], 
+                hint: "Small Length" 
+            },
+            { 
+                id: "w4", 
+                word: "Milliliter", 
+                // er = 1 sound (2 letters)
+                sounds: ["m", "i", "ll", "i", "l", "i", "t", "er"], 
+                hint: "Small Volume" 
+            },
+            { 
+                id: "w5", 
+                word: "Millennials", 
+                // ll, nn = 2 letters each
+                sounds: ["m", "i", "ll", "e", "nn", "i", "a", "l", "s"], 
+                hint: "Generation Y" 
+            }
+        ];
+
+        // ==========================================
+        // 🔹 组件区域
+        // ==========================================
+
+        // 1. Intro Page
+        const IntroPage = ({ onNext }) => {
+            return (
+                <div className="w-full max-w-6xl mx-auto p-6 md:p-12 fade-in">
+                    <div className="glass-panel p-8 md:p-16 flex flex-col items-center text-center relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                        <h1 className="text-5xl md:text-8xl font-black text-slate-800 mb-8 leading-tight drop-shadow-sm">
+                            The Secret of <br/>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">"Mille"</span>
+                        </h1>
+                        <div className="w-full max-w-lg aspect-video bg-slate-200 rounded-3xl overflow-hidden shadow-2xl border-8 border-white mb-10 transform hover:scale-[1.02] transition duration-500">
+                            <img src="mille_coin.jpg" alt="Roman Coin" className="w-full h-full object-cover" 
+                                 onError={(e) => e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400 font-bold">🖼️ mille_coin.jpg</div>'} />
+                        </div>
+                        <p className="text-2xl md:text-3xl text-slate-600 font-serif italic mb-10">"One word root, many meanings."</p>
+                        <button onClick={onNext} className="group px-10 py-4 bg-slate-900 text-white rounded-full text-xl font-bold shadow-xl hover:bg-blue-700 transition-all flex items-center gap-3">
+                            Start Exploration <i className="ph ph-arrow-right group-hover:translate-x-1 transition"></i>
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // 2. Content Page
+        const ContentPage = ({ title, colorClass, dataSet }) => {
+            const [activeTab, setActiveTab] = useState(0);
+            const [animState, setAnimState] = useState(0);
+            const [showOverlay, setShowOverlay] = useState(true);
+            const activeItem = dataSet[activeTab];
+
+            useEffect(() => {
+                setShowOverlay(true);
+                setAnimState(0);
+                if (activeItem.type === 'counter' || activeItem.type === 'range') {
+                    let start = 0;
+                    const end = activeItem.endVal || 2000;
+                    const duration = 1500;
+                    const startTime = Date.now();
+                    const tick = () => {
+                        const now = Date.now();
+                        const progress = Math.min((now - startTime) / duration, 1);
+                        const ease = 1 - Math.pow(1 - progress, 3);
+                        if (activeItem.type === 'range') setAnimState(Math.floor(1900 + Math.random() * 100));
+                        else setAnimState(Math.floor(ease * end));
+                        if (progress < 1) requestAnimationFrame(tick);
+                        else {
+                            if (activeItem.type === 'range') setAnimState(activeItem.endText);
+                            else setAnimState(end.toLocaleString());
+                        }
+                    };
+                    requestAnimationFrame(tick);
+                } else { setShowOverlay(false); }
+            }, [activeTab]);
+
+            return (
+                <div className="w-full max-w-7xl mx-auto p-4 md:p-8 fade-in">
+                    <h1 className={`text-4xl md:text-6xl font-black mb-8 text-center md:text-left ${colorClass === 'blue' ? 'text-blue-100' : 'text-yellow-100'} drop-shadow-md`}>
+                        {title}
+                    </h1>
+                    <div className="flex flex-wrap gap-3 mb-8 justify-center md:justify-start">
+                        {dataSet.map((item, idx) => (
+                            <button key={idx} onClick={() => setActiveTab(idx)} className={`px-6 py-3 rounded-xl font-bold transition-all text-lg ${activeTab === idx ? 'bg-white text-slate-900 shadow-lg scale-105' : 'bg-white/20 text-white hover:bg-white/30'}`}>{item.title}</button>
+                        ))}
+                    </div>
+                    <div className="glass-panel p-6 md:p-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                        <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-black">
+                            <img key={activeItem.img} src={activeItem.img} alt={activeItem.title} className={`w-full h-full object-cover ${activeItem.type === 'zoom' ? 'zoom-active' : ''}`} onError={(e) => e.target.style.opacity = 0.5} />
+                            {(activeItem.type === 'counter' || activeItem.type === 'range') && showOverlay && (
+                                <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 z-10">
+                                    <div className="mono-num text-5xl md:text-7xl font-bold text-yellow-400 mb-4">{animState}</div>
+                                    <div className="text-slate-400 tracking-[0.2em] text-sm font-bold mb-8">CALCULATING...</div>
+                                    <button onClick={() => setShowOverlay(false)} className="px-8 py-3 bg-white text-slate-900 rounded-full font-bold hover:scale-105 transition shadow-lg hover:bg-yellow-300">Tap to Reveal ✨</button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex flex-col h-full justify-center">
+                            <h2 className="text-4xl md:text-6xl font-black text-slate-800 mb-4">{activeItem.title}</h2>
+                            <p className="text-xl text-blue-600 font-bold mb-8">{activeItem.def}</p>
+                            <div className="bg-slate-50 p-6 rounded-2xl border-l-8 border-blue-500 shadow-sm">
+                                <p className="serif text-2xl text-slate-800 mb-2">"{activeItem.ex}"</p>
+                                <p className="text-slate-500 mb-4">{activeItem.cn}</p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => speak(activeItem.ex)} className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition"><i className="ph ph-speaker-high text-2xl"></i></button>
+                                    <button onClick={() => setActiveTab((activeTab + 1) % dataSet.length)} className="px-6 py-2 bg-slate-200 text-slate-600 rounded-full font-bold hover:bg-slate-300 transition flex items-center gap-2"><i className="ph ph-arrow-clockwise"></i> Next</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. Overview Page
+        const OverviewPage = () => {
+            return (
+                <div className="w-full max-w-6xl mx-auto p-6 md:p-12 fade-in">
+                    <div className="glass-panel p-8 md:p-16 flex flex-col items-center">
+                        <h1 className="text-4xl md:text-5xl font-black text-slate-800 mb-10">Total Overview</h1>
+                        <div className="w-full max-w-4xl bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border-8 border-white mb-10">
+                            <img src="mille_summary.jpg" className="w-full h-auto" onError={(e) => e.target.parentElement.innerHTML='<div class="p-20 text-white text-center font-bold">🖼️ Please put mille_summary.jpg here</div>'}/>
+                        </div>
+                        <div className="flex flex-col md:flex-row gap-8 w-full max-w-4xl">
+                            <div className="flex-1 bg-blue-50 p-8 rounded-3xl text-center border-2 border-blue-100"><h2 className="text-4xl font-black text-blue-600 mb-2">x 1000</h2><div className="h-1 w-20 bg-blue-200 mx-auto mb-4"></div><p className="text-xl font-bold text-slate-700">Million</p><p className="text-xl font-bold text-slate-700">Millennium</p></div>
+                            <div className="flex-1 bg-yellow-50 p-8 rounded-3xl text-center border-2 border-yellow-100"><h2 className="text-4xl font-black text-yellow-600 mb-2">1 / 1000</h2><div className="h-1 w-20 bg-yellow-200 mx-auto mb-4"></div><p className="text-xl font-bold text-slate-700">Millimeter</p><p className="text-xl font-bold text-slate-700">Milliliter</p></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. Orthography Page (Vertical Layout + Multi-char Input)
+        const OrthoPage = () => {
+            return (
+                <div className="w-full max-w-5xl mx-auto p-4 md:p-8 fade-in pb-24">
+                    <div className="text-center mb-10">
+                        <span className="bg-purple-100 text-purple-700 px-4 py-1 rounded-full font-bold text-sm uppercase tracking-wider">Phonics Lab</span>
+                        <h1 className="text-4xl md:text-6xl font-black text-white mt-4 drop-shadow-md">Sound Box Mapping</h1>
+                        <p className="text-blue-100 mt-2 text-lg">Listen and spell (1 sound per box)</p>
+                    </div>
+
+                    <div className="flex flex-col gap-8">
+                        {ORTHO_DATA.map((item, idx) => (
+                            <OrthoRow key={item.id} item={item} idx={idx} />
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const OrthoRow = ({ item, idx }) => {
+            const [inputs, setInputs] = useState(Array(item.sounds.length).fill(""));
+            const [status, setStatus] = useState("idle");
+            const inputsRef = useRef([]);
+
+            // 核心修复：允许输入多字符，最大长度基于答案长度
+            const handleChange = (val, i) => {
+                const maxLen = item.sounds[i].length;
+                const newInputs = [...inputs];
+                
+                // 只允许输入 answer 规定的长度
+                // 如果当前音是 "ll" (len=2)，用户输入 "l" -> 保持；输入 "ll" -> 保持并跳格
+                
+                // 简单逻辑：取输入的最后 maxLen 个字符
+                let nextVal = val.toLowerCase();
+                
+                // 只有当输入的长度 <= 目标长度时才更新，防止多输
+                if (nextVal.length <= maxLen) {
+                    newInputs[i] = nextVal;
+                    setInputs(newInputs);
+                    setStatus("idle");
+
+                    // 如果长度达到了，自动跳格
+                    if (nextVal.length === maxLen && i < item.sounds.length - 1) {
+                        inputsRef.current[i + 1].focus();
+                    }
+                }
+            };
+
+            const handleKeyDown = (e, i) => {
+                if (e.key === "Backspace" && !inputs[i] && i > 0) inputsRef.current[i - 1].focus();
+            };
+
+            const check = () => {
+                const isCorrect = inputs.every((val, i) => val === item.sounds[i].toLowerCase());
+                setStatus(isCorrect ? "correct" : "wrong");
+                if (isCorrect) speak(`Correct! ${item.word}`);
+                else speak("Try again");
+            };
+
+            return (
+                <div className="glass-panel p-6 animate-[fadeIn_0.5s_ease-out] flex flex-col items-center gap-6 shadow-lg border-2 border-white/50" style={{animationDelay: `${idx * 0.1}s`}}>
+                    
+                    {/* Row 1: Controls & Hint */}
+                    <div className="flex items-center gap-4 w-full justify-center border-b border-gray-200/50 pb-4">
+                        <button onClick={() => speak(item.word)} className="w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center hover:scale-110 transition shadow-lg shrink-0">
+                            <i className="ph ph-speaker-high text-2xl"></i>
+                        </button>
+                        <div className="text-center">
+                            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">HINT</div>
+                            <div className="text-xl font-bold text-slate-700">{item.hint}</div>
+                        </div>
+                    </div>
+
+                    {/* Row 2: Sound Boxes (强制单行 + 横向滑动) */}
+                    <div className="w-full overflow-x-auto pb-2 flex justify-center no-scrollbar">
+                        <div className="flex flex-nowrap gap-2 px-2 min-w-min">
+                            {item.sounds.map((sound, i) => {
+                                // 动态计算格子宽度：2个字母的宽一点
+                                const widthClass = sound.length > 1 ? "w-16 md:w-20" : "w-14 md:w-16";
+                                
+                                return (
+                                    <input
+                                        key={i}
+                                        ref={el => inputsRef.current[i] = el}
+                                        type="text"
+                                        value={inputs[i]}
+                                        // 关键：允许输入 sound.length 个字符
+                                        maxLength={sound.length}
+                                        onChange={(e) => handleChange(e.target.value, i)}
+                                        onKeyDown={(e) => handleKeyDown(e, i)}
+                                        className={`${widthClass} h-16 md:h-20 rounded-xl border-4 text-center text-2xl md:text-3xl font-bold mono-num focus:outline-none focus:-translate-y-2 transition shadow-sm flex-shrink-0
+                                            ${status === 'correct' ? 'border-green-400 bg-green-50 text-green-700' : 
+                                              status === 'wrong' ? 'border-red-300 bg-red-50 text-red-700' : 
+                                              'border-slate-200 bg-white text-slate-800 focus:border-blue-400 shadow-inner'}`}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Row 3: Action */}
+                    <div className="w-full flex justify-center border-t border-gray-200/50 pt-4">
+                        {status === 'correct' ? (
+                            <span className="text-green-600 font-bold flex items-center gap-2 bg-green-100 px-6 py-2 rounded-full shadow-inner animate-[fadeIn_0.3s]"><i className="ph ph-check-circle text-2xl"></i> Excellent!</span>
+                        ) : (
+                            <button onClick={check} className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 shadow-md hover:shadow-lg transition active:scale-95 text-lg w-full md:w-auto">
+                                Check Answer
+                            </button>
+                        )}
+                    </div>
+
+                </div>
+            );
+        };
+
+        // --- Main App Shell ---
+        const App = () => {
+            const [page, setPage] = useState(0);
+            const totalPages = 5;
+
+            const changePage = (dir) => {
+                const next = page + dir;
+                if (next >= 0 && next < totalPages) {
+                    setPage(next);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            };
+
+            return (
+                <div className="w-full min-h-screen relative">
+                    <a href="../../index.html" className="nav-home"><i class="ph ph-house text-2xl"></i> <span className="hidden md:inline">Home</span></a>
+                    <div className="w-full pt-16">
+                        {page === 0 && <IntroPage onNext={() => changePage(1)} />}
+                        {page === 1 && <ContentPage title="The Macro World" colorClass="blue" dataSet={MACRO_DATA} />}
+                        {page === 2 && <ContentPage title="The Micro World" colorClass="yellow" dataSet={MICRO_DATA} />}
+                        {page === 3 && <OverviewPage />}
+                        {page === 4 && <OrthoPage />}
+                    </div>
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-white/90 backdrop-blur-2xl p-3 rounded-full shadow-2xl border border-white/60 flex justify-between items-center z-50 transition-all hover:scale-[1.01]">
+                        <button onClick={() => changePage(-1)} disabled={page === 0} className="w-14 h-14 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 transition text-slate-600"><i className="ph ph-caret-left text-2xl"></i></button>
+                        <div className="flex gap-2">
+                            {[...Array(totalPages)].map((_, i) => (<div key={i} onClick={()=>setPage(i)} className={`h-2 rounded-full cursor-pointer transition-all duration-300 ${i === page ? 'bg-blue-600 w-8 shadow-lg shadow-blue-300' : 'bg-slate-300 w-2 hover:bg-slate-400'}`}></div>))}
+                        </div>
+                        <button onClick={() => changePage(1)} disabled={page === totalPages - 1} className="w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 disabled:opacity-30 disabled:bg-none disabled:bg-slate-300 transition shadow-lg shadow-blue-500/30"><i className="ph ph-caret-right text-2xl"></i></button>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

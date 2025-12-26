@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore: Thailand (Pro)</title>
+    
+    <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/babel-standalone/7.22.17/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Fredoka:wght@500;600&family=Noto+Serif:ital,wght@0,500;1,500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* 全局设置 */
+        * { -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            color: #f8fafc; 
+            /* 暹罗金绿渐变 */
+            background: linear-gradient(135deg, #134e4a, #0f766e, #b45309, #78350f);
+            background-size: 400% 400%;
+            animation: siamFlow 25s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        @keyframes siamFlow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .serif { font-family: 'Noto Serif', serif; }
+        .mono { font-family: 'Space Grotesk', monospace; }
+        .fun-font { font-family: 'Fredoka', sans-serif; }
+
+        /* 主容器 */
+        .app-container {
+            width: 95vw;
+            max-width: 1400px;
+            height: 90vh;
+            background: rgba(19, 78, 74, 0.9); /* 深松石色底 */
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .app-container { flex-direction: column; height: 100vh; width: 100vw; border-radius: 0; }
+        }
+
+        /* 动画 */
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 滚动条 */
+        .custom-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(251, 191, 36, 0.3) transparent; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(251, 191, 36, 0.3); border-radius: 10px; }
+
+        /* 滑块 */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 28px; width: 28px; border-radius: 50%;
+            background: #fbbf24; border: 4px solid white; cursor: pointer; margin-top: -12px;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.6); transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; cursor: pointer; 
+            background: rgba(255,255,255,0.2); border-radius: 10px;
+        }
+
+        /* 标签按钮 */
+        .tab-btn {
+            flex: 1; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem;
+            background: rgba(255,255,255,0.1); color: #ccfbf1; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .tab-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+        .tab-btn.active { background: #fbbf24; color: #78350f; border-color: #f59e0b; box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4); transform: translateY(-2px); }
+
+        /* 返回按钮 */
+        .nav-back { 
+            position: absolute; top: 24px; left: 24px; z-index: 50; 
+            background: rgba(0,0,0,0.6); color: white; 
+            padding: 10px 20px; border-radius: 99px; text-decoration: none; 
+            backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); 
+            font-weight: 600; font-size: 1rem;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .nav-back:hover { background: rgba(0,0,0,0.8); transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // 🔹 Azure 语音配置
+        // ==========================================
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const azureRegion = "eastus2"; 
+        
+        let currentSynthesizer = null;
+
+        const speak = (text, onComplete) => {
+            if (currentSynthesizer) { currentSynthesizer.close(); currentSynthesizer = null; }
+            if (!text) { if(onComplete) onComplete(); return; }
+            
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+                currentSynthesizer = synthesizer;
+                
+                synthesizer.speakTextAsync(text, result => {
+                    synthesizer.close(); currentSynthesizer = null;
+                    if(onComplete) onComplete();
+                }, err => { console.error(err); synthesizer.close(); currentSynthesizer = null; if(onComplete) onComplete(); });
+            } catch (e) { console.error("Azure Error", e); if(onComplete) onComplete(); }
+        };
+
+        // ==========================================
+        // 🔹 数据配置
+        // ==========================================
+        const DATA = {
+            intro: "Sawasdee! Let's explore the Land of Smiles.",
+            tabs: [
+                { id: 'lake', label: '🌸 Red Lotus', icon: 'ph-flower-lotus' },
+                { id: 'lopburi', label: '🐒 Lopburi', icon: 'ph-paw-print' },
+                { id: 'learn', label: '🇹🇭 Learn', icon: 'ph-book-open' }
+            ],
+            // 景点 1: Red Lotus Lake
+            lake: {
+                title: "Red Lotus Lake",
+                imgs: ["red_lotus_lake.jpg"],
+                desc_en: "The Red Lotus Lake, or Talay Bua Daeng, is a magical place where millions of pink lotus flowers bloom on the water surface, creating a breathtaking pink carpet.",
+                desc_cn: "红莲湖（Talay Bua Daeng）是一个神奇的地方，数百万朵粉红色的莲花在水面上盛开，形成了一层令人叹为观止的粉色地毯。"
+            },
+            // 景点 2: Lopburi (Gallery)
+            lopburi: {
+                title: "Lopburi",
+                imgs: ["lopburi.jpg", "lopburi_01.jpg", "lopburi_02.jpg"],
+                desc_en: "Known as the 'Monkey City', Lopburi is famous for the hundreds of crab-eating macaques that live in the middle of the city, especially around the ancient temple Phra Prang Sam Yot.",
+                desc_cn: "华富里被称为“猴城”，以生活在市中心的数百只食蟹猕猴而闻名，尤其是在古老的寺庙三峰塔周围。"
+            },
+            // 拼写 & 文化
+            spelling: {
+                word: "Thailand",
+                // Th-ai-l-a-n-d
+                sounds: [
+                    { char: "Th", w: "w-16", isSpecial: true },
+                    { char: "ai", w: "w-16", isSpecial: true },
+                    { char: "l", w: "w-12" },
+                    { char: "a", w: "w-12" },
+                    { char: "n", w: "w-12" },
+                    { char: "d", w: "w-12" }
+                ],
+                hint: "Land of Smiles"
+            },
+            culture: {
+                title: "Thai Culture",
+                img: "thai_culture.jpg",
+                vocab_word: "Thai",
+                vocab_en: "Thai people are known for their warm hospitality and delicious food, like Pad Thai. The traditional greeting is called the 'Wai'.",
+                vocab_cn: "泰国人以热情好客和美味的食物（如泰式炒河粉）而闻名。传统的问候方式被称为“Wai”（合十礼）。",
+                fact_en: "Elephants are the national symbol of Thailand. In ancient times, they were used in war, but today they are a symbol of peace and power.",
+                fact_cn: "大象是泰国的国家象征。在古代，它们被用于战争，但今天它们是和平与力量的象征。"
+            }
+        };
+
+        // ==========================================
+        // 🔹 组件区域
+        // ==========================================
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('lake');
+            const [focusVal, setFocusVal] = useState(0);
+            const [imgIdx, setImgIdx] = useState(0); 
+            const [isUnlocked, setIsUnlocked] = useState(false);
+
+            useEffect(() => { setTimeout(() => speak(DATA.intro), 800); }, []);
+
+            // 切换标签
+            const switchTab = (id) => {
+                setActiveTab(id);
+                setImgIdx(0);
+                setFocusVal(0);
+                setIsUnlocked(false);
+                
+                if (id === 'lake' || id === 'lopburi') {
+                    speak(`Let's visit ${DATA[id].title}. Adjust focus.`);
+                } else {
+                    speak("Now, let's learn about the country.");
+                }
+            };
+
+            // 相机逻辑
+            const handleFocusChange = (val) => {
+                setFocusVal(val);
+                if (val > 90 && !isUnlocked) {
+                    setIsUnlocked(true);
+                    speak(`Beautiful! This is ${DATA[activeTab].title}.`);
+                }
+            };
+
+            const changeImage = (dir) => {
+                const total = DATA[activeTab].imgs.length;
+                let next = imgIdx + dir;
+                if (next >= total) next = 0;
+                if (next < 0) next = total - 1;
+                setImgIdx(next);
+            };
+
+            const blurAmount = Math.max(0, 20 - (focusVal / 5));
+
+            return (
+                <div className="app-container fade-in">
+                    
+                    {/* 1. 左侧显示区域 (Camera / Culture Image) */}
+                    <div className="flex-1 md:flex-[1.8] relative bg-black overflow-hidden border-b-4 md:border-b-0 md:border-r-4 border-teal-900/50 group h-[40vh] md:h-auto">
+                        <a href="FU303Main.html" className="nav-back">
+                            <i className="ph ph-arrow-u-up-left text-xl"></i> Back to Map
+                        </a>
+
+                        <div className="w-full h-full overflow-hidden relative">
+                            {activeTab === 'learn' ? (
+                                // Culture Image
+                                <img src={DATA.culture.img} className="w-full h-full object-cover animate-[fadeIn_0.5s]" 
+                                     onError={(e) => e.target.src = 'https://placehold.co/800x600/134e4a/fbbf24?text=Thai+Culture'} />
+                            ) : (
+                                // Camera View
+                                <>
+                                    {/* Gallery Arrows (仅 Lopburi 有多图) */}
+                                    {DATA[activeTab].imgs.length > 1 && (
+                                        <>
+                                            <button onClick={(e) => { e.stopPropagation(); changeImage(-1); }} className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-md z-30 transition border border-white/20 hover:scale-110"><i className="ph ph-caret-left text-2xl"></i></button>
+                                            <button onClick={(e) => { e.stopPropagation(); changeImage(1); }} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-md z-30 transition border border-white/20 hover:scale-110"><i className="ph ph-caret-right text-2xl"></i></button>
+                                            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+                                                {DATA[activeTab].imgs.map((_, i) => (
+                                                    <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === imgIdx ? 'bg-yellow-400 w-6' : 'bg-white/40'}`}></div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <img 
+                                        key={`${activeTab}-${imgIdx}`} 
+                                        src={DATA[activeTab].imgs[imgIdx]} 
+                                        className="w-full h-full object-cover transition-all duration-500 transform scale-110"
+                                        style={{ 
+                                            filter: `blur(${blurAmount}px) brightness(${0.5 + (focusVal/200)})`,
+                                            transform: `scale(${1.1 - (focusVal/1000)})` 
+                                        }}
+                                        onError={(e) => e.target.src = 'https://placehold.co/800x600/134e4a/fbbf24?text=' + DATA[activeTab].title}
+                                    />
+                                    
+                                    {!isUnlocked && <div className="absolute inset-0 bg-teal-500/10 mix-blend-overlay animate-pulse pointer-events-none"></div>}
+                                    
+                                    {/* Camera UI Overlay */}
+                                    <div className="absolute inset-0 pointer-events-none p-8 flex flex-col justify-between z-10">
+                                        <div className="flex justify-between items-start">
+                                            <div className="text-red-500 font-mono font-bold animate-pulse flex items-center gap-3 bg-black/40 px-3 py-1 rounded backdrop-blur-sm">
+                                                <div className="w-3 h-3 bg-red-500 rounded-full shadow-[0_0_10px_red]"></div> REC
+                                            </div>
+                                            <div className="text-white/80 font-mono text-sm flex flex-col items-end gap-1">
+                                                <span>ISO 200</span> <span className="text-yellow-400">AF-S</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${!isUnlocked ? 'w-full h-full border-4 border-yellow-500/50' : 'w-64 h-48 border-2 border-white/30'}`}>
+                                            {!isUnlocked ? (
+                                                <>
+                                                    <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-white"></div>
+                                                    <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-white"></div>
+                                                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-white"></div>
+                                                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-white"></div>
+                                                    <div className="w-2 h-2 bg-white/50 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+                                                </>
+                                            ) : (
+                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-400 font-black tracking-widest text-3xl animate-ping opacity-50">LOCKED</div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex justify-between items-end text-white/60 font-mono text-sm">
+                                            <div>THAILAND</div>
+                                            <div className={`${isUnlocked ? 'text-yellow-400 font-bold' : 'text-white'}`}>FOCUS: {focusVal}%</div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 2. 右侧：控制面板 */}
+                    <div className="flex-1 bg-slate-900/60 backdrop-blur-3xl border-l border-white/5 relative flex flex-col h-[60vh] md:h-auto overflow-hidden">
+                        
+                        {/* 顶部 Tabs */}
+                        <div className="p-6 pb-0 flex gap-3 shrink-0 overflow-x-auto">
+                            {DATA.tabs.map(tab => (
+                                <button 
+                                    key={tab.id}
+                                    onClick={() => switchTab(tab.id)}
+                                    className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+                                >
+                                    <i className={`ph ${tab.icon} text-lg`}></i> {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex-1 relative overflow-y-auto custom-scroll p-6 md:p-8">
+                            
+                            {/* --- Scenario 1: Camera Mode (Lake & Lopburi) --- */}
+                            {activeTab !== 'learn' && (
+                                <div className="min-h-full flex flex-col items-center justify-center fade-in">
+                                    <h2 className="text-yellow-200 font-bold uppercase tracking-[0.2em] text-xs mb-4">Identify Location</h2>
+                                    <div className="bg-teal-900/30 text-teal-100 px-6 py-4 rounded-2xl border border-teal-500/20 inline-block font-medium shadow-lg w-full max-w-sm text-center mb-10">
+                                        <i className="ph ph-aperture mr-2 align-middle"></i> "Adjust focus to reveal the view."
+                                    </div>
+
+                                    <div className="w-full max-w-sm mb-8 relative group">
+                                        <div className="flex justify-between text-xs text-slate-400 mb-3 font-mono tracking-widest">
+                                            <span>BLUR</span><span>SHARP</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="0" max="100" value={focusVal} 
+                                            onChange={(e) => handleFocusChange(parseInt(e.target.value))}
+                                            className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-slate-700"
+                                        />
+                                    </div>
+
+                                    {isUnlocked && (
+                                        <div className="w-full fade-in animate-[slideUp_0.5s]">
+                                            <div className="bg-gradient-to-b from-white/10 to-white/5 p-6 rounded-3xl border border-white/10 text-left shadow-2xl relative overflow-hidden w-full">
+                                                <h3 className="text-yellow-400 font-bold uppercase tracking-widest text-xs mb-2">Featured Spot</h3>
+                                                <h2 className="text-2xl font-black text-white mb-2">{DATA[activeTab].title}</h2>
+                                                <p className="serif text-lg text-teal-50 mb-3 leading-relaxed">"{DATA[activeTab].desc_en}"</p>
+                                                <p className="text-slate-400 text-sm mb-4 leading-relaxed">{DATA[activeTab].desc_cn}</p>
+                                                <div className="text-right">
+                                                    <button onClick={() => speak(DATA[activeTab].desc_en)} className="px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-white shadow-lg transition gap-2 ml-auto font-bold text-sm border border-white/10">
+                                                        <i className="ph ph-speaker-high"></i> Listen
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* --- Scenario 2: Learn Mode (Spelling & Culture) --- */}
+                            {activeTab === 'learn' && (
+                                <div className="min-h-full flex flex-col items-center fade-in gap-8">
+                                    
+                                    {/* Spelling Section */}
+                                    <MappingInterface 
+                                        word={DATA.spelling.word}
+                                        sounds={DATA.spelling.sounds}
+                                        hint={DATA.spelling.hint}
+                                    />
+
+                                    {/* Culture Cards */}
+                                    <div className="w-full flex flex-col gap-4">
+                                        {/* Card 1: People */}
+                                        <div className="bg-slate-800/50 p-5 rounded-2xl border border-white/5 hover:border-yellow-500/50 transition-all">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <i className="ph ph-smiley text-2xl text-yellow-400"></i>
+                                                <h4 className="text-lg font-bold text-white">The Thai People</h4>
+                                            </div>
+                                            <p className="text-sm text-slate-300 mb-2">{DATA.culture.vocab_en}</p>
+                                            <p className="text-xs text-slate-500 mb-2">{DATA.culture.vocab_cn}</p>
+                                            <button onClick={() => speak(DATA.culture.vocab_en)} className="text-xs font-bold text-yellow-500 hover:text-white flex items-center gap-1 transition">
+                                                <i className="ph ph-speaker-high"></i> Listen
+                                            </button>
+                                        </div>
+
+                                        {/* Card 2: Elephant Fact */}
+                                        <div className="bg-slate-800/50 p-5 rounded-2xl border border-white/5 hover:border-teal-500/50 transition-all">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <i className="ph ph-paw-print text-2xl text-teal-400"></i>
+                                                <h4 className="text-lg font-bold text-white">Did You Know?</h4>
+                                            </div>
+                                            <p className="text-sm text-slate-300 mb-2">{DATA.culture.fact_en}</p>
+                                            <p className="text-xs text-slate-500 mb-2">{DATA.culture.fact_cn}</p>
+                                            <button onClick={() => speak(DATA.culture.fact_en)} className="text-xs font-bold text-teal-400 hover:text-white flex items-center gap-1 transition">
+                                                <i className="ph ph-speaker-high"></i> Listen
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Sound Box Component ---
+        const MappingInterface = ({ word, sounds, hint }) => {
+            const [inputs, setInputs] = useState(Array(sounds.length).fill(""));
+            const [status, setStatus] = useState("idle");
+            const inputsRef = useRef([]);
+
+            const handleChange = (val, i) => {
+                const maxLen = sounds[i].char.length;
+                const newInputs = [...inputs];
+                let nextVal = val.toLowerCase();
+                if (nextVal.length <= maxLen) {
+                    newInputs[i] = nextVal;
+                    setInputs(newInputs);
+                    setStatus("idle");
+                    if (nextVal.length === maxLen && i < sounds.length - 1) inputsRef.current[i + 1].focus();
+                }
+            };
+
+            const handleKeyDown = (e, i) => {
+                if (e.key === "Backspace" && !inputs[i] && i > 0) inputsRef.current[i - 1].focus();
+            };
+
+            const check = () => {
+                const isCorrect = inputs.every((val, i) => val === sounds[i].char.toLowerCase());
+                setStatus(isCorrect ? "correct" : "wrong");
+                if (isCorrect) speak(`Correct! ${word}.`);
+                else speak("Try again.");
+            };
+
+            return (
+                <div className="w-full flex flex-col items-center">
+                    <h2 className="text-yellow-200 font-bold uppercase tracking-[0.2em] text-xs mb-4">Sound Mapping</h2>
+                    <button onClick={() => speak(word)} className="w-16 h-16 rounded-full bg-yellow-600 hover:bg-yellow-500 text-white flex items-center justify-center shadow-lg mb-4 transition animate-bounce">
+                        <i className="ph ph-speaker-high text-3xl"></i>
+                    </button>
+                    <p className="text-slate-300 mb-6 font-mono text-center text-sm">{hint}</p>
+                    
+                    <div className="flex flex-wrap justify-center gap-2 mb-6 max-w-full items-end">
+                        {sounds.map((sound, i) => (
+                            <div key={i} className="flex flex-col items-center">
+                                {sound.isSpecial && <div className="text-teal-400 text-[10px] font-bold mb-1 uppercase tracking-wider">Group</div>}
+                                <input
+                                    ref={el => inputsRef.current[i] = el}
+                                    type="text"
+                                    value={inputs[i]}
+                                    maxLength={sound.char.length}
+                                    onChange={(e) => handleChange(e.target.value, i)}
+                                    onKeyDown={(e) => handleKeyDown(e, i)}
+                                    className={`${sound.w} h-12 md:h-14 rounded-xl border-4 text-center text-xl md:text-2xl font-bold mono focus:outline-none focus:-translate-y-1 transition shadow-sm
+                                        ${status === 'correct' ? 'border-green-400 bg-green-50 text-green-700' : 
+                                          status === 'wrong' ? 'border-red-400 bg-red-50 text-red-700' : 
+                                          'border-slate-200 bg-white text-slate-800 focus:border-yellow-400'}`}
+                                />
+                            </div>
+                        ))}
+                    </div>
+
+                    <button onClick={check} className="px-8 py-3 bg-slate-800 text-white rounded-full font-bold shadow-xl hover:bg-slate-700 transition active:scale-95 flex items-center gap-2 text-sm border border-white/10">
+                        Check <i className="ph ph-check-circle text-lg"></i>
+                    </button>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

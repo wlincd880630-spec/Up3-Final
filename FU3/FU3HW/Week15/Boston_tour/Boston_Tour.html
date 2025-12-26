@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Boston: The Cradle of Liberty Masterclass</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Boston Color Palette */
+            --navy: #0f1f38;      /* Harvard Navy */
+            --brick: #8b211a;     /* Freedom Trail Red */
+            --gold: #c5a059;      /* State House Gold */
+            --cream: #f5f5f0;     /* Parchment */
+            --charcoal: #1a1a1a;
+            --glass-dark: rgba(15, 31, 56, 0.95);
+            
+            --font-head: 'Playfair Display', serif;
+            --font-body: 'Montserrat', sans-serif;
+            --font-accent: 'Libre Bakesville', serif;
+            
+            --border-radius: 8px;
+            --shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: var(--charcoal);
+            font-family: var(--font-body);
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        h1, h2, h3 { font-family: var(--font-head); }
+
+        /* === Home Button === */
+        .home-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 2000;
+            background: rgba(15, 31, 56, 0.8); color: var(--gold);
+            padding: 8px 18px; border-radius: 4px; text-decoration: none;
+            font-weight: 700; border: 1px solid var(--gold);
+            backdrop-filter: blur(5px); transition: 0.3s; display: flex; align-items: center; gap: 8px;
+            font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .home-btn:hover { background: var(--gold); color: var(--navy); box-shadow: 0 0 15px rgba(197, 160, 89, 0.4); }
+
+        /* === Layout === */
+        #app {
+            width: 100%; height: 100%; position: relative;
+            background: radial-gradient(circle at center, #1b2845 0%, #050505 100%);
+        }
+
+        .view-section {
+            position: absolute; inset: 0;
+            display: none; flex-direction: column;
+            opacity: 0; transition: opacity 0.5s ease;
+            padding: 80px 20px 40px; /* Top padding for Home btn */
+            overflow-y: auto; overflow-x: hidden;
+        }
+        .view-section.active { display: flex; opacity: 1; z-index: 10; }
+
+        /* === Decorative Border === */
+        .frame-border {
+            position: fixed; inset: 10px; pointer-events: none; z-index: 900;
+            border: 2px solid var(--gold); opacity: 0.3;
+        }
+
+        /* === Buttons === */
+        .btn-retro {
+            background: linear-gradient(135deg, var(--navy), #000);
+            border: 1px solid var(--gold);
+            color: var(--gold); padding: 12px 30px;
+            font-family: var(--font-head); font-size: 1.1rem;
+            cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            margin: 5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+        }
+        .btn-retro:hover { background: var(--gold); color: var(--navy); box-shadow: 0 0 20px rgba(197, 160, 89, 0.3); }
+        .btn-retro:active { transform: translateY(2px); }
+
+        /* === Vocabulary Cards === */
+        .vocab-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto;
+        }
+        .vocab-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+            padding: 20px; border-radius: 8px; transition: 0.3s;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .vocab-card:hover { border-color: var(--gold); background: rgba(15, 31, 56, 0.6); transform: translateY(-5px); }
+        
+        .vocab-card.entity { border-left: 4px solid var(--brick); }
+        .vocab-card.word { border-left: 4px solid var(--gold); }
+
+        .word-header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+        
+        .word-title { 
+            font-size: 1.5rem; color: #fff; font-family: var(--font-head); 
+            cursor: pointer; display: flex; align-items: center; gap: 10px;
+            transition: color 0.2s;
+        }
+        .word-title:hover { color: var(--gold); }
+        .word-cn { font-size: 1rem; color: var(--gold); font-weight: bold; }
+        .word-def { font-size: 0.95rem; color: #ccc; font-style: italic; line-height: 1.4; }
+        
+        /* Sentence Box */
+        .sent-box { 
+            background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; margin-top: 5px; 
+            border: 1px dashed #444; transition: 0.2s;
+            display: flex; align-items: center; gap: 15px; cursor: pointer;
+        }
+        .sent-box:hover { border-color: var(--gold); background: rgba(0,0,0,0.5); }
+        
+        .sent-content { flex: 1; position: relative; }
+        .sent-en { 
+            color: #a8e6cf; font-size: 1.05rem; line-height: 1.5; font-family: var(--font-accent);
+            filter: blur(5px); transition: filter 0.3s ease; user-select: none; 
+        }
+        .sent-en.revealed { filter: blur(0); }
+        .sent-cn { color: #888; font-size: 0.9rem; margin-top: 5px; display: block; border-top: 1px solid #444; padding-top: 5px;}
+        
+        .play-btn {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: transparent; border: 1px solid var(--gold);
+            color: var(--gold); display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0; transition: 0.2s;
+        }
+        .play-btn:hover { background: var(--gold); color: var(--navy); box-shadow: 0 0 10px var(--gold); transform: scale(1.1); }
+
+        .click-hint { 
+            position: absolute; top: 0; left: 0; 
+            font-size:0.7rem; color:#fff; pointer-events:none; opacity:0.7; 
+            text-transform:uppercase; letter-spacing: 1px; background: rgba(0,0,0,0.8); padding: 3px 8px; border-radius: 2px;
+        }
+
+        /* === City Guide Cards === */
+        .spot-card {
+            display: flex; flex-direction: row; gap: 25px;
+            background: rgba(255,255,255,0.03); border: 1px solid #444; border-left: 5px solid var(--navy);
+            padding: 25px; margin-bottom: 25px; border-radius: 8px;
+            align-items: center; transition: 0.3s;
+        }
+        .spot-card:hover { border-color: var(--gold); background: rgba(255,255,255,0.06); transform: translateX(5px); }
+        
+        .spot-img { 
+            width: 220px; height: 140px; object-fit: cover; border-radius: 6px; 
+            border: 1px solid #444; flex-shrink: 0; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            background-color: #000;
+        }
+        
+        .spot-info { flex: 1; }
+        .spot-title { color: var(--gold); font-size: 1.6rem; margin-bottom: 10px; font-family: var(--font-head); letter-spacing: 0.5px; }
+        .spot-desc { 
+            font-size: 1.05rem; line-height: 1.7; color: #ddd; 
+            cursor: pointer; padding: 10px; border-radius: 6px; transition: 0.2s;
+            border: 1px solid transparent;
+        }
+        .spot-desc:hover { background: rgba(197, 160, 89, 0.1); border-color: rgba(197, 160, 89, 0.3); color: #fff; }
+        
+        @media (max-width: 768px) {
+            .spot-card { flex-direction: column; text-align: left; align-items: flex-start; }
+            .spot-img { width: 100%; height: 200px; }
+        }
+
+        /* === Video Player === */
+        .video-wrapper {
+            width: 100%; max-width: 1000px; margin: 0 auto; position: relative;
+            background: #000; border: 2px solid var(--gold); aspect-ratio: 16/9;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.6); border-radius: 4px; overflow: hidden;
+        }
+        video { width: 100%; height: 100%; display: block; }
+        
+        .video-controls {
+            width: 100%; max-width: 1000px; margin: 15px auto;
+            display: flex; gap: 20px; align-items: center;
+            background: rgba(255,255,255,0.05); padding: 15px 25px; border-radius: 50px;
+            border: 1px solid #444;
+        }
+        input[type=range] {
+            flex: 1; accent-color: var(--gold); cursor: pointer; height: 6px;
+        }
+        .time-display { font-size: 1rem; font-feature-settings: "tnum"; min-width: 60px; text-align: right; color: var(--gold); font-weight: bold; }
+
+        /* Subtitles */
+        .sub-layer {
+            position: absolute; bottom: 40px; width: 100%; text-align: center; pointer-events: none; z-index: 20;
+        }
+        .sub-text {
+            background: rgba(0,0,0,0.85); color: #fff; border-bottom: 3px solid var(--gold);
+            padding: 10px 20px; border-radius: 4px; font-size: clamp(16px, 2.5vw, 24px); 
+            font-family: var(--font-accent); text-shadow: 2px 2px 4px #000; 
+            display: inline-block; max-width: 90%; transition: opacity 0.2s;
+        }
+
+        /* Overlay & Quiz */
+        .overlay-layer {
+            position: absolute; inset: 0; background: rgba(5, 10, 20, 0.96);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 50; padding: 30px; text-align: center; backdrop-filter: blur(5px);
+        }
+        .question-box {
+            background: var(--navy); border: 2px solid var(--gold); padding: 40px;
+            width: 100%; max-width: 650px; text-align: left; position: relative; border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .question-box h3 { color: var(--gold); border-bottom: 1px solid #444; padding-bottom: 15px; margin-top: 0; font-size: 1.8rem; }
+        .question-box p { font-size: 1.2rem; margin-bottom: 15px; }
+        
+        select, input[type="text"] {
+            width: 100%; padding: 12px; background: #000; color: #fff; 
+            border: 1px solid #555; border-radius: 4px; font-size: 1rem; margin-bottom: 20px;
+        }
+        select:focus, input[type="text"]:focus { border-color: var(--gold); outline: none; }
+
+        /* Progress Bar */
+        #global-bar { position: fixed; top: 0; left: 0; height: 4px; background: var(--brick); width: 0%; z-index: 3000; transition: 0.5s; box-shadow: 0 0 10px var(--brick); }
+        
+        /* Report */
+        #report-print-area {
+            background: #fdfdfd; color: #1a1a1a; padding: 60px; 
+            max-width: 800px; margin: 0 auto; font-family: 'Times New Roman', serif;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5); position: relative;
+        }
+        #report-print-area::before {
+            content: ''; position: absolute; inset: 10px; border: 2px double #8b211a; pointer-events: none;
+        }
+
+        #toast {
+            position: fixed; top: 15%; left: 50%; transform: translateX(-50%);
+            background: var(--gold); color: var(--navy); padding: 10px 25px;
+            font-weight: bold; border-radius: 50px; opacity: 0; transition: 0.3s; z-index: 2000; pointer-events: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+<div id="global-bar"></div>
+<div class="frame-border"></div>
+<div id="toast">Saved</div>
+
+<a href="../../../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
+
+<div id="app">
+
+    <section id="view-login" class="view-section active" style="justify-content:center; align-items:center;">
+        <div style="text-align:center; background:var(--glass-dark); padding:50px; border:2px solid var(--gold); border-radius:12px; width:95%; max-width:600px; position:relative; overflow:hidden;">
+            <div style="position:absolute; top:-50px; right:-50px; width:100px; height:100px; background:var(--brick); transform:rotate(45deg);"></div>
+            
+            <h1 style="font-size:3.5rem; color:var(--gold); margin-bottom:5px; text-shadow:0 5px 15px rgba(0,0,0,0.5);">BOSTON</h1>
+            <p style="letter-spacing:6px; color:#aaa; margin-bottom:40px; text-transform:uppercase; font-size:0.9rem;">Cradle of Liberty • Masterclass</p>
+            
+            <div style="text-align:left; color:#ccc; margin-bottom:30px; line-height:1.8; padding:25px; border-left:4px solid var(--brick); background:rgba(255,255,255,0.03);">
+                <i class="fas fa-info-circle" style="color:var(--gold);"></i> <strong>Mission Objectives:</strong><br>
+                1. <strong>Vocabulary:</strong> Master B1/B2 terms & names.<br>
+                2. <strong>City Guide:</strong> Explore landmarks via Audio Tour.<br>
+                3. <strong>Video Part 1:</strong> General comprehension (Subs ON).<br>
+                4. <strong>Video Part 2:</strong> Intensive detail check (Subs OFF).
+            </div>
+            
+            <div id="save-msg" style="display:none; color:var(--gold); margin-bottom:20px; font-style:italic;">
+                <i class="fas fa-save"></i> Previous session found.
+                <button class="btn-retro" style="margin-left:15px; font-size:0.8rem; padding:8px 15px; border-color:var(--gold);" onclick="resumeGame()">Resume</button>
+            </div>
+
+            <input type="text" id="username" placeholder="Enter Your Name" style="background:transparent; border:none; border-bottom:2px solid var(--gold); color:#fff; text-align:center; padding:15px; font-size:1.5rem; width:80%; outline:none; font-family:var(--font-head);">
+            <br><br><br>
+            <button class="btn-retro" onclick="startNew()">Start Journey <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </section>
+
+    <section id="view-vocab" class="view-section">
+        <div style="text-align:center; margin-bottom:40px;">
+            <h2 class="title-font" style="color:var(--gold); font-size:2.8rem;">Core Vocabulary</h2>
+            <p style="color:#888; font-size:1.1rem;">Tap words to pronounce. Tap sentences to toggle/listen.</p>
+        </div>
+        <div id="vocab-container" class="vocab-grid"></div>
+        <div style="text-align:center; margin-top:50px;">
+            <button class="btn-retro" onclick="nextStage('view-intro')">Next: City Guide <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </section>
+
+    <section id="view-intro" class="view-section">
+        <div style="max-width:1000px; margin:0 auto;">
+            <div style="text-align:center; margin-bottom:40px;">
+                <h2 class="title-font" style="color:var(--gold); font-size:2.8rem;">Boston City Guide</h2>
+                <p style="color:#888; font-size:1.1rem;">Explore the landmarks. Tap description text to listen (Azure Neural TTS).</p>
+            </div>
+            <div id="spots-container"></div>
+            <div style="text-align:center; margin-top:40px;">
+                <button class="btn-retro" onclick="nextStage('view-vid1')">Start Video Tour <i class="fas fa-video"></i></button>
+            </div>
+        </div>
+    </section>
+
+    <section id="view-vid1" class="view-section">
+        <div style="text-align:center; margin-bottom:20px;">
+            <h2 class="title-font" style="font-size:2rem;">Part 1: General Viewing</h2>
+            <p style="color:#888;">Watch the overview. Answer general questions at the end.</p>
+        </div>
+        
+        <div id="pre-watch-overlay" class="overlay-layer">
+            <h2 class="title-font" style="color:var(--gold); margin-bottom:20px; font-size:2.5rem;">Pre-Watch Questions</h2>
+            <div class="question-box">
+                <p>1. How is Boston described relative to European cities?</p>
+                <p>2. What is Boston's nickname regarding American history?</p>
+            </div>
+            <button class="btn-retro" style="margin-top:40px; font-size:1.2rem;" onclick="startVid1()">Start Watching <i class="fas fa-play"></i></button>
+        </div>
+
+        <div class="video-wrapper">
+            <video id="vid1" playsinline src="boston_video.mp4"></video>
+            <div class="sub-layer"><span id="sub1" class="sub-text"></span></div>
+            
+            <div id="post-watch-overlay" class="overlay-layer" style="display:none;">
+                <div class="question-box">
+                    <h3>General Quiz</h3>
+                    <p>1. How is Boston described?</p>
+                    <select id="gq1"><option value="">Select...</option><option value="A">Modern & Fast</option><option value="B">European & Cozy</option></select>
+                    <p>2. What is Boston's nickname?</p>
+                    <select id="gq2"><option value="">Select...</option><option value="A">Cradle of Liberty</option><option value="B">The Big Apple</option></select>
+                    <div style="text-align:right;">
+                        <button class="btn-retro" onclick="checkGenQuiz()">Submit Answers <i class="fas fa-check"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="video-controls">
+            <button class="play-btn" onclick="togglePlay('vid1')"><i class="fas fa-play"></i></button>
+            <input type="range" id="vid1-seek" min="0" value="0" step="0.1">
+            <span class="time-display" id="vid1-time">0:00</span>
+        </div>
+    </section>
+
+    <section id="view-vid2" class="view-section">
+        <div style="text-align:center; margin-bottom:20px;">
+            <h2 class="title-font" style="color:var(--brick)">Part 2: Intensive Details</h2>
+            <p style="color:#aaa;">Video will <strong>auto-pause</strong> for 8 questions. Subtitles are disabled.</p>
+        </div>
+        
+        <div class="video-wrapper">
+            <video id="vid2" playsinline src="boston_video.mp4"></video>
+            
+            <div id="int-quiz-overlay" class="overlay-layer" style="display:none; background:rgba(0,0,0,0.95);">
+                <div class="question-box" style="border-color:var(--brick);">
+                    <h3 id="iq-title" style="color:var(--brick);">Question</h3>
+                    <div id="iq-body" style="font-size:1.2rem; margin-bottom:25px; line-height:1.6;"></div>
+                    <div style="display:flex; gap:15px; justify-content:flex-end;">
+                        <button class="btn-retro" style="border-color:#666; color:#aaa;" onclick="replaySegment()"><i class="fas fa-undo"></i> Replay</button>
+                        <button class="btn-retro" style="background:var(--brick); color:#fff; border-color:var(--brick);" onclick="submitIntAnswer()">Submit <i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align:center; margin-top:30px;">
+            <button id="start-int-btn" class="btn-retro" onclick="startVid2()">Start Intensive Session <i class="fas fa-bolt"></i></button>
+        </div>
+    </section>
+
+    <section id="view-report" class="view-section">
+        <div id="report-print-area">
+            <div style="text-align:center; border-bottom:3px double #000; padding-bottom:20px;">
+                <h1 style="color:#0f1f38; margin:0;">Learning Report</h1>
+                <p style="letter-spacing:2px; text-transform:uppercase;">Boston: Cradle of Liberty</p>
+                <div style="display:flex; justify-content:space-between; margin-top:20px; font-size:1.1rem;">
+                    <span>Student: <strong id="rep-name"></strong></span>
+                    <span>Score: <strong id="rep-score" style="color:#8b211a;"></strong></span>
+                </div>
+            </div>
+            
+            <h3 style="margin-top:30px; border-bottom:1px solid #ccc; padding-bottom:5px;">Detailed Review</h3>
+            <table style="width:100%; border-collapse:collapse; margin-top:15px;">
+                <thead style="background:#eee;">
+                    <tr>
+                        <th style="padding:10px; border:1px solid #ccc; text-align:left;">Question</th>
+                        <th style="padding:10px; border:1px solid #ccc; text-align:left;">Your Answer</th>
+                        <th style="padding:10px; border:1px solid #ccc; text-align:center;">Result</th>
+                    </tr>
+                </thead>
+                <tbody id="rep-tbody"></tbody>
+            </table>
+            
+            <p style="margin-top:30px; font-size:0.9rem; color:#666; text-align:center;">Generated by Global Explorer System | Date: <span id="rep-date"></span></p>
+        </div>
+        
+        <div style="text-align:center; margin-top:40px; display:flex; justify-content:center; gap:20px; flex-wrap:wrap;">
+            <button class="btn-retro" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> Download PDF</button>
+            <button class="btn-retro" onclick="exportVocab()"><i class="fas fa-list"></i> Save Vocab</button>
+            <button class="btn-retro" style="border-color:#666; color:#999;" onclick="restartAll()"><i class="fas fa-redo"></i> Restart</button>
+        </div>
+    </section>
+
+</div>
+
+<script>
+// ================= DATA CENTER =================
+
+const entities = [
+    {w:"New England", cn:"新英格兰地区", def:"A region in the northeast US.", ex:"Boston is the cultural and economic capital of New England.", exCn:"波士顿是新英格兰地区的文化和经济中心。"},
+    {w:"Cambridge", cn:"剑桥市", def:"A city home to Harvard.", ex:"We took the subway to Cambridge to visit the universities.", exCn:"我们坐地铁去剑桥市参观大学。"},
+    {w:"Harvard University", cn:"哈佛大学", def:"The oldest university in the US.", ex:"Many students dream of studying at Harvard University.", exCn:"许多学生梦想着在哈佛大学读书。"},
+    {w:"Quincy Market", cn:"昆西市场", def:"A historic market famous for food.", ex:"You can try delicious clam chowder at Quincy Market.", exCn:"你可以在昆西市场品尝美味的蛤蜊浓汤。"},
+    {w:"Freedom Trail", cn:"自由之路", def:"A red path connecting historic sites.", ex:"Following the Freedom Trail is the best way to learn history.", exCn:"沿着自由之路走是学习历史的最好方式。"},
+    {w:"Beacon Hill", cn:"比肯山", def:"A historic neighborhood.", ex:"Beacon Hill is famous for its beautiful brick houses.", exCn:"比肯山以其美丽的红砖房子而闻名。"},
+    {w:"Chinatown", cn:"唐人街", def:"Asian culture district.", ex:"We went to Chinatown to have authentic dumplings.", exCn:"我们去唐人街吃了正宗的饺子。"},
+    {w:"Public Garden", cn:"公共花园", def:"The first botanical garden in America.", ex:"The flowers in the Public Garden bloom in spring.", exCn:"公共花园里的花在春天盛开。"},
+    {w:"Boston Common", cn:"波士顿公园", def:"The oldest city park in the US.", ex:"People love to have picnics in Boston Common.", exCn:"人们喜欢在波士顿公园野餐。"},
+    {w:"Union Oyster House", cn:"联合牡蛎屋", def:"America's oldest restaurant.", ex:"JFK used to eat at the Union Oyster House often.", exCn:"肯尼迪总统过去经常在联合牡蛎屋吃饭。"},
+    {w:"Boston Harbor", cn:"波士顿港", def:"The historic port area.", ex:"We took a boat tour around Boston Harbor.", exCn:"我们乘船游览了波士顿港。"},
+    {w:"Newbury Street", cn:"纽伯里街", def:"Famous street for shopping.", ex:"Newbury Street is full of trendy shops and cafes.", exCn:"纽伯里街到处都是时髦的商店和咖啡馆。"},
+    {w:"Rose Kennedy Greenway", cn:"肯尼迪绿道", def:"A park in downtown Boston.", ex:"Kids love playing in the fountains at the Greenway.", exCn:"孩子们喜欢在绿道的喷泉里玩耍。"},
+    {w:"Horace Gray", cn:"霍勒斯·格雷", def:"Founder of the Public Garden.", ex:"Horace Gray wanted to create a beautiful garden for the city.", exCn:"霍勒斯·格雷想为这座城市建造一个美丽的花园。"},
+    {w:"Christopher Columbus Park", cn:"哥伦布公园", def:"A waterfront park.", ex:"Couples often walk through the trellis in Columbus Park.", exCn:"情侣们经常穿过哥伦布公园的格子架。"},
+    {w:"Massachusetts State House", cn:"州议会大厦", def:"Building with a golden dome.", ex:"The golden dome of the State House shines in the sun.", exCn:"州议会大厦的金顶在阳光下闪闪发光。"}
+];
+
+const words = [
+    {w:"Cozy", cn:"舒适的", def:"Warm, comfortable and safe.", ex:"I love reading books in my cozy bedroom on rainy days.", exCn:"下雨天我喜欢在我舒适的卧室里看书。"},
+    {w:"Captivate", cn:"迷住", def:"To attract someone very much.", ex:"The magic show captivated all the students in the class.", exCn:"魔术表演迷住了班上所有的学生。"},
+    {w:"Architecture", cn:"建筑风格", def:"The style or design of a building.", ex:"The old architecture in Europe is very different from modern cities.", exCn:"欧洲的古老建筑风格与现代城市截然不同。"},
+    {w:"Cobblestone", cn:"鹅卵石", def:"Round stones used for old streets.", ex:"It is hard to ride a bike on a cobblestone street.", exCn:"在鹅卵石街道上骑自行车很难。"},
+    {w:"Cradle", cn:"摇篮/发源地", def:"The place where something began.", ex:"Greece is known as the cradle of Western civilization.", exCn:"希腊被被称为西方文明的摇篮。"},
+    {w:"Facade", cn:"(建筑)正面", def:"The front wall of a large building.", ex:"The facade of the museum is made of white stone.", exCn:"博物馆的正面是由白石建造的。"},
+    {w:"Gastronomic", cn:"美食的", def:"Connected with cooking and eating.", ex:"Paris is a gastronomic paradise for food lovers.", exCn:"巴黎是美食爱好者的美食天堂。"},
+    {w:"Rotunda", cn:"圆形大厅", def:"A round building with a dome.", ex:"The statue stands in the center of the rotunda.", exCn:"雕像矗立在圆形大厅的中央。"},
+    {w:"Socializing", cn:"社交", def:"Spending time with others for fun.", ex:"School is not just for studying, but also for socializing.", exCn:"学校不仅是为了学习，也是为了社交。"},
+    {w:"Landmark", cn:"地标", def:"A famous building or object.", ex:"The Eiffel Tower is the most famous landmark in Paris.", exCn:"埃菲尔铁塔是巴黎最著名的地标。"},
+    {w:"Contribution", cn:"贡献", def:"Something you do to help.", ex:"Every student made a contribution to the group project.", exCn:"每个学生都对小组项目做出了贡献。"},
+    {w:"Independence", cn:"独立", def:"Freedom from control.", ex:"Americans celebrate Independence Day on July 4th.", exCn:"美国人在7月4日庆祝独立日。"},
+    {w:"Picturesque", cn:"风景如画的", def:"Beautiful like a picture.", ex:"We took photos of the picturesque village in the mountains.", exCn:"我们拍了这个山里风景如画的村庄的照片。"},
+    {w:"Atmosphere", cn:"氛围", def:"The feeling of a place.", ex:"The library has a quiet atmosphere for studying.", exCn:"图书馆有一种适合学习的安静氛围。"},
+    {w:"Designated", cn:"指定的", def:"Officially chosen.", ex:"This area is a designated parking zone.", exCn:"这个区域是指定的停车区。"},
+    {w:"Antique", cn:"古董", def:"Old and valuable.", ex:"My grandmother collects antique furniture.", exCn:"我的祖母收藏古董家具。"},
+    {w:"Authentic", cn:"正宗的", def:"Real, true, not fake.", ex:"This restaurant serves authentic Italian pizza.", exCn:"这家餐厅供应正宗的意大利披萨。"},
+    {w:"Cuisine", cn:"菜肴", def:"A style of cooking.", ex:"I really want to try Japanese cuisine tonight.", exCn:"我今晚真的很想尝试日本料理。"},
+    {w:"Immerse", cn:"沉浸", def:"To become completely involved.", ex:"To learn English well, you should immerse yourself in the language.", exCn:"为了学好英语，你应该让自己沉浸在语言中。"},
+    {w:"Mural", cn:"壁画", def:"A large picture painted on a wall.", ex:"The students painted a colorful mural on the school wall.", exCn:"学生们在学校的墙上画了一幅色彩斑斓的壁画。"},
+    {w:"Philanthropist", cn:"慈善家", def:"A rich person who helps others.", ex:"Bill Gates is a famous philanthropist.", exCn:"比尔·盖茨是一位著名的慈善家。"},
+    {w:"Commemorate", cn:"纪念", def:"To remember a special event.", ex:"We plant trees to commemorate Earth Day.", exCn:"我们种树来纪念地球日。"},
+    {w:"Bicentennial", cn:"两百周年", def:"The 200th anniversary.", ex:"The city celebrated its bicentennial with fireworks.", exCn:"这座城市用烟花庆祝了它的两百周年纪念。"},
+    {w:"Installation", cn:"装置艺术", def:"Art built into a space.", ex:"The art installation in the park looks like a giant spider.", exCn:"公园里的装置艺术看起来像一只巨大的蜘蛛。"},
+    {w:"Exhibit", cn:"展品", def:"Something shown in a museum.", ex:"Please do not touch the exhibits.", exCn:"请勿触摸展品。"},
+    {w:"Peninsula", cn:"半岛", def:"Land with water on three sides.", ex:"Korea and Florida are both peninsulas.", exCn:"韩国和佛罗里达都是半岛。"},
+    {w:"Dormitory", cn:"宿舍", def:"A building where students live.", ex:"Living in a dormitory is a fun part of college life.", exCn:"住在宿舍是大学生活有趣的一部分。"},
+    {w:"Erudite", cn:"博学的", def:"Having a lot of knowledge.", ex:"Our history teacher is very erudite.", exCn:"我们的历史老师非常博学。"},
+    {w:"Gourmet", cn:"美食家", def:"Someone who knows good food.", ex:"My uncle is a gourmet who loves cooking.", exCn:"我的叔叔是一位热爱烹饪的美食家。"},
+    {w:"Enthusiast", cn:"爱好者", def:"Someone very interested in something.", ex:"He is a sports enthusiast and watches every game.", exCn:"他是一个体育爱好者，每场比赛都看。"},
+    {w:"Bohemian", cn:"波西米亚风", def:"Artistic and unconventional.", ex:"She wears bohemian clothes with lots of colors.", exCn:"她穿着色彩丰富的波西米亚风格的衣服。"},
+    {w:"Boutique", cn:"精品店", def:"A small shop selling fashion.", ex:"She bought a dress at a small boutique in Paris.", exCn:"她在巴黎的一家小精品店买了一件连衣裙。"},
+    {w:"Storefront", cn:"店面", def:"The side of a store facing the street.", ex:"The storefront was decorated with Christmas lights.", exCn:"店面装饰着圣诞彩灯。"},
+    {w:"Prominent", cn:"著名的", def:"Important and famous.", ex:"He is a prominent scientist in this field.", exCn:"他是这个领域一位杰出的科学家。"},
+    {w:"Preserve", cn:"保护", def:"To keep safe.", ex:"We must preserve our traditions for the future.", exCn:"我们必须为了未来保护我们的传统。"}
+];
+const spotsData = [
+    {t:"Quincy Market", img:"quincy_market.jpg", desc:"Constructed in 1826, Quincy Market is a historic food paradise. Its Roman-style architecture features massive granite columns. Inside, you can find a huge variety of local food and enjoy street performances outside."},
+    {t:"The Freedom Trail", img:"freedom_trail.jpg", desc:"This is a 2.5-mile red path on the sidewalk. It connects 16 historically significant sites, including museums, churches, and meeting houses. Walking this trail is like walking through the history of the American Revolution."},
+    {t:"Beacon Hill", img:"beacon_hill.jpg", desc:"Known as one of Boston's most beautiful neighborhoods. It features gas-lit streetlamps and cobblestone streets. Acorn Street, located here, is one of the most photographed streets in the entire USA."},
+    {t:"Chinatown", img:"chinatown.jpg", desc:"The only historic Chinese district in New England. A traditional Paifang gate with stone lions welcomes visitors. It is the best place to enjoy authentic Asian cuisine and see colorful murals."},
+    {t:"Public Garden & Boston Common", img:"public_garden.jpg", desc:"Boston Common is the oldest park in the US (1634). Right next to it is the Public Garden, the first botanical garden in America. The famous Swan Boats have been carrying tourists here since 1877."},
+    {t:"Harvard University", img:"harvard.jpg", desc:"Founded in 1636 in Cambridge, it is America's oldest university. Visitors love to walk through Harvard Yard to see the old red-brick buildings, libraries, and feel the academic atmosphere."},
+    {t:"Newbury Street", img:"newbury.jpg", desc:"A famous 1.5-kilometer street for shopping and dining. It is lined with beautiful 19th-century buildings. You can find everything from trendy coffee shops to expensive boutiques here."},
+    {t:"Union Oyster House", img:"union_oyster.jpg", desc:"This is America's oldest continuously operating restaurant, open since 1826. It is a National Historic Landmark where you can enjoy traditional New England seafood in a historic setting."}
+];
+const subs = [
+    {s: 1.22, e: 5.66, t: "Boston is beautiful, cozy, and full of surprises."},
+    {s: 5.70, e: 9.14, t: "The capital of New England with its Cambridge and Harvard, the"},
+    {s: 9.14, e: 12.42, t: "most European city in the United States, captivates with its"},
+    {s: 12.42, e: 16.86, t: "Georgian architecture, cobblestone sidewalks, gardens, and parks."},
+    {s: 16.86, e: 19.98, t: "Here you celebrate the past, live in the present, and"},
+    {s: 19.98, e: 23.90, t: "confidently face the future. What to do in Boston, the cradle"},
+    {s: 23.90, e: 26.98, t: "of freedom and the birth place of American statehood?"},
+    {s: 26.98, e: 30.92, t: "Keep watching to check out the best tourist locations."},
+    {s: 59.44, e: 64.44, t: "Quincy Market This ancient market complex, constructed in 1824"},
+    {s: 64.44, e: 68.52, t: "to 1826, is located in the city's historic heart."},
+    {s: 68.52, e: 71.04, t: "The central building is made-up of white granite."},
+    {s: 71.04, e: 74.56, t: "Roman style particles decorate the eastern and western parts of its"},
+    {s: 74.56, e: 77.20, t: "facade. With massive Doric columns."},
+    {s: 77.20, e: 81.28, t: "This place can be called a true gastronomic paradise for tourists."},
+    {s: 81.28, e: 84.72, t: "The first floor has many snack bars, restaurants and take away"},
+    {s: 84.72, e: 87.48, t: "counters. The Dome shape Rotunda on the 2nd"},
+    {s: 87.48, e: 89.13, t: "floor is filled with..."},
+    {s: 89.13, e: 92.77, t: "For visitors to enjoy dining and socializing, the North and"},
+    {s: 92.77, e: 95.97, t: "South Market buildings are also filled with stores and food"},
+    {s: 95.97, e: 98.21, t: "outlets. On either side of this building."},
+    {s: 98.21, e: 101.21, t: "In the warm season, St. Artists perform in the square of"},
+    {s: 101.21, e: 105.69, t: "the complex Freedom Trail. The route, marked on the city"},
+    {s: 105.69, e: 109.29, t: "sidewalk with red paint or narrow strips of brick, starts in"},
+    {s: 109.29, e: 113.61, t: "Boston Common Park. It connects 16 landmarks, museums,"},
+    {s: 113.61, e: 117.05, t: "churches, historic houses, monuments, burial grounds and"},
+    {s: 117.05, e: 119.09, t: "an old warship. They."},
+    {s: 119.09, e: 122.41, t: "Reveal Boston's colonial history and its contribution to the"},
+    {s: 122.41, e: 125.77, t: "struggle for independence. Each has a sign next to it with"},
+    {s: 125.77, e: 128.81, t: "explanations. Tourists can use a mobile app for a"},
+    {s: 128.81, e: 133.05, t: "self-guided tour or participate in a sightseeing tour led by guides in"},
+    {s: 133.05, e: 136.97, t: "18th century costumes. Beacon Hill."},
+    {s: 136.97, e: 140.49, t: "It's one of Boston's oldest and most fashionable neighborhoods,"},
+    {s: 140.49, e: 143.61, t: "featuring picturesque 19th century buildings."},
+    {s: 143.61, e: 146.97, t: "Gas lanterns in cobblestone sidewalks create their very own"},
+    {s: 146.97, e: 148.37, t: "unique atmosphere."},
+    {s: 148.37, e: 152.29, t: "In 1955, Beacon Hill was the first in Massachusetts to be"},
+    {s: 152.29, e: 154.97, t: "officially designated a historic district."},
+    {s: 154.97, e: 159.05, t: "Here you can find charming cafes and many fascinating stores."},
+    {s: 159.05, e: 162.37, t: "Charles Street is known for its antique shops, and the famous"},
+    {s: 162.37, e: 165.77, t: "Acorn Street is among the most photographed streets in the United"},
+    {s: 165.77, e: 167.77, t: "States. Make sure you check out the"},
+    {s: 167.77, e: 171.53, t: "Massachusetts State House Chinatown."},
+    {s: 171.53, e: 175.33, t: "It is located in the city center next to Boston Common Park and is"},
+    {s: 175.33, e: 177.97, t: "New England's only historic Chinese quarter."},
+    {s: 177.97, e: 181.41, t: "The traditional Pai Fang Gate greets visitors with a lion on each"},
+    {s: 181.41, e: 183.41, t: "side. Here you can taste the region's"},
+    {s: 183.41, e: 186.73, t: "best Chinese and Vietnamese cuisine, immerse yourself in"},
+    {s: 186.73, e: 189.01, t: "a new culture, and have a great time."},
+    {s: 189.01, e: 192.73, t: "You can find many authentic shops, souvenir stores, excellent"},
+    {s: 192.73, e: 195.53, t: "eateries and restaurants. And for those looking for"},
+    {s: 195.53, e: 198.97, t: "extraordinary photo locations, many beautiful murals are waiting"},
+    {s: 198.97, e: 203.02, t: "here, Public Garden and Boston Common."},
+    {s: 203.02, e: 206.86, t: "The two green zones comprise almost a single space, separated only"},
+    {s: 206.86, e: 208.45, t: "by Charles St."},
+    {s: 208.45, e: 211.57, t: "They create the northern edge of Boston's Emerald Necklace,"},
+    {s: 211.57, e: 215.45, t: "a long chain of city parks. Horace Grey, a philanthropist,"},
+    {s: 215.45, e: 219.85, t: "founded the Public Garden in 1837, the first Botanical Garden in the"},
+    {s: 219.85, e: 222.49, t: "country. The Swan Boats, which you can"},
+    {s: 222.49, e: 226.01, t: "ride on the large pond, is its most popular attraction."},
+    {s: 226.01, e: 230.17, t: "The attraction hasn't stopped operating since 1877."},
+    {s: 230.17, e: 234.65, t: "Boston Common, opened in 1634, is the oldest City Park in the"},
+    {s: 234.65, e: 237.53, t: "United States. Every summer, the Commonwealth"},
+    {s: 237.53, e: 238.69, t: "Shakespeare Company."},
+    {s: 238.69, e: 241.93, t: "Free performances of Shakespeare's works here."},
+    {s: 241.93, e: 246.93, t: "Christopher Columbus Waterfront Park The park was laid out in 1976"},
+    {s: 246.93, e: 249.97, t: "to commemorate the bicentennial of the United States."},
+    {s: 249.97, e: 252.37, t: "It offers a wonderful view of the harbor."},
+    {s: 252.37, e: 255.61, t: "The park's centerpiece is a long colonnade with lattice vaults"},
+    {s: 255.61, e: 258.33, t: "covered with vines and wisteria sprouts."},
+    {s: 258.33, e: 261.25, t: "There are a Rose Garden and a beautiful fountain in the park."},
+    {s: 261.25, e: 264.73, t: "It is a great place for picnics and walks."},
+    {s: 264.73, e: 269.41, t: "Rose Kennedy Greenway, a popular park in downtown Boston, combines"},
+    {s: 269.41, e: 273.21, t: "several green spaces, landscaped gardens, and squares."},
+    {s: 273.21, e: 277.33, t: "It is a favorite place for citizens to relax, stroll, and picnic."},
+    {s: 277.33, e: 280.17, t: "Its space is decorated with fountains, special lighting"},
+    {s: 280.17, e: 284.25, t: "systems, and art installations. The most famous of the latter is an"},
+    {s: 284.25, e: 286.65, t: "interactive fountain, Harbor Fog."},
+    {s: 286.65, e: 290.25, t: "In addition to the permanent ones, the park constantly hosts seasonal"},
+    {s: 290.25, e: 292.86, t: "exhibitions and art projects."},
+    {s: 292.86, e: 294.89, t: "Explore museums."},
+    {s: 294.89, e: 298.33, t: "Boston boasts a significant collection of fascinating museums"},
+    {s: 298.33, e: 301.01, t: "and galleries. The Boston Children's Museum"},
+    {s: 301.01, e: 304.37, t: "entertains younger visitors with its interactive exhibits, while"},
+    {s: 304.37, e: 307.57, t: "the Museum of Science will also captivate adults."},
+    {s: 307.57, e: 311.01, t: "There's no better place to immerse yourself in American history than"},
+    {s: 311.01, e: 314.53, t: "the Boston Tea Party Ships and Museum, which stages some of"},
+    {s: 314.53, e: 317.29, t: "the most important events in American history."},
+    {s: 317.29, e: 321.05, t: "The Museum of Fine Arts exhibition will be a treat for the eyes."},
+    {s: 321.05, e: 324.93, t: "Choose one or visit them all, it's up to you."},
+    {s: 325.13, e: 329.57, t: "Boston Harbor At the entrance to the harbor, 2 lighthouses greet"},
+    {s: 329.57, e: 333.45, t: "ships. Boston Light, erected in 1718,"},
+    {s: 333.45, e: 337.29, t: "is the oldest in the country and is a National Historic Landmark."},
+    {s: 337.29, e: 340.61, t: "The Graves Light is considered the highest in the country."},
+    {s: 340.61, e: 344.85, t: "Boston Harbor Islands National Recreation Area includes 34 islands"},
+    {s: 344.85, e: 348.25, t: "and peninsulas. It offers visitors many activities,"},
+    {s: 348.25, e: 352.37, t: "tours of historic forts, picnics with stunning Bay views, overnight"},
+    {s: 352.37, e: 354.65, t: "camping, hiking, bird watching."},
+    {s: 354.65, e: 358.53, t: "And exciting cruises Harvard University."},
+    {s: 358.53, e: 362.57, t: "It was founded on September 8th, 1636 and is not only"},
+    {s: 362.57, e: 366.09, t: "America's oldest university, but also its cultural and"},
+    {s: 366.09, e: 369.65, t: "architectural treasure. The main campus is located in"},
+    {s: 369.65, e: 372.25, t: "Harvard Yard on the Cambridge campus."},
+    {s: 372.25, e: 376.13, t: "Harvard Park is nearby with libraries, dormitories, a church"},
+    {s: 376.13, e: 379.69, t: "and administrative offices. You can download a map and spend"},
+    {s: 379.69, e: 383.21, t: "hours wandering the park's paths, looking at the old red brick"},
+    {s: 383.21, e: 384.73, t: "buildings with carved arches."},
+    {s: 384.73, e: 389.05, t: "And tall, narrow windows. Or you can go to free tours by foot"},
+    {s: 389.05, e: 392.37, t: "and get a free tour with an erudite guide."},
+    {s: 392.57, e: 397.09, t: "Newbury Street This place is among the best things to do in Boston for"},
+    {s: 397.09, e: 401.01, t: "gourmets and shopping enthusiasts. Along this 1.5"},
+    {s: 401.01, e: 404.05, t: "kilometer long St. there are beautiful 19th century"},
+    {s: 404.05, e: 406.57, t: "buildings. They house hundreds of stores and"},
+    {s: 406.57, e: 409.17, t: "restaurants. You can find many trendy coffee"},
+    {s: 409.17, e: 411.89, t: "shops and bohemian boutiques at its beginning and in."},
+    {s: 411.89, e: 415.45, t: "The chicest and most expensive establishments are located closer"},
+    {s: 415.45, e: 418.65, t: "to the public garden. Beautiful storefronts, plenty"},
+    {s: 418.65, e: 422.65, t: "of greenery and decor make Newbury Street a pleasant place to."},
+    {s: 422.65, e: 425.61, t: "And get to know the local community."},
+    {s: 425.61, e: 430.17, t: "Union Oyster House What to do in Boston for real gourmets?"},
+    {s: 430.17, e: 433.01, t: "They should visit the Union Oyster House, of course."},
+    {s: 433.01, e: 436.89, t: "It is America's oldest continuously operating restaurant and a National"},
+    {s: 436.89, e: 439.65, t: "Historic Landmark. The establishment has been"},
+    {s: 439.65, e: 444.25, t: "operating since 1826 in a beautiful Georgian house, the oldest"},
+    {s: 444.25, e: 447.73, t: "brick building in Boston. The owners carefully preserve both"},
+    {s: 447.73, e: 451.78, t: "the authentic interior and the recipe for classic dishes."},
+    {s: 451.78, e: 453.61, t: "Union Oyster House is where raw."},
+    {s: 453.61, e: 458.01, t: "Oysters became fashionable. Boston resembles typical European"},
+    {s: 458.01, e: 461.25, t: "cities rather than any traditional American style."},
+    {s: 461.25, e: 464.13, t: "It will guide you through its most prominent sites, treat you"},
+    {s: 464.13, e: 467.33, t: "to delicious seafood, and make you want to return."},
+    {s: 467.33, e: 471.13, t: "Don't look for a perfect occasion to travel, explore the world,"},
+    {s: 471.13, e: 473.41, t: "and make memories."},
+    {s: 485.81, e: 488.77, t: "Let us know in the comments which American city you would like to"},
+    {s: 488.77, e: 491.45, t: "visit. Thank you for watching and see you"},
+    {s: 491.45, e: 493.73, t: "in the next city."}
+];
+
+const iqs = [
+    {t: 68, q: "When was Quincy Market constructed?", type: "mcq", opts: ["1776-1780", "1824-1826", "1900-1905"], a: "1824-1826"},
+    {t: 115, q: "How many landmarks does the Freedom Trail connect?", type: "cloze", a: "16"},
+    {t: 153, q: "When was Beacon Hill designated a historic district?", type: "cloze", a: "1955"},
+    {t: 185, q: "What animal sits at the Chinatown gate?", type: "mcq", opts: ["A Dragon", "A Lion", "A Panda"], a: "A Lion"},
+    {t: 222, q: "The Public Garden was the country's first...?", type: "mcq", opts: ["Public Park", "Botanical Garden", "Zoo"], a: "Botanical Garden"},
+    {t: 289, q: "What is the famous interactive fountain called?", type: "mcq", opts: ["Harbor Fog", "Sea Mist", "Ocean Spray"], a: "Harbor Fog"},
+    {t: 334, q: "When was the Boston Light erected?", type: "cloze", a: "1718"},
+    {t: 364, q: "What year was Harvard University founded?", type: "cloze", a: "1636"}
+];
+
+// ================= APP LOGIC =================
+let state = { user: "", progress: 0, vocab: [], genScore: 0, intRes: [], v1Time: 0, v2Time: 0 };
+let synthesizer; // Global synthesizer instance
+const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+const azureRegion = "eastus2"; 
+
+window.onload = () => {
+    // Check for saved state
+    const saveMsg = document.getElementById('save-msg');
+    if(localStorage.getItem('bosState') && saveMsg) {
+        saveMsg.style.display = 'block';
+    }
+    renderVocab();
+    renderSpots();
+};
+
+// --- Azure Speech Function ---
+function speak(text) {
+    // 1. Cancel previous speech
+    if (synthesizer) {
+        try { synthesizer.close(); } catch(e) {}
+        synthesizer = undefined;
+    }
+    
+    // 2. Browser Fallback (Cancel native TTS too just in case)
+    window.speechSynthesis.cancel();
+
+    // 3. Initialize Azure
+    try {
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-AndrewNeural"; // Professional Male Voice
+        
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        
+        synthesizer.speakTextAsync(text, 
+            result => {
+                if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                    // console.log("Speech synthesis finished.");
+                } else {
+                    console.error("Speech synthesis canceled, " + result.errorDetails);
+                }
+                synthesizer.close();
+                synthesizer = undefined;
+            },
+            err => {
+                console.error(err);
+                synthesizer.close();
+                synthesizer = undefined;
+            });
+    } catch (e) {
+        console.error("Azure SDK Error: ", e);
+        // Fallback to browser TTS if Azure fails (e.g. offline)
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        window.speechSynthesis.speak(u);
+    }
+}
+
+function startNew() {
+    const u = document.getElementById('username').value.trim();
+    if(u) { state.user = u; nextStage('view-vocab'); }
+}
+
+function resumeGame() {
+    state = JSON.parse(localStorage.getItem('bosState'));
+    let t='view-login';
+    if(state.progress>=1) t='view-vocab';
+    if(state.progress>=2) t='view-intro';
+    if(state.progress>=3) t='view-vid1';
+    if(state.progress>=4) t='view-vid2';
+    if(state.progress>=5) t='view-report';
+    nextStage(t);
+}
+
+function nextStage(id) {
+    document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    
+    if(id==='view-vocab') state.progress=1;
+    if(id==='view-intro') state.progress=2;
+    if(id==='view-vid1') { state.progress=3; initVid1(); }
+    if(id==='view-vid2') { state.progress=4; initVid2(); }
+    if(id==='view-report') { state.progress=5; renderReport(); }
+    
+    // Global Progress Bar
+    const map = {'view-vocab':20, 'view-intro':40, 'view-vid1':60, 'view-vid2':80, 'view-report':100};
+    document.getElementById('global-bar').style.width = map[id]+'%';
+    localStorage.setItem('bosState', JSON.stringify(state));
+}
+
+// Vocab Logic
+function renderVocab() {
+    const c = document.getElementById('vocab-container');
+    if(!c) return;
+    c.innerHTML = "";
+    entities.forEach(d => createCard(d, 'entity', c));
+    words.forEach(d => createCard(d, 'word', c));
+}
+
+function createCard(d, type, container) {
+    const div = document.createElement('div');
+    div.className = `vocab-card ${type}`;
+    div.innerHTML = `
+        <div class="word-header">
+            <span class="word-title" onclick="event.stopPropagation(); speak('${d.w}')">${d.w} <i class="fas fa-volume-up"></i></span>
+            <span class="word-cn">${d.cn}</span>
+        </div>
+        <div class="word-def">${d.def}</div>
+        <div class="sent-box" onclick="toggleSent(this)">
+            <div class="sent-content">
+                <span class="click-hint">Tap to Hide/Show</span>
+                <div class="sent-en">${d.ex}</div>
+                <span class="sent-cn">${d.exCn}</span>
+            </div>
+            <button class="play-btn" onclick="event.stopPropagation(); speak('${d.ex.replace(/'/g, "\\'")}')">
+                <i class="fas fa-volume-up"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(div);
+}
+
+function toggleSent(el) {
+    const enEl = el.querySelector('.sent-en');
+    const hint = el.querySelector('.click-hint');
+    if (enEl.classList.contains('revealed')) {
+        enEl.classList.remove('revealed');
+        hint.style.display = 'block';
+    } else {
+        enEl.classList.add('revealed');
+        hint.style.display = 'none';
+    }
+}
+
+// Spots Logic
+function renderSpots() {
+    const c = document.getElementById('spots-container');
+    if(!c) return;
+    c.innerHTML = "";
+    spotsData.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'spot-card';
+        div.innerHTML = `
+            <img src="${s.img}" class="spot-img" onerror="this.src='https://placehold.co/220x140/0f1f38/c5a059?text=Boston+Landmark'">
+            <div class="spot-info">
+                <div class="spot-title">${s.t}</div>
+                <div class="spot-desc" onclick="speak('${s.desc.replace(/'/g, "\\'")}')">
+                    ${s.desc} <span style="font-size:0.9rem; color:var(--gold);">🔊</span>
+                </div>
+            </div>
+        `;
+        c.appendChild(div);
+    });
+}
+
+// Video 1 Control Logic
+const v1 = document.getElementById('vid1');
+const seekSlider = document.getElementById('vid1-seek');
+const timeDisplay = document.getElementById('vid1-time');
+let isSeeking = false;
+
+function initVid1() { document.getElementById('pre-watch-overlay').style.display='flex'; v1.currentTime=0; }
+function startVid1() { document.getElementById('pre-watch-overlay').style.display='none'; v1.play(); }
+function togglePlay(id) { const v=document.getElementById(id); v.paused?v.play():v.pause(); }
+
+// Slider Update
+v1.ontimeupdate = () => {
+    state.v1Time = v1.currentTime;
+    if(!isSeeking) {
+        seekSlider.max = v1.duration || 100;
+        seekSlider.value = v1.currentTime;
+    }
+    timeDisplay.innerText = fmtTime(v1.currentTime);
+    
+    // Subtitles
+    const sub = subs.find(s => v1.currentTime >= s.s && v1.currentTime <= s.e);
+    const el = document.getElementById('sub1');
+    if(sub) { el.innerText = sub.t; el.style.opacity = 1; }
+    else { el.style.opacity = 0; }
+};
+
+seekSlider.oninput = () => { isSeeking = true; };
+seekSlider.onchange = () => { v1.currentTime = seekSlider.value; isSeeking = false; };
+
+// Keyboard Seek
+document.addEventListener('keydown', (e) => {
+    if (document.getElementById('view-vid1').classList.contains('active')) {
+        if (e.key === 'ArrowRight') v1.currentTime += 2;
+        if (e.key === 'ArrowLeft') v1.currentTime -= 2;
+    }
+});
+
+v1.onended = () => { document.getElementById('post-watch-overlay').style.display='flex'; document.exitFullscreen(); };
+
+function checkGenQuiz() {
+    const a1=document.getElementById('gq1').value, a2=document.getElementById('gq2').value;
+    if(!a1||!a2) return alert("Please answer all.");
+    state.genScore = (a1=='B' && a2=='A') ? 100 : (a1=='B' || a2=='A' ? 50 : 0);
+    nextStage('view-vid2');
+}
+
+// Video 2 Logic
+const v2 = document.getElementById('vid2');
+let intIdx = 0;
+
+function initVid2() {
+    intIdx = state.intRes ? state.intRes.length : 0;
+    
+    if(state.v2Time && state.v2Time > 0) {
+        v2.currentTime = state.v2Time;
+        const btn = document.getElementById('start-int-btn');
+        btn.innerText = "Resume Session";
+        btn.style.display = 'inline-block';
+    } else {
+        v2.currentTime = 0;
+        document.getElementById('start-int-btn').style.display = 'inline-block';
+    }
+}
+
+function startVid2() { 
+    document.getElementById('start-int-btn').style.display='none'; 
+    v2.play(); 
+}
+
+v2.ontimeupdate = () => {
+    state.v2Time = v2.currentTime;
+    if(Math.floor(v2.currentTime) % 5 === 0) {
+        localStorage.setItem('bosState', JSON.stringify(state));
+    }
+    if(intIdx < iqs.length && v2.currentTime >= iqs[intIdx].t && v2.currentTime < iqs[intIdx].t+1.5) {
+        v2.pause();
+        localStorage.setItem('bosState', JSON.stringify(state));
+        showIntQuiz(iqs[intIdx]);
+    }
+};
+
+v2.onended = () => nextStage('view-report');
+
+function showIntQuiz(q) {
+    document.getElementById('int-quiz-overlay').style.display = 'flex';
+    document.getElementById('iq-title').innerText = `Question ${intIdx+1}`;
+    let h = `<p>${q.q}</p>`;
+    if(q.type === 'mcq') {
+        q.opts.forEach(o => h += `<label style="display:block;margin:10px 0;cursor:pointer;"><input type="radio" name="iqo" value="${o}"> ${o}</label>`);
+    } else {
+        h += `<input type="text" id="cloze-ans" placeholder="Type answer..." style="width:100%; padding:10px; font-size:1.1rem; background:#000; border:1px solid #fff;">`;
+    }
+    document.getElementById('iq-body').innerHTML = h;
+}
+
+function submitIntAnswer() {
+    const q = iqs[intIdx];
+    let ans = q.type==='mcq' ? (document.querySelector('input[name="iqo"]:checked')?.value||"") : document.getElementById('cloze-ans').value;
+    if(!ans) return alert("Answer required.");
+    
+    const ok = ans.toLowerCase().includes(q.a.toLowerCase());
+    state.intRes.push({q:q.q, u:ans, c:q.a, ok:ok});
+    
+    document.getElementById('int-quiz-overlay').style.display='none';
+    intIdx++;
+    localStorage.setItem('bosState', JSON.stringify(state));
+    v2.play();
+}
+
+function replaySegment() {
+    document.getElementById('int-quiz-overlay').style.display='none';
+    v2.currentTime = Math.max(0, iqs[intIdx].t - 15);
+    v2.play();
+}
+
+// Report
+function renderReport() {
+    document.getElementById('rep-name').innerText = state.user;
+    const intOk = state.intRes.filter(r=>r.ok).length;
+    const final = Math.round((state.genScore * 0.3) + ((intOk/8)*70));
+    document.getElementById('rep-score').innerText = final + "%";
+    
+    let h = "";
+    state.intRes.forEach(r => {
+        h += `<tr style="border-bottom:1px solid #ccc;">
+            <td style="padding:10px;">${r.q}<br><small style="color:#666">Ans: ${r.c}</small></td>
+            <td style="padding:10px;">${r.u}</td>
+            <td style="padding:10px; font-size:1.2rem;">${r.ok?'✅':'❌'}</td>
+        </tr>`;
+    });
+    document.getElementById('rep-tbody').innerHTML = h;
+}
+
+function exportPDF() {
+    html2pdf().from(document.getElementById('report-print-area')).save(`Boston_${state.user}.pdf`);
+}
+
+function fmtTime(s) {
+    const m = Math.floor(s/60);
+    const sec = Math.floor(s%60);
+    return `${m}:${sec<10?'0':''}${sec}`;
+}
+
+function restartAll() {
+    if(confirm("Delete all progress?")) {
+        localStorage.removeItem('bosState');
+        location.reload();
+    }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dream Lab: Neural Link (Pro Content Fix)</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    
+    <style>
+        :root {
+            /* 赛博配色 - 增加对比度 */
+            --bg-deep: #020617;
+            --panel-bg: rgba(15, 23, 42, 0.95);
+            --neon-cyan: #22d3ee;
+            --neon-pink: #fb7185;
+            --neon-green: #34d399;
+            --neon-amber: #fbbf24;
+            
+            /* 字体 */
+            --font-tech: 'Orbitron', sans-serif;
+            --font-body: 'Rajdhani', sans-serif;
+            --font-cn: 'Noto Sans SC', sans-serif;
+            
+            --glow-text: 0 0 10px rgba(34, 211, 238, 0.5);
+            --glow-border: 0 0 15px rgba(34, 211, 238, 0.3);
+        }
+
+        body {
+            margin: 0; 
+            font-family: var(--font-body);
+            background-color: var(--bg-deep);
+            background-image: 
+                linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            overflow: hidden; /* PC端防滚动 */
+        }
+
+        /* --- Home 按钮 --- */
+        .home-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 3000;
+            background: rgba(15, 23, 42, 0.8); color: var(--neon-cyan);
+            padding: 10px 20px; border-radius: 4px; text-decoration: none;
+            font-family: var(--font-tech); font-weight: 700; letter-spacing: 2px;
+            border: 1px solid var(--neon-cyan); box-shadow: 0 0 15px rgba(34, 211, 238, 0.2);
+            backdrop-filter: blur(10px); transition: 0.3s; display: flex; align-items: center; gap: 10px;
+            text-transform: uppercase; font-size: 0.9rem;
+        }
+        .home-btn:hover { background: var(--neon-cyan); color: #020617; box-shadow: 0 0 30px var(--neon-cyan); }
+
+        /* --- 主终端容器 --- */
+        #terminal {
+            width: 95vw; 
+            max-width: 1600px; 
+            height: 90vh;
+            background: var(--panel-bg);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--neon-cyan);
+            border-bottom: 4px solid var(--neon-cyan);
+            border-radius: 12px;
+            box-shadow: var(--glow-border), inset 0 0 100px rgba(0,0,0,0.8);
+            position: relative; 
+            display: flex; 
+            flex-direction: column;
+            overflow: hidden; 
+            backdrop-filter: blur(20px);
+        }
+
+        /* --- HUD 顶部 --- */
+        .hud-top {
+            height: 70px; flex-shrink: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between; 
+            padding: 0 30px;
+            background: rgba(0,0,0,0.3);
+        }
+        .logo { 
+            font-family: var(--font-tech); 
+            font-size: 1.8rem; color: var(--neon-cyan); 
+            letter-spacing: 2px; text-shadow: var(--glow-text); font-weight: 900;
+            display: flex; align-items: center; gap: 10px;
+        }
+        
+        .progress-track { display: flex; gap: 6px; }
+        .pip { 
+            width: 30px; height: 6px; background: #334155; 
+            transform: skewX(-20deg); cursor: pointer; transition: 0.3s; 
+        }
+        .pip:hover { background: #475569; }
+        .pip.active { background: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan); }
+
+        /* --- 视图区域 --- */
+        .viewport { flex: 1; position: relative; overflow: hidden; }
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column; align-items: center; 
+            padding: 40px; box-sizing: border-box; overflow-y: auto; overflow-x: hidden;
+            opacity: 0; 
+        }
+        .screen.active { 
+            display: flex; 
+            animation: holoFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+        }
+        @keyframes holoFadeIn {
+            0% { opacity: 0; transform: scale(1.02); filter: blur(5px); }
+            100% { opacity: 1; transform: scale(1); filter: blur(0); }
+        }
+
+        /* 滚动条 */
+        .screen::-webkit-scrollbar { width: 8px; }
+        .screen::-webkit-scrollbar-thumb { background: var(--neon-cyan); }
+        .screen::-webkit-scrollbar-track { background: #0f172a; }
+
+        /* --- 组件：科技卡片 --- */
+        .tech-card {
+            background: rgba(30, 41, 59, 0.4); 
+            border: 1px solid rgba(255,255,255,0.1);
+            border-left: 4px solid var(--neon-cyan); 
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 20px; 
+            width: 100%; 
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+        .tech-card:hover { 
+            background: rgba(30, 41, 59, 0.7); 
+            box-shadow: 0 0 30px rgba(34, 211, 238, 0.15);
+            border-color: var(--neon-cyan);
+        }
+        .label-tag {
+            font-family: var(--font-tech); font-size: 1rem; color: var(--neon-pink);
+            text-transform: uppercase; margin-bottom: 15px; display: block; letter-spacing: 1px;
+            border-bottom: 1px solid rgba(244, 63, 94, 0.3); padding-bottom: 5px; width: fit-content;
+        }
+
+        /* --- 按钮 --- */
+        .tech-btn {
+            background: rgba(34, 211, 238, 0.1); 
+            border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 12px 30px; font-family: var(--font-tech); font-size: 1.1rem; font-weight: 700;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 2px; transition: 0.2s;
+            position: relative; overflow: hidden; margin-top: 10px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .tech-btn:hover { background: var(--neon-cyan); color: #020617; box-shadow: 0 0 25px var(--neon-cyan); transform: translateY(-2px); }
+        .tech-btn:active { transform: scale(0.95); }
+        
+        .btn-pink { border-color: var(--neon-pink); color: var(--neon-pink); background: rgba(244, 63, 94, 0.1); }
+        .btn-pink:hover { background: var(--neon-pink); color: white; box-shadow: 0 0 25px var(--neon-pink); }
+
+        /* --- 句子行 & 显隐控制 --- */
+        .sentence-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+        .text-col { flex: 1; }
+        .ctrl-col { display: flex; gap: 15px; align-items: center; min-width: 100px; justify-content: flex-end; }
+
+        .cipher-text {
+            color: white; font-size: 1.5rem; font-weight: 600;
+            transition: 0.3s; line-height: 1.4;
+        }
+        .cipher-text.hidden { filter: blur(8px); opacity: 0.4; user-select: none; }
+        .cn-trans { color: #94a3b8; font-size: 1.1rem; margin-top: 8px; font-family: var(--font-cn); }
+
+        /* 图标按钮 */
+        .icon-btn { 
+            cursor: pointer; font-size: 1.2rem; transition: 0.2s; 
+            width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2);
+        }
+        .tts-btn { color: var(--neon-amber); }
+        .tts-btn:hover { background: var(--neon-amber); color: black; box-shadow: 0 0 20px var(--neon-amber); transform: scale(1.1); }
+        .eye-btn { color: var(--neon-cyan); }
+        .eye-btn:hover { background: var(--neon-cyan); color: black; box-shadow: 0 0 20px var(--neon-cyan); transform: scale(1.1); }
+        
+        /* 播放时的动画 */
+        .tts-btn.playing { animation: pulse-amber 1s infinite; background: var(--neon-amber); color: black; }
+        @keyframes pulse-amber { 0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); } 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); } }
+
+        /* --- Page 1: Fusion --- */
+        .fusion-chamber { 
+            display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 30px; 
+            font-family: var(--font-tech); font-size: 3rem; min-height: 150px;
+        }
+        .atom { 
+            padding: 20px 40px; border: 3px solid var(--neon-cyan); color: white; border-radius: 12px;
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.3); background: #020617; position: relative;
+            z-index: 2; transition: 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        .atom-suffix { border-color: var(--neon-pink); box-shadow: 0 0 20px rgba(244, 63, 94, 0.3); }
+        
+        .overload-flash {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 0; height: 0; border-radius: 50%; background: white; opacity: 0; pointer-events: none; z-index: 10;
+        }
+        @keyframes flashBang {
+            0% { width: 0; height: 0; opacity: 1; }
+            50% { width: 200vw; height: 200vw; opacity: 1; }
+            100% { width: 200vw; height: 200vw; opacity: 0; }
+        }
+
+        /* 视频容器 */
+        .vid-container-portrait {
+            height: 400px; aspect-ratio: 464/688; margin: 20px auto;
+            border: 2px solid var(--neon-cyan); border-radius: 8px;
+            overflow: hidden; background: black; box-shadow: 0 0 30px rgba(34, 211, 238, 0.2);
+        }
+        .vid-container-landscape {
+            width: 100%; aspect-ratio: 16/9;
+            border: 2px solid #334155; border-radius: 8px; background: black;
+        }
+        video { width: 100%; height: 100%; object-fit: contain; }
+
+        /* 分栏布局 */
+        .split-view { display: flex; width: 100%; height: 100%; gap: 30px; }
+        .col-half { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        
+        .video-controls { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; justify-content: center; }
+        .target-sentence-box {
+            margin-top: 20px; background: rgba(0,0,0,0.6); padding: 20px; border-radius: 8px;
+            border: 1px dashed var(--neon-cyan); text-align: center; display: none; animation: holoFadeIn 0.5s;
+        }
+
+        /* --- Page 3/4: Mapping --- */
+        .mapping-container { width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
+        .mapping-row { display: flex; gap: 10px; margin: 20px 0; justify-content: center; width: 100%; flex-wrap: wrap; }
+        .map-box {
+            width: 70px; height: 90px; 
+            border: 2px solid #334155; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 2.2rem; color: var(--neon-cyan); font-weight: bold; cursor: pointer; 
+            transition: 0.2s; background: rgba(0,0,0,0.3); user-select: none;
+        }
+        .map-box:hover { border-color: var(--neon-cyan); box-shadow: 0 0 20px var(--neon-cyan); transform: translateY(-3px); }
+        .map-box.revealed { background: rgba(34, 211, 238, 0.15); border-color: var(--neon-cyan); }
+        .map-box span { visibility: hidden; } 
+        .map-box.revealed span { visibility: visible; }
+        .map-box.long { width: 110px; border-color: var(--neon-pink); color: var(--neon-pink); }
+        .map-box.long.revealed { background: rgba(244, 63, 94, 0.15); }
+
+        .flex-align-container { display: flex; width: 100%; gap: 30px; align-items: stretch; }
+        .flex-col {
+            flex: 1; display: flex; flex-direction: column;
+            background: rgba(255,255,255,0.02); padding: 25px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* --- Page 6: Profiles --- */
+        .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; }
+        .profile-unit { 
+            background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; 
+            display: flex; align-items: center; gap: 20px; border: 1px solid transparent; transition: 0.3s;
+        }
+        .profile-unit:hover { border-color: var(--neon-cyan); background: rgba(255,255,255,0.05); }
+        .p-img-frame { 
+            width: 120px; height: 120px; border-radius: 50%; overflow: hidden; 
+            border: 2px solid #334155; flex-shrink: 0; box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+        .p-img { width: 100%; height: 100%; object-fit: cover; filter: blur(25px); transition: 1s; cursor: pointer; }
+        .p-img.clear { filter: blur(0); }
+        .p-info h4 { margin: 0; font-family: var(--font-tech); font-size: 1.4rem; color: var(--neon-green); opacity: 0; transition: 0.5s; }
+        .p-info p { margin: 8px 0 0; font-size: 1rem; color: #cbd5e1; line-height: 1.4; }
+
+        /* --- Page 7: Quiz --- */
+        .quiz-card { background: rgba(255,255,255,0.05); padding: 20px; margin-bottom: 15px; border-radius: 8px; font-size: 1.2rem; }
+        .q-input { 
+            background: transparent; border: none; border-bottom: 2px solid var(--neon-cyan); 
+            color: var(--neon-pink); font-size: 1.2rem; text-align: center; width: 140px; font-weight: bold;
+            font-family: inherit;
+        }
+        .q-input:focus { outline: none; border-bottom-color: white; }
+
+        /* --- 底部导航 --- */
+        .nav-bot { 
+            height: 80px; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; padding: 0 40px; gap: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
+        }
+        .nav-btn {
+            width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.05);
+            border: 1px solid var(--neon-cyan); color: white; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; transition: 0.3s;
+            font-size: 1.5rem;
+        }
+        .nav-btn:hover { background: var(--neon-cyan); color: black; box-shadow: 0 0 30px var(--neon-cyan); transform: scale(1.1); }
+
+        /* === 移动端适配 (Critical Fix) === */
+        @media (max-width: 1024px) {
+            body { overflow: auto; align-items: flex-start; }
+            #terminal { width: 100vw; height: auto; min-height: 100vh; border-radius: 0; border: none; overflow: visible; }
+            .hud-top { padding: 0 15px; position: sticky; top: 0; z-index: 1000; background: #020617; }
+            .logo { font-size: 1.2rem; }
+            .nav-bot { padding: 15px; justify-content: center; position: fixed; bottom: 0; left: 0; right: 0; background: #020617; border-top: 1px solid #333; z-index: 1000; }
+            
+            .screen { padding: 20px 15px; padding-bottom: 100px; height: auto; overflow: visible; }
+            .viewport { overflow: visible; }
+            
+            /* 强制单列布局 */
+            .split-view, .flex-align-container, .split-35-65 { flex-direction: column; gap: 30px; height: auto; }
+            .col-half, .flex-col, .col-small, .col-large { width: 100%; flex: none; overflow: visible; }
+            
+            .profile-grid { grid-template-columns: 1fr; }
+            .fusion-chamber { font-size: 2rem; flex-wrap: wrap; }
+            .atom { padding: 10px 20px; }
+            
+            .tech-btn { width: 100%; justify-content: center; }
+            .sentence-row { flex-direction: column; gap: 10px; align-items: stretch; }
+            .ctrl-col { flex-direction: row; justify-content: flex-end; width: 100%; }
+            
+            .home-btn { top: 15px; padding: 5px 12px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<a href="../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
+
+<div id="terminal">
+    <div class="overload-flash" id="flash-effect"></div>
+
+    <div class="hud-top">
+        <div class="logo"><i class="fas fa-dna"></i> DREAM LAB <span style="font-size:0.8rem; margin-left:10px; opacity:0.7; color:white;">ULTIMATE</span></div>
+        <div class="progress-track" id="nav-track"></div>
+    </div>
+
+    <div class="viewport">
+        
+        <div class="screen active" id="p1">
+            <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%;">
+                <div class="fusion-chamber">
+                    <div class="atom" id="atom-1">Image</div>
+                    <div style="color:#64748b;">+</div>
+                    <div class="atom atom-suffix" id="atom-2">-ine</div>
+                    <div id="final-word" style="display:none; color:var(--neon-green); text-shadow:0 0 40px var(--neon-green); font-size: 4rem;">IMAGINE</div>
+                </div>
+                <button class="tech-btn" onclick="runFusion()" id="fuse-btn"><i class="fas fa-bolt"></i> Initialize Fusion Process</button>
+
+                <div id="p1-content" style="width:100%; display:none; flex-direction:column; align-items:center; margin-top:30px;">
+                    
+                    <div class="tech-card" style="text-align:center; border-left-color:var(--neon-green); max-width:800px;">
+                        <p style="font-size:1.5rem; color:#cbd5e1;">Definition: To form a picture or idea of something in your mind that is not real or not present.</p>
+                        <button class="tech-btn" style="margin: 0 auto;" onclick="speak('To form a picture or idea of something in your mind that is not real or not present.', this)"><i class="fas fa-volume-up"></i> Listen</button>
+                    </div>
+
+                    <div class="vid-container-portrait">
+                        <video id="vid-imagine" src="vid/imagine.mp4" playsinline controls></video>
+                    </div>
+
+                    <div class="tech-card" style="text-align:center; max-width:800px;">
+                        <h3 style="color:var(--neon-cyan); margin-top:0;">Analysis: What is she imagining?</h3>
+                        <div id="ans-1" style="display:none; animation:holoFadeIn 0.5s;">
+                            <p style="font-size:1.5rem; font-weight:bold; color:white;">She is imagining life in the future.</p>
+                            <p style="color:#94a3b8; font-style:italic;">(Rephrase: She is picturing a futuristic world in her mind.)</p>
+                            <button class="icon-btn tts-btn" style="margin: 10px auto;" onclick="speak('She is imagining life in the future.', this)"><i class="fas fa-volume-up"></i></button>
+                        </div>
+                        <button class="tech-btn btn-pink" onclick="document.getElementById('ans-1').style.display='block'; this.style.display='none'">Decrypt Answer</button>
+                    </div>
+
+                    <div style="width:100%; max-width:1000px; margin-top:30px;">
+                        <h3 style="color:white; font-family:var(--font-tech); border-bottom:2px solid #334155; padding-bottom:10px; margin-bottom:20px;">Contextual Usage (Level B2)</h3>
+                        
+                        <div class="tech-card">
+                            <span class="label-tag">1. Imagine somebody doing something</span>
+                            <div class="sentence-row">
+                                <div class="text-col">
+                                    <div class="cipher-text hidden" id="ex1-en">Can you <span style="color:var(--neon-cyan)">imagine him becoming</span> an astronaut?</div>
+                                    <div class="cn-trans">你能想象他成为一名宇航员吗？</div>
+                                </div>
+                                <div class="ctrl-col">
+                                    <div class="icon-btn tts-btn" onclick="speak('Can you imagine him becoming an astronaut?', this)"><i class="fas fa-volume-up"></i></div>
+                                    <div class="icon-btn eye-btn" onclick="toggleText('ex1-en')"><i class="fas fa-eye"></i></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tech-card">
+                            <span class="label-tag">2. Imagine that</span>
+                            <div class="sentence-row">
+                                <div class="text-col">
+                                    <div class="cipher-text hidden" id="ex2-en">Scientists <span style="color:var(--neon-cyan)">imagine that</span> sea levels will rise if the ice melts.</div>
+                                    <div class="cn-trans">科学家推测如果冰川融化，海平面将上升。</div>
+                                </div>
+                                <div class="ctrl-col">
+                                    <div class="icon-btn tts-btn" onclick="speak('Scientists imagine that sea levels will rise if the ice melts.', this)"><i class="fas fa-volume-up"></i></div>
+                                    <div class="icon-btn eye-btn" onclick="toggleText('ex2-en')"><i class="fas fa-eye"></i></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tech-card">
+                            <span class="label-tag">3. Imagine doing something</span>
+                            <div class="sentence-row">
+                                <div class="text-col">
+                                    <div class="cipher-text hidden" id="ex3-en"><span style="color:var(--neon-cyan)">Imagine living</span> in a world without smartphones!</div>
+                                    <div class="cn-trans">想象一下生活在一个没有智能手机的世界里！</div>
+                                </div>
+                                <div class="ctrl-col">
+                                    <div class="icon-btn tts-btn" onclick="speak('Imagine living in a world without smartphones!', this)"><i class="fas fa-volume-up"></i></div>
+                                    <div class="icon-btn eye-btn" onclick="toggleText('ex3-en')"><i class="fas fa-eye"></i></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tech-card">
+                            <span class="label-tag">4. Imagine somebody to be</span>
+                            <div class="sentence-row">
+                                <div class="text-col">
+                                    <div class="cipher-text hidden" id="ex4-en">I <span style="color:var(--neon-cyan)">imagined high school to be</span> much harder.</div>
+                                    <div class="cn-trans">我原以为高中会比现在难得多。</div>
+                                </div>
+                                <div class="ctrl-col">
+                                    <div class="icon-btn tts-btn" onclick="speak('I imagined high school to be much harder.', this)"><i class="fas fa-volume-up"></i></div>
+                                    <div class="icon-btn eye-btn" onclick="toggleText('ex4-en')"><i class="fas fa-eye"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="p2">
+            <div class="split-view">
+                <div class="col-half">
+                    <div class="vid-container-landscape">
+                        <video id="vid-player" src="vid/01.mp4" controls playsinline></video>
+                    </div>
+                    
+                    <div class="video-controls">
+                        <button class="tech-btn" onclick="playClip('01.mp4')">Clip 01</button>
+                        <button class="tech-btn" onclick="playClip('02.mp4')">Clip 02</button>
+                        <button class="tech-btn" onclick="playClip('03.mp4')">Clip 03</button>
+                    </div>
+
+                    <div style="margin-top:30px; text-align:center;">
+                        <button class="tech-btn btn-pink" onclick="document.getElementById('target-sent-box').style.display='block'; this.style.display='none'">Show Target Sentence</button>
+                        <div id="target-sent-box" class="target-sentence-box">
+                            <div style="font-size:1.4rem; font-weight:bold; color:white; margin-bottom:10px;">
+                                I can't imagine what you have been through.
+                            </div>
+                            <div style="color:#94a3b8; font-style:italic;">(Rephrase: I have no idea how hard your experience was.)</div>
+                            <div style="margin-top:10px; display:flex; justify-content:center;">
+                                <div class="icon-btn tts-btn" onclick="speak('I can\'t imagine what you have been through.', this)"><i class="fas fa-volume-up"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-half">
+                    <h3 style="font-family:var(--font-tech); color:var(--neon-green); border-bottom:2px solid var(--neon-green); padding-bottom:10px;">Context Scenarios</h3>
+                    
+                    <div class="tech-card">
+                        <span class="label-tag">Scenario A: The Lost Puppy</span>
+                        <p style="font-size:1.2rem; color:#cbd5e1; margin-bottom:15px;">
+                            Puppy Max was her family. Losing him felt like the sky falling down.
+                        </p>
+                        <div class="sentence-row">
+                            <div class="text-col">
+                                <div class="cipher-text hidden" id="sc1-en">"I know he was family. <span style="color:var(--neon-pink)">I can't imagine what you've been through.</span>"</div>
+                                <div class="cn-trans">我知道他是家人。我无法想象你经历了什么。</div>
+                            </div>
+                            <div class="ctrl-col">
+                                <div class="icon-btn tts-btn" onclick="speak('I know he was family. I can\'t imagine what you\'ve been through.', this)"><i class="fas fa-volume-up"></i></div>
+                                <div class="icon-btn eye-btn" onclick="toggleText('sc1-en')"><i class="fas fa-eye"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tech-card">
+                        <span class="label-tag">Scenario B: The Survivor</span>
+                        <p style="font-size:1.2rem; color:#cbd5e1; margin-bottom:15px;">
+                            After the earthquake destroyed his home, he stood in silence.
+                        </p>
+                        <div class="sentence-row">
+                            <div class="text-col">
+                                <div class="cipher-text hidden" id="sc2-en">"Looking at the ruins, <span style="color:var(--neon-pink)">I really can't imagine what he has been through.</span>"</div>
+                                <div class="cn-trans">看着这些废墟，我真的无法想象他经历了什么。</div>
+                            </div>
+                            <div class="ctrl-col">
+                                <div class="icon-btn tts-btn" onclick="speak('Looking at the ruins, I really can\'t imagine what he has been through.', this)"><i class="fas fa-volume-up"></i></div>
+                                <div class="icon-btn eye-btn" onclick="toggleText('sc2-en')"><i class="fas fa-eye"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="p3">
+            <div class="flex-align-container">
+                <div class="flex-col">
+                    <h2 style="font-family:var(--font-tech); color:var(--neon-cyan);">Orthographic Mapping</h2>
+                    
+                    <div class="mapping-container">
+                        <div class="mapping-row">
+                            <div class="map-box" onclick="revealMap(this, 'I')"><span>i</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'm')"><span>m</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'a')"><span>a</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'g')"><span>g</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'i')"><span>i</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'n')"><span>n</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'a')"><span>a</span></div>
+                            <div class="map-box long" onclick="revealMap(this, 'tion')"><span>tion</span></div>
+                        </div>
+                        <button class="tech-btn" onclick="speak('Imagination', this)"><i class="fas fa-volume-up"></i> Read Word</button>
+                    </div>
+                    
+                    <div class="tech-card" style="margin-top:auto;">
+                        <span class="label-tag">Definition (Noun)</span>
+                        <p style="font-size:1.5rem; line-height:1.6;">The ability to create pictures in your mind; the part of your mind that does this.</p>
+                    </div>
+                </div>
+
+                <div class="flex-col">
+                    <h2 style="font-family:var(--font-tech); color:var(--neon-amber);">Context Examples</h2>
+                    
+                    <div class="tech-card">
+                        <span class="label-tag">Example 1</span>
+                        <div class="sentence-row">
+                            <div class="text-col">
+                                <div class="cipher-text hidden" id="imgn-ex1">She was <span style="color:var(--neon-cyan)">lost in imagination</span> during math class.</div>
+                                <div class="cn-trans">她在数学课上陷入了遐想。</div>
+                            </div>
+                            <div class="ctrl-col">
+                                <div class="icon-btn tts-btn" onclick="speak('She was lost in imagination during math class.', this)"><i class="fas fa-volume-up"></i></div>
+                                <div class="icon-btn eye-btn" onclick="toggleText('imgn-ex1')"><i class="fas fa-eye"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tech-card">
+                        <span class="label-tag">Example 2</span>
+                        <div class="sentence-row">
+                            <div class="text-col">
+                                <div class="cipher-text hidden" id="imgn-ex2">Sci-fi novels <span style="color:var(--neon-cyan)">turn on your imagination</span>.</div>
+                                <div class="cn-trans">科幻小说会开启你的想象力。</div>
+                            </div>
+                            <div class="ctrl-col">
+                                <div class="icon-btn tts-btn" onclick="speak('Sci-fi novels turn on your imagination.', this)"><i class="fas fa-volume-up"></i></div>
+                                <div class="icon-btn eye-btn" onclick="toggleText('imgn-ex2')"><i class="fas fa-eye"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="p4">
+            <div class="flex-align-container">
+                <div class="flex-col" style="border-color:var(--neon-pink);">
+                    <div class="mapping-container">
+                        <div class="mapping-row">
+                            <div class="map-box" onclick="revealMap(this, 'i')"><span>i</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'm')"><span>m</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'a')"><span>a</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'g')"><span>g</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'i')"><span>i</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'n')"><span>n</span></div>
+                            <div class="map-box long" onclick="revealMap(this, 'ary')"><span>ary</span></div>
+                        </div>
+                        <button class="tech-btn btn-pink" onclick="speak('Imaginary', this)"><i class="fas fa-volume-up"></i> Read Word</button>
+                    </div>
+                    
+                    <div class="tech-card">
+                        <span class="label-tag">Definition</span>
+                        <p style="font-size:1.2rem;">Existing only in the mind; unreal.</p>
+                    </div>
+                    <div class="tech-card" style="margin-top:auto;">
+                        <span class="label-tag">Common Words (-ary)</span>
+                        <ul style="padding-left:20px; color:#cbd5e1; font-size:1.1rem; line-height:1.8;">
+                            <li onclick="speak('Legendary', this)" style="cursor:pointer; display:flex; align-items:center; gap:5px;"><i class="fas fa-play-circle"></i> Legendary (传奇的)</li>
+                            <li onclick="speak('Necessary', this)" style="cursor:pointer; display:flex; align-items:center; gap:5px;"><i class="fas fa-play-circle"></i> Necessary (必要的)</li>
+                            <li onclick="speak('Ordinary', this)" style="cursor:pointer; display:flex; align-items:center; gap:5px;"><i class="fas fa-play-circle"></i> Ordinary (普通的)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="flex-col" style="border-color:var(--neon-green);">
+                    <div class="mapping-container">
+                        <div class="mapping-row">
+                            <div class="map-box" onclick="revealMap(this, 'i')"><span>i</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'm')"><span>m</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'a')"><span>a</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'g')"><span>g</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'i')"><span>i</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'n')"><span>n</span></div>
+                            <div class="map-box" onclick="revealMap(this, 'a')"><span>a</span></div>
+                            <div class="map-box long" onclick="revealMap(this, 'tive')"><span>tive</span></div>
+                        </div>
+                        <button class="tech-btn" style="border-color:var(--neon-green); color:var(--neon-green);" onclick="speak('Imaginative', this)"><i class="fas fa-volume-up"></i> Read Word</button>
+                    </div>
+
+                    <div class="tech-card">
+                        <span class="label-tag">Definition</span>
+                        <p style="font-size:1.2rem;">Having or showing creativity.</p>
+                    </div>
+                    <div class="tech-card" style="margin-top:auto;">
+                        <span class="label-tag">Common Words (-tive)</span>
+                        <ul style="padding-left:20px; color:#cbd5e1; font-size:1.1rem; line-height:1.8;">
+                            <li onclick="speak('Creative', this)" style="cursor:pointer; display:flex; align-items:center; gap:5px;"><i class="fas fa-play-circle"></i> Creative (有创造力的)</li>
+                            <li onclick="speak('Active', this)" style="cursor:pointer; display:flex; align-items:center; gap:5px;"><i class="fas fa-play-circle"></i> Active (活跃的)</li>
+                            <li onclick="speak('Positive', this)" style="cursor:pointer; display:flex; align-items:center; gap:5px;"><i class="fas fa-play-circle"></i> Positive (积极的)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="p5">
+            <div class="split-view">
+                <div class="col-half" style="align-items:center; justify-content:center;">
+                    <img src="img/avatar_poster.jpg" style="max-height:500px; width:auto; border:4px solid white; box-shadow:0 0 30px rgba(16,185,129,0.3); border-radius:8px;" onerror="this.src='https://placehold.co/500x700/000000/FFF?text=Avatar+3+Poster'">
+                </div>
+                
+                <div class="col-half">
+                    <h2 style="font-family:var(--font-tech); font-size:2rem; margin-bottom:20px;">Context Analysis</h2>
+                    
+                    <div class="tech-card">
+                        <p style="font-size:1.4rem; margin-bottom:15px;">Q: Does the movie take place in the real world?</p>
+                        <div id="ans-5" style="display:none; animation:holoFadeIn 0.5s;">
+                            <p style="font-size:1.6rem;">No, the world of Pandora is <span id="swap-word" style="color:var(--neon-pink); font-weight:bold;">UNREAL</span>.</p>
+                            <button class="tech-btn btn-pink" onclick="swapToImaginary()">Upgrade Vocabulary</button>
+                        </div>
+                        <button class="tech-btn" id="btn-show-ans-5" onclick="document.getElementById('ans-5').style.display='block'; this.style.display='none'">Reveal Answer</button>
+                    </div>
+
+                    <div id="p5-ex" style="opacity:0; transition:1s;">
+                        <div class="tech-card">
+                            <span class="label-tag">Definition (Eng-Eng)</span>
+                            <p style="font-size:1.2rem; margin-bottom:20px;">Not real; produced by the imagination.</p>
+                            
+                            <div class="sentence-row" style="margin-bottom:20px;">
+                                <div class="text-col">
+                                    <div class="cipher-text hidden" id="av-ex1">The movie portrays an <span style="color:var(--neon-pink)">imaginary world</span> filled with exotic creatures.</div>
+                                    <div class="cn-trans">这部电影描绘了一个充满奇异生物的虚构世界。</div>
+                                </div>
+                                <div class="ctrl-col">
+                                    <div class="icon-btn tts-btn" onclick="speak('The movie portrays an imaginary world filled with exotic creatures.', this)"><i class="fas fa-volume-up"></i></div>
+                                    <div class="icon-btn eye-btn" onclick="toggleText('av-ex1')"><i class="fas fa-eye"></i></div>
+                                </div>
+                            </div>
+                            
+                            <hr style="border:0; border-top:1px dashed #334155; margin:10px 0;">
+
+                            <div class="sentence-row">
+                                <div class="text-col">
+                                    <div class="cipher-text hidden" id="av-ex2">Many lonely children have <span style="color:var(--neon-pink)">imaginary friends</span> to talk to.</div>
+                                    <div class="cn-trans">许多孤独的孩子会有假想的朋友。</div>
+                                </div>
+                                <div class="ctrl-col">
+                                    <div class="icon-btn tts-btn" onclick="speak('Many lonely children have imaginary friends to talk to.', this)"><i class="fas fa-volume-up"></i></div>
+                                    <div class="icon-btn eye-btn" onclick="toggleText('av-ex2')"><i class="fas fa-eye"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="p6">
+            <h2 style="font-family:var(--font-tech); color:var(--neon-green); text-align:center; font-size:2.2rem; margin-bottom:30px;">Imaginative Minds Database</h2>
+            
+            <div class="profile-grid">
+                <div class="profile-unit">
+                    <div class="p-img-frame">
+                        <img src="img/imaginative 01.jpg" class="p-img" onclick="revealProfile(this)" onerror="this.src='https://placehold.co/150?text=Einstein'">
+                    </div>
+                    <div class="p-info">
+                        <p>A theoretical physicist who changed how we see the universe. He famously said, "Imagination is more important than knowledge."</p>
+                        <h4>Albert Einstein</h4>
+                    </div>
+                </div>
+                <div class="profile-unit">
+                    <div class="p-img-frame">
+                        <img src="img/imaginative 02.jpg" class="p-img" onclick="revealProfile(this)" onerror="this.src='https://placehold.co/150?text=Musk'">
+                    </div>
+                    <div class="p-info">
+                        <p>A visionary entrepreneur dreaming of Mars colonization. He revolutionized the electric car industry and space travel.</p>
+                        <h4>Elon Musk</h4>
+                    </div>
+                </div>
+                <div class="profile-unit">
+                    <div class="p-img-frame">
+                        <img src="img/imaginative 03.jpg" class="p-img" onclick="revealProfile(this)" onerror="this.src='https://placehold.co/150?text=Rowling'">
+                    </div>
+                    <div class="p-info">
+                        <p>An author who conjured a magical world of wizards and muggles from a simple train ride idea.</p>
+                        <h4>J.K. Rowling</h4>
+                    </div>
+                </div>
+                <div class="profile-unit">
+                    <div class="p-img-frame">
+                        <img src="img/imaginative 04.jpg" class="p-img" onclick="revealProfile(this)" onerror="this.src='https://placehold.co/150?text=Jobs'">
+                    </div>
+                    <div class="p-info">
+                        <p>A tech pioneer who viewed technology as an art form. He changed how we interact with the world through design.</p>
+                        <h4>Steve Jobs</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:30px; display:flex; gap:20px; flex-wrap:wrap; width:100%;">
+                <div class="tech-card" style="flex:1;">
+                    <div class="sentence-row">
+                        <div class="text-col">
+                            <div class="cipher-text hidden" id="ppl-ex1">J.K. Rowling is a highly <span style="color:var(--neon-green)">imaginative writer</span>.</div>
+                            <div class="cn-trans">J.K.罗琳是一位极富想象力的作家。</div>
+                        </div>
+                        <div class="ctrl-col">
+                            <div class="icon-btn tts-btn" onclick="speak('J.K. Rowling is a highly imaginative writer.', this)"><i class="fas fa-volume-up"></i></div>
+                            <div class="icon-btn eye-btn" onclick="toggleText('ppl-ex1')"><i class="fas fa-eye"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tech-card" style="flex:1;">
+                    <div class="sentence-row">
+                        <div class="text-col">
+                            <div class="cipher-text hidden" id="ppl-ex2">Designers need to be <span style="color:var(--neon-green)">imaginative</span> to solve problems.</div>
+                            <div class="cn-trans">设计师需要有想象力来解决问题。</div>
+                        </div>
+                        <div class="ctrl-col">
+                            <div class="icon-btn tts-btn" onclick="speak('Designers need to be imaginative to solve problems.', this)"><i class="fas fa-volume-up"></i></div>
+                            <div class="icon-btn eye-btn" onclick="toggleText('ppl-ex2')"><i class="fas fa-eye"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="p7">
+            <h2 style="font-family:var(--font-tech); text-align:center; color:var(--neon-cyan); font-size:2.2rem; margin-bottom:30px;">Final Simulation Test</h2>
+            
+            <div class="flex-align-container">
+                <div class="flex-col">
+                    <h4 style="color:var(--neon-pink); font-family:var(--font-tech);">Part 1: Grammar (Imagine)</h4>
+                    <div class="quiz-card">
+                        1. Can you imagine <input type="text" class="q-input" data-ans="living"> (live) without the internet?
+                    </div>
+                    <div class="quiz-card">
+                        2. I imagine <input type="text" class="q-input" data-ans="that"> he is very busy today.
+                    </div>
+                    <div class="quiz-card">
+                        3. Imagine <input type="text" class="q-input" data-ans="winning"> (win) the first prize!
+                    </div>
+                    <div class="quiz-card">
+                        4. She imagined the test <input type="text" class="q-input" data-ans="to be"> (be) difficult.
+                    </div>
+                </div>
+                
+                <div class="flex-col">
+                    <h4 style="color:var(--neon-green); font-family:var(--font-tech);">Part 2: Word Choice</h4>
+                    <div class="quiz-card">
+                        5. The unicorn is an <input type="text" class="q-input" data-ans="imaginary"> (imaginary/imaginative) animal.
+                    </div>
+                    <div class="quiz-card">
+                        6. The child is very <input type="text" class="q-input" data-ans="imaginative">; she turns boxes into castles.
+                    </div>
+                    <div class="quiz-card">
+                        7. Reading books improves your <input type="text" class="q-input" data-ans="imagination"> (imagine/imagination).
+                    </div>
+                    <div class="quiz-card">
+                        8. The story is completely <input type="text" class="q-input" data-ans="imaginary">; it never happened.
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align:center; margin-top:30px;">
+                <button class="tech-btn" onclick="checkQuiz()">Submit Data</button>
+                <div id="quiz-result" style="margin-top:20px; font-size:2rem; font-family:var(--font-tech);"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="nav-bot">
+        <div class="nav-btn" onclick="navigate(-1)"><i class="fas fa-chevron-left"></i></div>
+        <div class="nav-btn" onclick="navigate(1)"><i class="fas fa-chevron-right"></i></div>
+    </div>
+</div>
+
+<script>
+    // --- Azure Speech Config ---
+    const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const azureRegion = "eastus2"; 
+    let synthesizer = null;
+    let activeBtn = null; // Track current playing button
+
+    function speak(text, btnElement) {
+        // 1. Stop previous audio
+        if (synthesizer) { 
+            synthesizer.close(); 
+            synthesizer = null; 
+        }
+        
+        // 2. Visual Feedback Reset
+        if(activeBtn) activeBtn.classList.remove('playing');
+        
+        // 3. New Synthesis
+        try {
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+            speechConfig.speechSynthesisVoiceName = "en-US-AriaNeural"; 
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+            
+            // Set Visual State
+            if(btnElement) {
+                activeBtn = btnElement;
+                activeBtn.classList.add('playing');
+            }
+
+            synthesizer.speakTextAsync(text, result => {
+                if(result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                    // Success
+                } else {
+                    console.error("Speech synthesis canceled, " + result.errorDetails);
+                }
+                // Cleanup Visuals
+                if(activeBtn) activeBtn.classList.remove('playing');
+                synthesizer.close();
+                synthesizer = null;
+            }, err => {
+                console.error(err);
+                if(activeBtn) activeBtn.classList.remove('playing');
+                synthesizer.close();
+                synthesizer = null;
+            });
+        } catch (e) { 
+            console.error("Azure Error", e); 
+            alert("Audio System Offline. Check Console.");
+        }
+    }
+
+    // --- Navigation Logic ---
+    let currentScreen = 1;
+    const totalScreens = 7;
+
+    window.onload = () => { initNav(); };
+
+    function initNav() {
+        const track = document.getElementById('nav-track');
+        for(let i=1; i<=totalScreens; i++) {
+            let pip = document.createElement('div');
+            pip.className = `pip ${i===1?'active':''}`;
+            pip.onclick = () => jumpTo(i);
+            track.appendChild(pip);
+        }
+    }
+
+    function navigate(dir) {
+        let next = currentScreen + dir;
+        if(next >= 1 && next <= totalScreens) jumpTo(next);
+    }
+
+    function jumpTo(page) {
+        document.getElementById(`p${currentScreen}`).classList.remove('active');
+        document.querySelectorAll('.pip')[currentScreen-1].classList.remove('active');
+        currentScreen = page;
+        document.getElementById(`p${currentScreen}`).classList.add('active');
+        document.querySelectorAll('.pip')[currentScreen-1].classList.add('active');
+    }
+
+    function toggleText(id) {
+        const el = document.getElementById(id);
+        el.classList.toggle('hidden');
+    }
+
+    // Page 1: Fusion
+    function runFusion() {
+        const btn = document.getElementById('fuse-btn');
+        const flash = document.getElementById('flash-effect');
+        const a1 = document.getElementById('atom-1');
+        const a2 = document.getElementById('atom-2');
+        
+        a1.style.transform = 'translateX(100px) rotate(20deg) scale(1.2)';
+        a2.style.transform = 'translateX(-100px) rotate(-20deg) scale(1.2)';
+        a1.style.borderColor = 'white';
+        a2.style.borderColor = 'white';
+        
+        setTimeout(() => {
+            flash.style.animation = "flashBang 0.6s ease-out";
+            a1.style.opacity = 0;
+            a2.style.opacity = 0;
+            document.querySelector('.fusion-chamber div:nth-child(2)').style.opacity=0;
+
+            setTimeout(() => {
+                document.querySelector('.fusion-chamber').innerHTML = 
+                    '<div style="font-size:5rem; color:white; text-shadow:0 0 50px var(--neon-cyan); animation: holoFadeIn 1s;">IMAGINE</div>';
+                
+                const content = document.getElementById('p1-content');
+                content.style.display = 'flex';
+                setTimeout(() => content.style.opacity = '1', 50);
+                
+                speak('Imagine');
+                btn.style.display = 'none';
+            }, 300);
+        }, 600);
+    }
+
+    // Video
+    function playClip(src) {
+        const v = document.getElementById('vid-player');
+        v.src = 'vid/' + src;
+        v.play();
+    }
+
+    // Mapping
+    function revealMap(el, text) {
+        if(!el.classList.contains('revealed')) {
+            el.classList.add('revealed');
+            speak(text);
+        } else {
+            speak(text);
+        }
+    }
+
+    // Swap
+    function swapToImaginary() {
+        const el = document.getElementById('swap-word');
+        el.style.opacity = 0;
+        setTimeout(() => {
+            el.innerText = "IMAGINARY";
+            el.style.color = "var(--neon-cyan)";
+            el.style.opacity = 1;
+            speak('Imaginary');
+            
+            const exSection = document.getElementById('p5-ex');
+            exSection.style.opacity = 1;
+        }, 300);
+    }
+
+    // Profiles
+    function revealProfile(img) {
+        img.classList.add('clear');
+        img.parentElement.style.borderColor = 'var(--neon-green)';
+        const info = img.parentElement.nextElementSibling;
+        info.querySelector('h4').style.opacity = '1';
+        speak('Revealed');
+    }
+
+    // Quiz
+    function checkQuiz() {
+        const inputs = document.querySelectorAll('.q-input');
+        let score = 0;
+        inputs.forEach(inp => {
+            if(inp.value.toLowerCase().trim() === inp.dataset.ans.toLowerCase()) {
+                inp.style.borderBottomColor = 'var(--neon-green)';
+                inp.style.color = 'var(--neon-green)';
+                score++;
+            } else {
+                inp.style.borderBottomColor = 'red';
+            }
+        });
+        const res = document.getElementById('quiz-result');
+        res.innerText = `SYSTEM SCORE: ${score} / ${inputs.length}`;
+        res.style.color = score === inputs.length ? 'var(--neon-green)' : 'var(--neon-pink)';
+    }
+</script>
+</body>
+</html>

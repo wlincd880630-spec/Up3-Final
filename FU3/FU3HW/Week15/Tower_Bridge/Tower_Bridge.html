@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Tower Bridge: Ultimate Master Class</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --gold: #d4af37;
+            --gold-dim: #8a702a;
+            --dark-bg: #0c0c0c;
+            --card-bg: #161616;
+            --text-main: #f0f0f0;
+            --text-muted: #a0a0a0;
+            --accent-red: #c0392b;
+            --glass: rgba(20, 20, 20, 0.95);
+            --border-glow: 0 0 15px rgba(212, 175, 55, 0.2);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: var(--dark-bg);
+            font-family: 'Lato', sans-serif;
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        h1, h2, h3, .title-font { font-family: 'Cinzel', serif; letter-spacing: 1px; }
+        .serif-font { font-family: 'Playfair Display', serif; }
+
+        /* === Home Button === */
+        .home-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 2000;
+            background: rgba(0,0,0,0.6); color: var(--gold);
+            padding: 8px 18px; border-radius: 4px; text-decoration: none;
+            font-family: 'Cinzel', serif; font-weight: 700; border: 1px solid var(--gold);
+            backdrop-filter: blur(5px); transition: 0.3s; display: flex; align-items: center; gap: 8px;
+            font-size: 0.9rem; text-transform: uppercase;
+        }
+        .home-btn:hover { background: var(--gold); color: #000; box-shadow: var(--border-glow); }
+
+        /* === App Layout === */
+        #app {
+            width: 100%; height: 100%; position: relative;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+        }
+
+        .view-section {
+            position: absolute; inset: 0;
+            display: none; flex-direction: column;
+            opacity: 0; transition: opacity 0.5s ease;
+            padding: 80px 20px 40px; 
+            overflow-y: auto; overflow-x: hidden;
+        }
+        .view-section.active { display: flex; opacity: 1; z-index: 10; }
+
+        /* === Decorative Border === */
+        .frame-border {
+            position: fixed; inset: 10px; pointer-events: none; z-index: 900;
+            border: 2px solid var(--gold-dim); opacity: 0.5;
+        }
+        .corner-dec {
+            position: fixed; width: 40px; height: 40px; border: 3px solid var(--gold);
+            z-index: 901; pointer-events: none; transition: 0.5s;
+        }
+        .tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+        .tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+        .bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+        .br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+        /* === Buttons === */
+        .btn-retro {
+            background: linear-gradient(135deg, #222, #111);
+            border: 1px solid var(--gold); color: var(--gold);
+            padding: 12px 25px; font-family: 'Cinzel', serif; font-weight: 700;
+            font-size: 1rem; cursor: pointer; transition: 0.3s;
+            text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); border-radius: 2px;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-retro:hover { background: var(--gold); color: #000; box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); }
+        .btn-retro:active { transform: translateY(2px); }
+        
+        .btn-small { padding: 6px 15px; font-size: 0.8rem; border-color: #666; color: #aaa; }
+        .btn-small:hover { border-color: var(--gold); color: var(--gold); background: transparent; }
+
+        /* === Vocab Grid === */
+        .vocab-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px; width: 100%; max-width: 1200px; margin: 0 auto;
+        }
+        .vocab-card {
+            background: var(--card-bg); border: 1px solid #333;
+            padding: 20px 10px; text-align: center; cursor: pointer;
+            border-radius: 4px; display: flex; flex-direction: column; justify-content: center;
+            min-height: 100px; transition: 0.3s; position: relative; overflow: hidden;
+        }
+        .vocab-card:hover { border-color: var(--gold); transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .vocab-card strong { font-size: 1.1rem; color: #fff; font-family: 'Cinzel', serif; }
+        
+        .vocab-card.entity { border-top: 3px solid var(--accent-red); }
+        .vocab-card.word { border-top: 3px solid var(--gold); }
+        .vocab-card.learned { opacity: 0.5; background: #000; border-color: #444; }
+        .vocab-card.learned::after { content: '✓'; position: absolute; top: 5px; right: 5px; color: var(--gold); }
+
+        /* === Video Container === */
+        .video-wrapper {
+            width: 100%; max-width: 900px; margin: 0 auto; position: relative;
+            background: #000; border: 2px solid var(--gold-dim); aspect-ratio: 16/9;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        video { width: 100%; height: 100%; display: block; }
+        
+        /* Subtitles (Updated Style) */
+        .sub-layer {
+            position: absolute; bottom: 20px; width: 100%; text-align: center; pointer-events: none; z-index: 20;
+        }
+        .sub-text {
+            background: rgba(0,0,0,0.85); color: var(--gold);
+            padding: 10px 20px; border-radius: 4px; font-size: clamp(14px, 2.5vw, 18px);
+            font-family: 'Lato', sans-serif; text-shadow: 1px 1px 2px #000; 
+            border: 1px solid rgba(212, 175, 55, 0.3); line-height: 1.5;
+            display: inline-block; max-width: 90%;
+        }
+
+        /* Overlay */
+        .overlay-layer {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.9);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 50; padding: 20px; text-align: center; backdrop-filter: blur(5px);
+        }
+        .question-box {
+            background: #1a1a1a; border: 1px solid var(--gold); padding: 30px;
+            width: 100%; max-width: 600px; text-align: left; position: relative;
+        }
+        .question-box::before {
+            content:''; position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px;
+            border: 1px solid var(--gold-dim); pointer-events: none;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex; gap: 15px; align-items: center; background: #111;
+            padding: 15px; border: 1px solid #333; margin-top: 10px; max-width: 900px; margin: 10px auto 0;
+        }
+        input[type=range] {
+            flex: 1; -webkit-appearance: none; background: transparent; cursor: pointer; height: 5px;
+        }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #444; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
+            background: var(--gold); margin-top: -6px; border: 2px solid #fff;
+        }
+
+        /* Intro Section */
+        .intro-container { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        .intro-card {
+            background: rgba(255,255,255,0.03); border: 1px solid #333;
+            padding: 20px; border-radius: 4px; display: flex; gap: 20px; align-items: center;
+            transition: 0.3s;
+        }
+        .intro-card:hover { border-color: var(--gold-dim); background: rgba(255,255,255,0.05); }
+        .intro-img { width: 100px; height: 100px; object-fit: cover; border: 1px solid var(--gold-dim); flex-shrink: 0; }
+        .tts-text { cursor: pointer; line-height: 1.6; font-size: 1.05rem; }
+        .tts-text:hover { color: var(--gold); }
+
+        /* Progress Bar */
+        #global-bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--gold); width: 0%; z-index: 1000; transition: 0.5s; box-shadow: 0 0 10px var(--gold); }
+
+        /* Report */
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        th, td { border: 1px solid #444; padding: 10px; text-align: left; }
+        th { background: #222; color: var(--gold); }
+
+        @media (max-width: 768px) {
+            .view-section { padding: 80px 15px 100px; }
+            .vocab-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+            .intro-card { flex-direction: column; text-align: center; }
+            .controls { flex-wrap: wrap; }
+            .frame-border { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<a href="../../../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
+
+<div id="global-bar"></div>
+<div class="frame-border"></div>
+<div class="corner-dec tl"></div><div class="corner-dec tr"></div>
+<div class="corner-dec bl"></div><div class="corner-dec br"></div>
+
+<div id="app">
+
+    <section id="view-login" class="view-section active" style="justify-content:center; align-items:center;">
+        <div style="text-align:center; max-width:600px; width:100%;">
+            <div style="font-size:3rem; color:var(--gold); margin-bottom:10px; text-shadow:0 0 20px rgba(212,175,55,0.3); font-family:'Cinzel',serif;">TOWER BRIDGE</div>
+            <p style="letter-spacing:4px; color:#888; margin-bottom:40px; font-size:1.2rem;">MASTER CLASS</p>
+            
+            <div style="background:rgba(255,255,255,0.05); padding:30px; border:1px solid var(--gold-dim); margin-bottom:30px; text-align:left;">
+                <h3 style="color:var(--gold); margin-top:0;">Mission Briefing</h3>
+                <ul style="color:#ccc; line-height:1.8; list-style:none; padding:0;">
+                    <li><i class="fas fa-check" style="color:var(--gold); margin-right:10px;"></i> <strong>Vocabulary:</strong> Master key terms and names.</li>
+                    <li><i class="fas fa-check" style="color:var(--gold); margin-right:10px;"></i> <strong>Context:</strong> Learn the history.</li>
+                    <li><i class="fas fa-check" style="color:var(--gold); margin-right:10px;"></i> <strong>Part 1:</strong> General viewing with quiz.</li>
+                    <li><i class="fas fa-check" style="color:var(--gold); margin-right:10px;"></i> <strong>Part 2:</strong> Intensive listening (No Subs).</li>
+                </ul>
+            </div>
+
+            <div id="save-msg" style="display:none; margin-bottom:20px;">
+                <button class="btn-retro" style="width:100%; border-color:var(--text-muted);" onclick="resumeGame()">Resume Previous Session</button>
+                <div style="margin:15px; color:#666;">- OR -</div>
+            </div>
+            
+            <input type="text" id="username" placeholder="Enter Agent Name" style="background:transparent; border:none; border-bottom:2px solid var(--gold); color:#fff; text-align:center; padding:15px; font-size:1.5rem; width:100%; font-family:'Cinzel'; outline:none;">
+            <br><br><br>
+            <button class="btn-retro" style="font-size:1.2rem; padding:15px 40px;" onclick="startNew()">Start Mission</button>
+        </div>
+    </section>
+
+    <section id="view-vocab" class="view-section">
+        <div style="text-align:center; margin-bottom:30px;">
+            <h2 class="title-font" style="font-size:2rem; color:var(--gold);">Vocabulary Mastery</h2>
+            <p style="color:var(--text-muted);">Click to decrypt. <span style="color:var(--accent-red)">Red = Proper Nouns</span></p>
+        </div>
+        <div id="vocab-container" class="vocab-grid"></div>
+        <div style="text-align:center; margin-top:40px;">
+            <button class="btn-retro" onclick="nextStage('view-intro')">Proceed to Context >></button>
+        </div>
+    </section>
+
+    <section id="view-intro" class="view-section">
+        <h2 class="title-font" style="text-align:center; color:var(--gold); font-size:2rem; margin-bottom:10px;">Historical Context</h2>
+        <p style="text-align:center; margin-bottom:40px; color:#888;">(Click text to listen to the briefing)</p>
+        <div id="intro-list" class="intro-container"></div>
+        <div style="text-align:center; margin-top:40px;">
+            <button class="btn-retro" onclick="nextStage('view-vid1')">Start Video Part 1 >></button>
+        </div>
+    </section>
+
+    <section id="view-vid1" class="view-section">
+        <div style="text-align:center; margin-bottom:20px;">
+            <h2 class="title-font">Part 1: General Viewing</h2>
+        </div>
+
+        <div id="v1-resume-overlay" class="overlay-layer" style="display:none; z-index:60;">
+            <h2 style="color:var(--gold)">Mission Paused</h2>
+            <button class="btn-retro" onclick="confirmResume('vid1')">▶ Resume</button>
+        </div>
+
+        <div id="pre-watch-overlay" class="overlay-layer">
+            <h2 class="title-font" style="color:var(--gold); margin-bottom:20px;">Pre-Watch Objectives</h2>
+            <div class="question-box">
+                <p>1. What was the main reason for building the bridge?</p>
+                <p>2. Who originally opened the bridge in 1894?</p>
+            </div>
+            <button class="btn-retro" style="margin-top:30px;" onclick="startVid1()">Begin Playback</button>
+        </div>
+
+        <div class="video-wrapper">
+            <video id="vid1" playsinline src="Tower Bridge.mp4"></video>
+            <div class="sub-layer"><span id="sub1" class="sub-text"></span></div>
+            
+            <div id="post-watch-overlay" class="overlay-layer" style="display:none;">
+                <h3 style="color:var(--gold); font-size:1.8rem;">General Quiz</h3>
+                <div class="question-box">
+                    <p style="margin-bottom:10px;">1. Why was the bridge built?</p>
+                    <select id="gq1" style="width:100%; padding:10px; margin-bottom:20px; background:#000; color:#fff; border:1px solid #555;">
+                        <option value="">Select...</option>
+                        <option value="A">For tourism</option>
+                        <option value="B">To ease traffic gridlock</option>
+                        <option value="C">To replace London Bridge</option>
+                    </select>
+                    <p style="margin-bottom:10px;">2. Who opened it in 1894?</p>
+                    <select id="gq2" style="width:100%; padding:10px; background:#000; color:#fff; border:1px solid #555;">
+                        <option value="">Select...</option>
+                        <option value="A">Queen Victoria</option>
+                        <option value="B">Prince of Wales (Edward)</option>
+                        <option value="C">Sir Horace Jones</option>
+                    </select>
+                </div>
+                <button class="btn-retro" style="margin-top:30px;" onclick="checkGenQuiz()">Submit Report</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-retro btn-small" style="width:40px;" onclick="toggleVid('vid1')"><i class="fas fa-play"></i></button>
+            <input type="range" id="seek1" min="0" value="0" step="0.1">
+            <select onchange="speed('vid1', this.value)" style="background:#000; color:#fff; border:1px solid #444; padding:5px;">
+                <option value="1">1.0x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1.25">1.25x</option>
+            </select>
+            <span id="time1" style="font-size:0.9rem; min-width:50px; text-align:right; font-family:monospace;">0:00</span>
+        </div>
+    </section>
+
+    <section id="view-vid2" class="view-section">
+        <div style="text-align:center; margin-bottom:20px;">
+            <h2 class="title-font" style="color:var(--accent-red)">Part 2: Intensive Challenge</h2>
+            <p style="font-size:0.9rem; color:#888;">[ PROTOCOL: Subtitles Disabled ]</p>
+        </div>
+
+        <div id="v2-resume-overlay" class="overlay-layer" style="display:none; z-index:60;">
+            <h2 style="color:var(--gold)">Mission Paused</h2>
+            <button class="btn-retro" onclick="confirmResume('vid2')">▶ Resume</button>
+        </div>
+
+        <div class="video-wrapper">
+            <video id="vid2" playsinline src="Tower Bridge.mp4"></video>
+            
+            <div id="int-quiz-overlay" class="overlay-layer" style="display:none; background:rgba(0,0,0,0.95);">
+                <div class="question-box">
+                    <h3 id="iq-title" style="color:var(--gold); margin-top:0; font-family:'Cinzel';">Question</h3>
+                    <div id="iq-body" style="font-size:1.1rem; line-height:1.6;"></div>
+                    <div style="margin-top:30px; display:flex; gap:15px; flex-wrap:wrap;">
+                        <button class="btn-retro btn-small" onclick="replaySegment()" style="border-color:#666; color:#aaa;"><i class="fas fa-undo"></i> Replay Segment</button>
+                        <button class="btn-retro" style="flex:1;" onclick="submitIntAnswer()">Submit Answer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="text-align:center; padding:15px; font-size:0.9rem; color:#555;">
+            Video will pause automatically for questions.
+        </div>
+    </section>
+
+    <section id="view-report" class="view-section">
+        <div id="report-print-area" style="background:#f4f4f4; color:#111; padding:50px; max-width:800px; margin:0 auto; box-shadow:0 0 50px #000; font-family:'Times New Roman', serif;">
+            <div style="text-align:center; border-bottom:3px double #000; padding-bottom:20px; margin-bottom:30px;">
+                <h1 style="color:#000; margin:0; font-size:2.5rem; letter-spacing:2px;">MISSION REPORT</h1>
+                <p style="text-transform:uppercase; margin-top:10px;">Tower Bridge Master Class</p>
+                <div style="display:flex; justify-content:space-between; margin-top:30px; font-weight:bold;">
+                    <span>AGENT: <span id="rep-name"></span></span>
+                    <span>DATE: <span id="rep-date"></span></span>
+                </div>
+                <div style="font-size:4rem; color:var(--accent-red); margin:20px 0; font-weight:bold;" id="rep-score"></div>
+            </div>
+            
+            <h3>Part 1: General Intelligence</h3>
+            <p id="rep-gen-res" style="font-size:1.1rem;"></p>
+            
+            <h3 style="margin-top:30px;">Part 2: Intensive Analysis</h3>
+            <table style="width:100%; border-collapse:collapse; font-size:0.95rem;">
+                <thead style="background:#ddd;">
+                    <tr>
+                        <th style="border:1px solid #999; padding:8px; text-align:left;">Question</th>
+                        <th style="border:1px solid #999; padding:8px; text-align:left;">Your Input</th>
+                        <th style="border:1px solid #999; padding:8px; text-align:center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="rep-tbody"></tbody>
+            </table>
+        </div>
+        
+        <div style="text-align:center; margin-top:40px; display:flex; justify-content:center; gap:20px; flex-wrap:wrap;">
+            <button class="btn-retro" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> Save Report</button>
+            <button class="btn-retro" onclick="exportVocab()"><i class="fas fa-file-alt"></i> Save Vocab</button>
+            <button class="btn-retro" onclick="restartAll()" style="border-color:var(--accent-red); color:var(--accent-red);"><i class="fas fa-power-off"></i> Restart</button>
+        </div>
+    </section>
+
+</div>
+
+<div id="vocab-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:999; justify-content:center; align-items:center;" onclick="closeModal()">
+    <div style="background:#111; border:2px solid var(--gold); padding:30px; width:90%; max-width:600px; position:relative; box-shadow:0 0 50px rgba(212, 175, 55, 0.2);" onclick="event.stopPropagation()">
+        <button onclick="closeModal()" style="position:absolute; top:10px; right:15px; background:none; border:none; color:#666; font-size:2rem; cursor:pointer;">&times;</button>
+        <div id="vm-content"></div>
+    </div>
+</div>
+
+<script>
+// ================= DATA =================
+const entities = [
+    {w:"HMS Belfast", cn:"贝尔法斯特号", desc:"A historic warship moored on the Thames."},
+    {w:"Tower of London", cn:"伦敦塔", desc:"Historic castle and prison near the bridge."},
+    {w:"River Thames", cn:"泰晤士河", desc:"The main river flowing through London."},
+    {w:"East End", cn:"伦敦东区", desc:"Historic industrial area of London."},
+    {w:"Sir Horace Jones", cn:"霍拉斯·琼斯爵士", desc:"City Architect, original designer."},
+    {w:"Sir John Wolfe Barry", cn:"约翰·伍尔夫·巴里爵士", desc:"Engineer who collaborated on the design."},
+    {w:"Prince of Wales", cn:"威尔士亲王", desc:"Title of the heir to the throne (later King Edward VII)."},
+    {w:"Albert Gunter", cn:"阿尔伯特·冈特", desc:"Bus driver who jumped the bridge."},
+    {w:"Sir William Armstrong", cn:"威廉·阿姆斯特朗爵士", desc:"Designed the hydraulic engines."},
+    {w:"Portland Stone", cn:"波特兰石", desc:"Limestone used for cladding."},
+    {w:"Cornish Granite", cn:"康沃尔花岗岩", desc:"Hard stone used in construction."},
+    {w:"Pool of London", cn:"伦敦池", desc:"Stretch of the Thames used as a port."},
+    {w:"Canary Wharf", cn:"金丝雀码头", desc:"Modern business district visible from walkways."},
+    {w:"Queen Elizabeth II", cn:"伊丽莎白二世", desc:"Bridge painted for her Jubilee."},
+    {w:"Victorian Era", cn:"维多利亚时代", desc:"Period of Queen Victoria's reign."}
+];
+
+const words = [
+    {w:"Iconic", cn:"标志性的", en:"Widely recognized.", ex:"The Eiffel Tower is an iconic structure recognized by everyone worldwide.", excn:"埃菲尔铁塔是全世界公认的标志性建筑。"},
+    {w:"Landmark", cn:"地标", en:"Easily seen feature.", ex:"We agreed to meet in front of the famous historic landmark.", excn:"我们约好在那座著名的历史地标前见面。"},
+    {w:"Venture", cn:"敢于去", en:"Dare to go.", ex:"They decided to venture into the deep forest despite the danger.", excn:"尽管有危险，他们还是决定冒险进入森林深处。"},
+    {w:"Feat", cn:"壮举", en:"Achievement.", ex:"Climbing the mountain without oxygen was an incredible feat of strength.", excn:"无氧登山是一项令人难以置信的体力壮举。"},
+    {w:"Cargo", cn:"货物", en:"Goods carried.", ex:"The large ship carried a heavy cargo of oil across the ocean.", excn:"这艘大船载着沉重的石油货物横渡大洋。"},
+    {w:"Port", cn:"港口", en:"Harbor for ships.", ex:"Many ships from around the world dock at this busy port.", excn:"许多来自世界各地的船只停靠在这个繁忙的港口。"},
+    {w:"Booming", cn:"繁荣的", en:"Prosperous.", ex:"The technology industry is booming and creating many new jobs today.", excn:"科技产业正在蓬勃发展，创造了许多新的就业机会。"},
+    {w:"Trader", cn:"商人", en:"Person who trades.", ex:"The wealthy trader bought spices from distant lands to sell here.", excn:"这位富有的商人从远方买来香料在这里出售。"},
+    {w:"Downstream", cn:"顺流而下", en:"With the current.", ex:"The wooden boat floated gently downstream with the river's current.", excn:"木船顺着河水的水流缓缓向下游漂去。"},
+    {w:"Gridlock", cn:"交通大堵塞", en:"Traffic jam.", ex:"Heavy traffic caused complete gridlock in the city center this morning.", excn:"繁重的交通导致今早市中心完全陷入瘫痪。"},
+    {w:"Upstream", cn:"逆流而上", en:"Against current.", ex:"Salmon must swim upstream to lay their eggs in the river.", excn:"鲑鱼必须逆流而上才能在河里产卵。"},
+    {w:"Traipse", cn:"疲惫地走", en:"Walk wearily.", ex:"I had to traipse all over town looking for a specific gift.", excn:"我不得不拖着疲惫的步伐逛遍全城寻找一份特定的礼物。"},
+    {w:"Committee", cn:"委员会", en:"Appointed group.", ex:"The school committee will meet tomorrow to discuss the new rules.", excn:"学校委员会明天将开会讨论新规则。"},
+    {w:"Competition", cn:"竞赛", en:"Contest.", ex:"He won first prize in the international photography competition last year.", excn:"他在去年的国际摄影比赛中获得了一等奖。"},
+    {w:"Requirement", cn:"要求", en:"Need.", ex:"A valid passport is a requirement for travelling to other countries.", excn:"有效护照是前往其他国家旅行的必要条件。"},
+    {w:"Submit", cn:"提交", en:"Present.", ex:"You must submit your application form before the end of Friday.", excn:"你必须在周五结束前提交申请表。"},
+    {w:"Consultation", cn:"磋商", en:"Formal discussion.", ex:"The government held a public consultation regarding the new building plans.", excn:"政府就新建筑计划举行了公众磋商。"},
+    {w:"Controversy", cn:"争议", en:"Disagreement.", ex:"The new policy caused a lot of controversy among the local people.", excn:"新政策在当地民众中引起了很大争议。"},
+    {w:"Approve", cn:"批准", en:"Accept.", ex:"The city council finally voted to approve the new bridge design.", excn:"市议会最终投票批准了新桥的设计方案。"},
+    {w:"Bascule", cn:"开启桥结构", en:"Lifting bridge.", ex:"The bascule bridge lifts up to allow tall ships to pass through.", excn:"开启桥升起以允许高大的船只通过。"},
+    {w:"Collaboration", cn:"合作", en:"Working together.", ex:"This project was a successful collaboration between two famous artists.", excn:"这个项目是两位著名艺术家之间的一次成功合作。"},
+    {w:"Architect", cn:"建筑师", en:"Designer of buildings.", ex:"The famous architect designed a building that looks like a ship.", excn:"这位著名建筑师设计了一座看起来像船的建筑。"},
+    {w:"Foundation", cn:"地基", en:"Base.", ex:"Workers dug deep to lay the concrete foundation for the tower.", excn:"工人们挖得很深，为塔楼浇筑混凝土基础。"},
+    {w:"Construction", cn:"建造", en:"Building process.", ex:"The construction of the new library will take about two years.", excn:"新图书馆的建设将耗时约两年。"},
+    {w:"Gravel", cn:"碎石", en:"Small stones.", ex:"We walked along a path covered in small grey stones and gravel.", excn:"我们沿着一条覆盖着灰色小石子和碎石的小路走。"},
+    {w:"Concrete", cn:"混凝土", en:"Building material.", ex:"The workers poured wet concrete into the wooden frames yesterday.", excn:"工人们昨天将湿混凝土倒入木制框架中。"},
+    {w:"Framework", cn:"框架", en:"Skeleton structure.", ex:"The steel framework supports the entire weight of the tall building.", excn:"钢框架支撑着这座高层建筑的全部重量。"},
+    {w:"Riveter", cn:"铆钉工", en:"Person who rivets.", ex:"The riveter used a heavy tool to fasten the metal plates.", excn:"铆钉工使用重型工具将金属板固定在一起。"},
+    {w:"Furnace", cn:"熔炉", en:"Oven for heating.", ex:"The metal was melted inside a very hot industrial furnace.", excn:"金属在一个非常热的工业熔炉里被熔化了。"},
+    {w:"Glowing", cn:"发光的", en:"Shining with heat.", ex:"The coals in the fire were glowing bright red with heat.", excn:"火中的煤炭因高温而发出明亮的红光。"},
+    {w:"Secure", cn:"加固", en:"Fasten.", ex:"Please ensure you secure your seatbelt before the plane takes off.", excn:"请确保在飞机起飞前系好安全带。"},
+    {w:"Clad", cn:"覆盖", en:"Covered.", ex:"The modern office building is clad in shiny blue glass panels.", excn:"这座现代办公楼覆盖着闪亮的蓝色玻璃板。"},
+    {w:"Granite", cn:"花岗岩", en:"Hard stone.", ex:"The kitchen counter is made of hard and durable grey granite.", excn:"厨房台面是由坚硬耐用的灰色花岗岩制成的。"},
+    {w:"Complement", cn:"相衬", en:"Go well with.", ex:"That blue tie really complements your dark grey suit perfectly.", excn:"那条蓝色领带真的完美衬托了你的深灰色西装。"},
+    {w:"Pedestrian", cn:"行人", en:"Walker.", ex:"Drivers must always stop for pedestrians crossing the busy street.", excn:"司机必须时刻停车让行人穿过繁忙的街道。"},
+    {w:"Vantage Point", cn:"有利位置", en:"Good view spot.", ex:"From this high vantage point, we could see the whole city.", excn:"从这个有利的高处，我们可以看到整个城市。"},
+    {w:"Dimly", cn:"昏暗地", en:"Not brightly.", ex:"The room was dimly lit by a single small candle.", excn:"房间里只有一支小蜡烛，光线昏暗。"},
+    {w:"Lurk", cn:"潜伏", en:"Hide in wait.", ex:"The cat likes to lurk in the tall grass for mice.", excn:"猫喜欢潜伏在高高的草丛里抓老鼠。"},
+    {w:"Attraction", cn:"景点", en:"Place of interest.", ex:"The Eiffel Tower is the most famous tourist attraction in Paris.", excn:"埃菲尔铁塔是巴黎最著名的旅游景点。"},
+    {w:"Enhance", cn:"增强", en:"Improve.", ex:"Adding some salt will enhance the flavor of this vegetable soup.", excn:"加点盐会提升这道蔬菜汤的味道。"},
+    {w:"Scurry", cn:"急跑", en:"Run with short steps.", ex:"The small mouse scurried across the floor and under the sofa.", excn:"小老鼠匆忙跑过地板，钻到了沙发底下。"},
+    {w:"Volume", cn:"量", en:"Amount.", ex:"The volume of traffic on the roads increases during rush hour.", excn:"道路上的交通量在高峰时段会增加。"},
+    {w:"Moor", cn:"停泊", en:"Anchor.", ex:"We decided to moor the boat near the small wooden dock.", excn:"我们决定把船停泊在小木码头附近。"},
+    {w:"Dock", cn:"停靠", en:"Come into port.", ex:"The large cargo ship will dock at the port this evening.", excn:"大型货轮将于今晚停靠港口。"},
+    {w:"Export", cn:"出口", en:"Send goods abroad.", ex:"The country exports large amounts of coffee to other nations.", excn:"这个国家向其他国家出口大量的咖啡。"}
+];
+
+const introSlides = [
+    {img:"intro1.jpg", txt:"Tower Bridge is a defining symbol of Victorian London, built to solve a massive traffic crisis in the East End while allowing ships to pass."},
+    {img:"intro2.jpg", txt:"In the 19th Century, London's port was booming. The river was packed with ships, and the roads were gridlocked with horses and carts."},
+    {img:"intro3.jpg", txt:"A 'Special Committee' was formed. After much controversy, they chose Sir Horace Jones' design for a 'Bascule' (seesaw) bridge."},
+    {img:"intro4.jpg", txt:"Construction took 8 years. Divers worked underwater in dangerous caissons to build the massive piers supporting the towers."},
+    {img:"intro5.jpg", txt:"Opened in 1894 by the Prince of Wales, it was powered by steam engines that lifted the huge roadways in just one minute."},
+    {img:"intro6.jpg", txt:"Though the high walkways were once closed due to crime, today the bridge is a world-famous tourist attraction."}
+];
+
+// ★★★ 核心修复：完整保留带中文注释的字幕 ★★★
+const subs = [
+    {s: 4.0, e: 12.0, t: "Tower Bridge is one of London's most iconic landmarks (标志性的地标), a beautiful bridge that crosses the River Thames (泰晤士河)."},
+    {s: 12.0, e: 19.0, t: "We've seen it, passed across and under it numerous times but never stopped to really take in its design and beauty..."},
+    {s: 19.0, e: 24.0, t: "...or venture (敢于去) inside and find out its history and how it all worked for that matter!"},
+    {s: 24.0, e: 35.0, t: "Join us today as we explore this fascinating feat (了不起的壮举) of engineering and discover the wonders of Tower Bridge."},
+    {s: 40.0, e: 48.0, t: "You can book tickets to visit the bridge on this website. It can be very busy so booking a time slot in advance (提前一段时间)  is a good idea."},
+    {s: 45.0, e: 53.0, t: "You'll enter the bridge at road level in the North Tower, the one nearest the Tower of London (伦敦塔)."},
+    {s: 53.0, e: 57.0, t: "The River Thames (泰晤士河) was a major transport and cargo (货物) waterway..."},
+    {s: 57.0, e: 63.0, t: "...and became one of the world's largest trade and industry ports (港口) during the 19th century (Victorian Era 维多利亚时代)."},
+    {s: 63.0, e: 68.0, t: "The commercial business in the East End (伦敦东区的商业贸易) of London was booming (繁荣的), traders (商人) and the public demanded (需要) a..."},
+    {s: 68.0, e: 74.0, t: "...new river crossing downstream (顺流而下) of London Bridge to ease the gridlock (交通大堵塞) caused by the rapidly increasing population."},
+    {s: 74.0, e: 81.0, t: "Those living upstream (上游), west of Tower Bridge had 12 bridges to choose from,"},
+    {s: 81.0, e: 87.0, t: "those in the East End (伦敦东区) of London had none requiring them to traipse (疲惫地走) across the city to London Bridge,"},
+    {s: 87.0, e: 93.0, t: "something that could take hours. A special committee (委员会) was set up and in 1876,"},
+    {s: 93.0, e: 97.0, t: "The Corporation of London (伦敦金融城法团) held a competition (竞赛) to design a new foot and vehicle bridge."},
+    {s: 97.0, e: 103.0, t: "The major requirement (要求) was to allow for tall ships to sail past."},
+    {s: 103.0, e: 109.0, t: "Over 50 designs were submitted (提交) and a public consultation (磋商) was held but none was suitable (合适的)."},
+    {s: 109.0, e: 117.0, t: "There was much controversy (争议) over the new bridge and its design so it wasn't until 1884, eight years later that one was approved (批准)."},
+    {s: 117.0, e: 129.0, t: "A design for a bascule (开启桥结构) or seesaw bridge, submitted by Sir Horace Jones (霍拉斯·琼斯爵士), the city architect (建筑师) that he designed in collaboration (合作) with Sir John Wolfe Barry (约翰·伍尔夫·巴里爵士)."},
+    {s: 129.0, e: 144.0, t: "As we begin our tour inside the north tower the exhibits (展览) explained the building of the bridge. On the 21st of June 1886 Edward, Prince of Wales (威尔士亲王) laid the foundation (地基) stone."},
+    {s: 144.0, e: 147.0, t: "Up to 848 men were employed at any one time to work on its construction (建造)."},
+    {s: 147.0, e: 157.0, t: "It took eight years to complete (完成) at a cost of over 1.1 million pounds in Victorian money, an enormous (大量的) amount of money in the 19th century!"},
+    {s: 158.0, e: 167.0, t: "24 huge square steel cages were pushed into the riverbed,"},
+    {s: 167.0, e: 180.0, t: "brave divers dug out the clay and gravel (碎石) in dangerous conditions to create a chamber (空间) in which concrete (混凝土) could be laid to build the foundations for the two towers."},
+    {s: 180.0, e: 188.0, t: "Over 11 tons of metalwork was produced in Glasgow at William Arrol's Steelworks (在威廉·阿罗位于格拉斯哥的钢铁厂)  and shipped down to London."},
+    {s: 188.0, e: 193.0, t: "This was used to create the framework (框架) for the towers and the walkways."},
+    {s: 193.0, e: 205.0, t: "Riveters (铆钉工) required 14 million rivets (铆钉) of different sizes, men known as cooks (这些被叫做“火夫”的工人们) heated them up in a furnace (熔炉) till glowing (发光的) red and ready to join and secure (加固) the structure."},
+    {s: 205.0, e: 211.0, t: "As the bridge grew in size the furnaces remained on the ground, the red hot rivets were thrown up to a 'catcher (抓取烧红了的铆钉的工人)'"},
+    {s: 211.0, e: 217.0, t: "who skillfully caught them in a bucket of ash ready to be picked up with tongs by a riveter."},
+    {s: 217.0, e: 222.0, t: "There were no health and safety requirements in those days."},
+    {s: 226.0, e: 233.0, t: "The bridge was clad (覆盖) in Portland stone (波特兰石) and Cornish granite (花岗岩) giving it the lovely and pleasing appearance (好看的外表) we see today,"},
+    {s: 233.0, e: 241.0, t: "appearing much older than it is something that Queen Victoria approved of as it complemented (相衬) the nearby Tower of London."},
+    {s: 241.0, e: 253.0, t: "This staircase taking us up to the pedestrian (行人) walkway across the bridge was designed so that people could still cross when the bascules (活叶桥板) were raised."},
+    {s: 253.0, e: 263.0, t: "Tower Bridge was officially opened at midday on the 30th of June 1894 by Edward, Prince of Wales (威尔士亲王) later to become King Edward VII."},
+    {s: 263.0, e: 268.0, t: "Huge crowds lined the Thames to catch a glimpse (看一眼) of the first-ever lift"},
+    {s: 268.0, e: 278.0, t: "at two minutes past 12 the bascules  (活叶桥板) raised and the ships started to sail through with a gun salute (礼炮) from the Tower of London."},
+    {s: 278.0, e: 285.0, t: "Reaching the top of the north tower we can now walk across the bridge in the east walkway as the Victorians did,"},
+    {s: 285.0, e: 291.0, t: "enjoying the stunning views of east London and Canary Wharf (金丝雀码头) from this vantage point (有利位置)."},
+    {s: 290.0, e: 300.0, t: "The walkway was actually not a great success for the bridge no one could be bothered (没人特意去) to climb up all the steps and walk over during a lift,"},
+    {s: 300.0, e: 309.0, t: "preferring to (宁愿等) wait at road level. They were dimly (昏暗地) lit making them dangerous at night a place where pickpockets and prostitutes  (小偷和妓女) would lurk (出没)."},
+    {s: 309.0, e: 321.0, t: "In 1910 they were closed and it would be 71 years before the public could again walk across when the Bridge opened in 1982 as a tourist attraction (景点)."},
+    {s: 321.0, e: 326.0, t: "In 2014 a glass floor was introduced to enhance (增强) the visitor experience on the bridge,"},
+    {s: 326.0, e: 335.0, t: "you can now look right down on the busy road level and watch the public scurrying (急跑) across along with the large volumes (量) of traffic entering or leaving the city."},
+    {s: 335.0, e: 356.0, t: "Crossing over onto the west walkway we can look down on HMS Belfast (贝尔法斯特号军舰) moored (停泊) in the old Pool of London (伦敦池), where the tall ships would dock (停靠) and deliver cargo..."},
+    {s: 356.0, e: 359.0, t: "...or take on fresh export (出口) goods."},
+    {s: 359.0, e: 373.0, t: "Ahead of us is London Bridge pretty plain in comparison to Tower Bridge which is often confused with London Bridge."},
+    {s: 373.0, e: 386.0, t: "To our right is the thousand year old Tower of London (伦敦塔) another iconic attraction you might want to visit after touring the bridge."},
+    {s: 386.0, e: 392.0, t: "We visited just after the pandemic (疫情时期) and had the place virtually to ourselves, a very rare situation."},
+    {s: 392.0, e: 404.0, t: "To find out all the history of the tower watch our historic Tower of London video next."},
+    {s: 405.0, e: 412.0, t: "The exhibition boards (展览板) along the walkway also highlight some of the key moments in the life of the bridge."},
+    {s: 412.0, e: 420.5, t: "One extraordinary (非凡的) situation occurred in December 1952 when Albert Gunter (阿尔伯特·冈特) was driving his bus across the bridge with 20 passengers on board."},
+    {s: 420.5, e: 428.0, t: "He suddenly noticed that the bridge was raising and it was too late to stop hitting the accelerator (已经太晚了来不及反应停止踩油门) the bus jumped..."},
+    {s: 428.0, e: 434.0, t: "...the small gap beginning to form and safely landed on the North side. Gunter received a £10 reward,"},
+    {s: 434.0, e: 440.0, t: "asked how he would spend it he said a fiver (5块钱) for me and a fiver for the misses!"},
+    {s: 445.0, e: 454.0, t: "Since 1971 boats have needed to give 24-hour notice that they need to pass and this happens around 800 times a year,"},
+    {s: 454.0, e: 461.0, t: "prior to that someone was on lookout (警戒) duty 24 hours a day noting tall vessels (船舰) that needed to pass."},
+    {s: 461.0, e: 471.0, t: "As in 1894 when it opened today it is still free to request the raising of the bridge (依旧可以免费要求桥面的开合). If you have a tall enough boat, you have the right to request it open for you."},
+    {s: 471.0, e: 480.0, t: "If you want to see the bridge raise then check out this website which lists the dates and times of future book lifts (抬升)."},
+    {s: 484.0, e: 492.0, t: "Making our way down from the south tower we walk across the road bridge to the north side and entrance to the second part of our tour"},
+    {s: 492.0, e: 498.0, t: "where we can find out how the bridge is powered and the people that keep it running like clockwork."},
+    {s: 498.0, e: 504.0, t: "As we cross we get a good view of the main structure, now over 135 years old."},
+    {s: 504.0, e: 514.0, t: "It was originally chocolate brown in colour but in 1977 it was painted red white and blue to celebrate Queen Elizabeth II's (伊丽莎白二世女王) silver jubilee."},
+    {s: 515.0, e: 523.0, t: "When the bridge was first built it was powered by steam (由蒸汽所驱动), this is one of the coal-fired boilers heating and boiling the water in a chamber (腔室) around it,"},
+    {s: 523.0, e: 534.0, t: "creating steam to power the steam pumping engines in the next room. The water had to be continually monitored (持续被监视) and levels maintained using the green glass gauges (水的高度需要通过绿色玻璃液位计进行维持)."},
+    {s: 534.0, e: 541.0, t: "Stokers shovelled (锅炉工用铲子铲) 20 tons of coal per week to keep it running 24/7."},
+    {s: 543.0, e: 548.0, t: "The first thing you notice when you enter the steam engine pumping room is the bright colour of the machinery."},
+    {s: 548.0, e: 557.0, t: "Sir William Armstrong (威廉·阿姆斯特朗爵士) one of the world's most successful industrialist engineers designed the engines and his family's crest (家族勋章) were those colours."},
+    {s: 557.0, e: 564.0, t: "He painted his machinery with this distinctive colour (独特的颜色) so that everyone could identify (识别) them as William Armstrong's machine."},
+    {s: 564.0, e: 573.0, t: "The steam pump is moving in a demonstration mode (展示模式) much slower than it would have been when it was needed to help raise and lower the bridge."},
+    {s: 573.0, e: 581.0, t: "The pistons (活塞) operate very much like a steam train, powering the water pump and pushing the water under pressure into the accumulators (蓄压器)."},
+    {s: 581.0, e: 588.0, t: "Here are two of the six accumulators used by the Victorians to hold the pressurized water (6个在维多利亚时期就被使用的蓄压器可以稳定高压的水蒸气) ready to be used."},
+    {s: 588.0, e: 591.0, t: "They are empty now so rest on the floor..."},
+    {s: 591.0, e: 594.0, t: "...when full they would have been high up in the air ready to release the water..."},
+    {s: 594.0, e: 610.0, t: "...through pipes to the cog (齿轮 ) that was connected to the bascules on either side of the bridge raising and lowering it in just 60 seconds."},
+    {s: 610.0, e: 621.0, t: "More than 80 people were needed to maintain the engines and raise the bridge from coal stokers, signalmen, oilers to gatemen and engineers to name but a few."},
+    {s: 621.0, e: 628.0, t: "Since 1976 this has been done by hydroelectric (水力发电的) power and it takes just one person to raise the bridge known as the 'Bridge Driver',"},
+    {s: 628.0, e: 644.0, t: "of course, there are still others supporting that role making around 20 people including the tourist guide workers."},
+    {s: 644.0, e: 649.0, t: "This visit has been a fascinating insight (深刻见解) into a bridge that we've taken for granted in the past. (对于过去被认为是理所应当的功能，现在我们有了深刻的理解)"},
+    {s: 649.0, e: 657.0, t: "The incredible engineering, the reasons why it was built, those involved in its construction and continued running and of course,"},
+    {s: 657.0, e: 664.0, t: "how it all manages to work like clockwork have given us a renewed appreciation (感激之情) for this wonderful and hugely important bridge in the heart of London."},
+    {s: 664.0, e: 669.0, t: "I hope it has for you as well? Join us again on another video soon..."},
+    {s: 669.0, e: 676.0, t: "...and don't forget our Tower of London video link at the end to continue learning about iconic places to visit in London."},
+    {s: 676.0, e: 680.0, t: "Thanks for watching the MemorySeekers."}
+];
+
+const iqs = [
+    {s:44, t:52, type:"cloze", q:"You enter the bridge at the _____ Tower.", a:"North"},
+    {s:109, t:118, type:"mcq", q:"When was the design finally approved?", opts:["1876","1884","1894"], a:"1884"},
+    {s:129, t:144, type:"cloze", q:"The Foundation Stone was laid in the year _____.", a:"1886"},
+    {s:193, t:205, type:"mcq", q:"How were rivets heated?", opts:["Electric oven","Furnace","Sunlight"], a:"Furnace"},
+    {s:226, t:241, type:"mcq", q:"Why did Queen Victoria approve the look?", opts:["It was cheap","It complemented the Tower of London","It was modern"], a:"It complemented the Tower of London"},
+    {s:290, t:310, type:"mcq", q:"Why were walkways unpopular?", opts:["Too high","Too expensive","Too many steps"], a:"Too many steps"},
+    {s:412, t:429, type:"mcq", q:"What did the bus driver do?", opts:["Stopped","Reversed","Hit the accelerator"], a:"Hit the accelerator"},
+    {s:534, t:541, type:"cloze", q:"Stokers shovelled 20 tons of _____ per week.", a:"coal"}
+];
+
+// ================= LOGIC =================
+let state = { user: "", progress: 0, vocab: [], genScore: 0, intRes: [], v1Time: 0, v2Time: 0 };
+let synthesizer = null;
+const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+const azureRegion = "eastus2"; 
+
+function speak(text) {
+    if(synthesizer) { synthesizer.close(); synthesizer = null; }
+    try {
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+        speechConfig.speechSynthesisVoiceName = "en-GB-RyanNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        synthesizer.speakTextAsync(text, result => { synthesizer.close(); synthesizer = null; });
+    } catch(e) { console.error(e); }
+}
+
+window.onload = () => {
+    if(localStorage.getItem('tbState')) document.getElementById('save-msg').style.display = 'block';
+    renderVocab(); renderIntro();
+};
+
+function startNew() {
+    const u = document.getElementById('username').value.trim();
+    if(!u) return alert("Please enter name");
+    state.user = u; state.progress = 1;
+    saveState(); nextStage('view-vocab');
+}
+
+function resumeGame() {
+    state = JSON.parse(localStorage.getItem('tbState'));
+    let target = 'view-login';
+    if(state.progress==1) target='view-vocab';
+    if(state.progress==2) target='view-intro';
+    if(state.progress==3) target='view-vid1';
+    if(state.progress==4) target='view-vid2';
+    if(state.progress==5) target='view-report';
+    nextStage(target);
+}
+
+function nextStage(id) {
+    document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(id==='view-vocab') state.progress=1;
+    if(id==='view-intro') state.progress=2;
+    if(id==='view-vid1') { state.progress=3; initVid1(); }
+    if(id==='view-vid2') { state.progress=4; initVid2(); }
+    if(id==='view-report') { state.progress=5; renderReport(); }
+    saveState();
+}
+
+function saveState() { localStorage.setItem('tbState', JSON.stringify(state)); }
+
+function renderVocab() {
+    const c = document.getElementById('vocab-container');
+    c.innerHTML = "";
+    entities.forEach((item, i) => {
+        const d = document.createElement('div'); d.className = `vocab-card entity ${state.vocab.includes('e'+i)?'learned':''}`;
+        d.innerHTML = `<strong>${item.w}</strong>`; d.onclick = () => showModal('entity', i); c.appendChild(d);
+    });
+    words.forEach((item, i) => {
+        const d = document.createElement('div'); d.className = `vocab-card word ${state.vocab.includes('w'+i)?'learned':''}`;
+        d.innerHTML = `<strong>${item.w}</strong>`; d.onclick = () => showModal('word', i); c.appendChild(d);
+    });
+}
+
+function showModal(type, idx) {
+    const data = type==='entity' ? entities[idx] : words[idx];
+    const key = (type==='entity'?'e':'w')+idx;
+    if(!state.vocab.includes(key)) { state.vocab.push(key); renderVocab(); }
+    
+    let html = `<h2 style="color:var(--gold); text-align:center; font-family:'Cinzel'">${data.w}</h2>
+        <p style="text-align:center; color:#ccc;">${data.cn}</p>
+        <div style="margin:20px 0; border-top:1px solid #333; padding-top:15px;">`;
+    
+    if(type==='entity') {
+        html += `<p style="font-size:1.1rem;">${data.desc}</p><button class="btn-retro btn-small" onclick="speak('${data.desc.replace(/'/g,"")}')">🔊 Listen</button>`;
+    } else {
+        html += `<p><strong>Def:</strong> ${data.en}</p>
+        <div style="background:#222; padding:15px; margin-top:10px; border:1px solid #444; border-radius:4px;">
+            <p id="ex-en-${idx}" style="font-style:italic; font-size:1.1rem;">"${data.ex}"</p>
+            <p id="ex-cn-${idx}" style="color:var(--gold); display:none;">${data.excn}</p>
+            <div style="margin-top:10px;">
+                <button class="btn-retro btn-small" onclick="toggleEx(${idx})">👁️ CN/EN</button>
+                <button class="btn-retro btn-small" onclick="speak('${data.ex.replace(/'/g,"")}')">🔊 Play</button>
+            </div>
+        </div>`;
+    }
+    document.getElementById('vm-content').innerHTML = html;
+    document.getElementById('vocab-modal').style.display = 'flex';
+}
+
+function toggleEx(idx) {
+    const en = document.getElementById(`ex-en-${idx}`); const cn = document.getElementById(`ex-cn-${idx}`);
+    if(en.style.display === 'none') { en.style.display = 'block'; cn.style.display = 'none'; } 
+    else { en.style.display = 'none'; cn.style.display = 'block'; }
+}
+function closeModal() { document.getElementById('vocab-modal').style.display = 'none'; }
+
+function renderIntro() {
+    const c = document.getElementById('intro-list'); c.innerHTML = "";
+    introSlides.forEach(s => {
+        const d = document.createElement('div'); d.className = 'intro-card';
+        d.innerHTML = `<img src="${s.img}" class="intro-img" alt="img" onerror="this.src='https://placehold.co/100?text=History'"><div class="tts-text" onclick="speak('${s.txt.replace(/'/g,"")}')">${s.txt}</div>`;
+        c.appendChild(d);
+    });
+}
+
+// Video 1
+const v1 = document.getElementById('vid1'); const seek1 = document.getElementById('seek1'); let isDrag1 = false;
+seek1.oninput = () => { isDrag1 = true; }; seek1.onchange = () => { v1.currentTime = seek1.value; isDrag1 = false; };
+function initVid1() { seek1.max = v1.duration || 691; if(state.v1Time > 5) document.getElementById('v1-resume-overlay').style.display='flex'; }
+function startVid1() { document.getElementById('pre-watch-overlay').style.display='none'; v1.play(); }
+function toggleVid(id) { const v=document.getElementById(id); v.paused?v.play():v.pause(); }
+function speed(id, val) { document.getElementById(id).playbackRate = val; }
+function confirmResume(id) {
+    const v = document.getElementById(id); const t = id==='vid1' ? state.v1Time : state.v2Time;
+    v.currentTime = t; v.play();
+    document.getElementById(id==='vid1'?'v1-resume-overlay':'v2-resume-overlay').style.display='none';
+    if(id==='vid2') syncIntIdx();
+}
+v1.ontimeupdate = () => {
+    state.v1Time = v1.currentTime;
+    if(Math.floor(v1.currentTime)%5===0) saveState();
+    if(!isDrag1) { seek1.max = v1.duration; seek1.value = v1.currentTime; }
+    document.getElementById('time1').innerText = fmtTime(v1.currentTime);
+    const sub = subs.find(s => v1.currentTime >= s.s && v1.currentTime <= s.e);
+    const el = document.getElementById('sub1');
+    if(sub) { el.innerText = sub.t; el.style.opacity = 1; } else { el.style.opacity = 0; }
+};
+v1.onended = () => { document.getElementById('post-watch-overlay').style.display = 'flex'; };
+function checkGenQuiz() {
+    const a1 = document.getElementById('gq1').value; const a2 = document.getElementById('gq2').value;
+    if(!a1 || !a2) return alert("Answer all questions.");
+    let score = 0; if(a1 === 'B') score += 50; if(a2 === 'B') score += 50;
+    state.genScore = score; nextStage('view-vid2');
+}
+
+// Video 2
+const v2 = document.getElementById('vid2'); let intIdx = 0;
+function initVid2() { intIdx = 0; state.intRes = []; if(state.v2Time > 5) document.getElementById('v2-resume-overlay').style.display='flex'; else { v2.currentTime = 0; v2.play(); } }
+function syncIntIdx() {
+    const t = v2.currentTime; intIdx = 0;
+    for(let i=0; i<iqs.length; i++) { if(t > iqs[i].t + 2) intIdx = i + 1; else break; }
+}
+v2.ontimeupdate = () => {
+    state.v2Time = v2.currentTime;
+    if(Math.floor(v2.currentTime)%5===0) saveState();
+    if(intIdx < iqs.length) {
+        if(v2.currentTime >= iqs[intIdx].t && v2.currentTime < iqs[intIdx].t+1.5) {
+            v2.pause(); showIntQuiz(iqs[intIdx]);
+        }
+    }
+};
+v2.onended = () => nextStage('view-report');
+function showIntQuiz(q) {
+    document.getElementById('int-quiz-overlay').style.display = 'flex';
+    document.getElementById('iq-title').innerText = `Question ${intIdx+1}/${iqs.length}`;
+    const body = document.getElementById('iq-body');
+    if(q.type === 'mcq') {
+        let h = `<p style="margin-bottom:15px; font-size:1.1rem;">${q.q}</p>`;
+        q.opts.forEach(o => { h += `<label style="display:block; margin:10px 0; background:#333; padding:12px; cursor:pointer; border:1px solid #555;"><input type="radio" name="iqo" value="${o}"> ${o}</label>`; });
+        body.innerHTML = h;
+    } else {
+        body.innerHTML = `<p style="font-size:1.1rem;">${q.q}</p><input type="text" id="cloze-ans" style="width:100%; padding:10px; font-size:1.2rem; background:#333; border:1px solid var(--gold); color:#fff;">`;
+    }
+}
+function replaySegment() {
+    const q = iqs[intIdx]; document.getElementById('int-quiz-overlay').style.display = 'none';
+    v2.currentTime = q.s; v2.play();
+}
+function submitIntAnswer() {
+    const q = iqs[intIdx]; let ans = "";
+    if(q.type==='mcq') { const c = document.querySelector('input[name="iqo"]:checked'); if(!c) return; ans = c.value; } 
+    else { ans = document.getElementById('cloze-ans').value.trim(); if(!ans) return; }
+    const correct = ans.toLowerCase() === q.a.toLowerCase();
+    state.intRes.push({q:q.q, u:ans, c:q.a, ok:correct});
+    document.getElementById('int-quiz-overlay').style.display = 'none'; intIdx++; v2.play(); 
+}
+
+function renderReport() {
+    document.getElementById('rep-name').innerText = state.user;
+    document.getElementById('rep-date').innerText = new Date().toLocaleDateString();
+    const intOk = state.intRes.filter(r=>r.ok).length;
+    const final = Math.round((state.genScore * 0.3) + ((intOk/8)*70));
+    document.getElementById('rep-score').innerText = final + "%";
+    document.getElementById('rep-gen-res').innerText = `General Quiz Score: ${state.genScore}%`;
+    const tb = document.getElementById('rep-tbody'); tb.innerHTML = "";
+    state.intRes.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.style.background = r.ok ? "rgba(0,100,0,0.1)" : "rgba(100,0,0,0.1)";
+        tr.innerHTML = `<td>${r.q}</td><td>${r.u}</td><td>${r.ok?'✅':`❌ (${r.c})`}</td>`;
+        tb.appendChild(tr);
+    });
+}
+function exportPDF() { const e = document.getElementById('report-print-area'); html2pdf().from(e).save(`TowerBridge_${state.user}.pdf`); }
+function exportVocab() {
+    let t = "Tower Bridge Vocab List\n\n";
+    entities.forEach(e => t += `[Entity] ${e.w} (${e.cn}): ${e.desc}\n`);
+    words.forEach(w => t += `[Word] ${w.w} (${w.cn}): ${w.en}\nEx: ${w.ex}\n\n`);
+    const b = new Blob([t], {type:'text/plain'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'vocab.txt'; a.click();
+}
+function restartAll() { if(confirm("Delete progress?")) { localStorage.removeItem('tbState'); location.reload(); } }
+function fmtTime(s) { const m = Math.floor(s/60); const sec = Math.floor(s%60); return `${m}:${sec<10?'0':''}${sec}`; }
+</script>
+</body>
+</html>

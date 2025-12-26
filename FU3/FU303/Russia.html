@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore: Russia (Pro)</title>
+    
+    <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/babel-standalone/7.22.17/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Fredoka:wght@500;600&family=Noto+Serif:ital,wght@0,500;1,500&family=Rye&display=swap" rel="stylesheet">
+
+    <style>
+        /* 全局设置 */
+        * { -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            color: #fef2f2; 
+            /* 红场之夜渐变 */
+            background: linear-gradient(135deg, #450a0a, #7f1d1d, #991b1b, #b91c1c);
+            background-size: 400% 400%;
+            animation: russiaFlow 30s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        @keyframes russiaFlow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .serif { font-family: 'Noto Serif', serif; }
+        .tsar-font { font-family: 'Rye', serif; } /* 俄式风格字体 */
+
+        /* 主容器 */
+        .app-container {
+            width: 95vw;
+            max-width: 1400px;
+            height: 90vh;
+            background: rgba(69, 10, 10, 0.85); /* 深红底色 */
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .app-container { flex-direction: column; height: 100vh; width: 100vw; border-radius: 0; }
+        }
+
+        /* 动画 */
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 滚动条 */
+        .custom-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(252, 165, 165, 0.3) transparent; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(252, 165, 165, 0.3); border-radius: 10px; }
+
+        /* 滑块 */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 28px; width: 28px; border-radius: 50%;
+            background: #fbbf24; border: 4px solid white; cursor: pointer; margin-top: -12px;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.6); transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; cursor: pointer; 
+            background: rgba(255,255,255,0.2); border-radius: 10px;
+        }
+
+        /* 返回按钮 */
+        .nav-back { 
+            position: absolute; top: 24px; left: 24px; z-index: 50; 
+            background: rgba(0,0,0,0.6); color: white; 
+            padding: 10px 20px; border-radius: 99px; text-decoration: none; 
+            backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); 
+            font-weight: 600; font-size: 1rem;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .nav-back:hover { background: rgba(0,0,0,0.8); transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // 🔹 Azure 语音配置
+        // ==========================================
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const azureRegion = "eastus2"; 
+        
+        let currentSynthesizer = null;
+
+        const speak = (text, onComplete) => {
+            if (currentSynthesizer) { currentSynthesizer.close(); currentSynthesizer = null; }
+            if (!text) { if(onComplete) onComplete(); return; }
+            
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+                currentSynthesizer = synthesizer;
+                
+                synthesizer.speakTextAsync(text, result => {
+                    synthesizer.close(); currentSynthesizer = null;
+                    if(onComplete) onComplete();
+                }, err => { console.error(err); synthesizer.close(); currentSynthesizer = null; if(onComplete) onComplete(); });
+            } catch (e) { console.error("Azure Error", e); if(onComplete) onComplete(); }
+        };
+
+        // ==========================================
+        // 🔹 数据配置
+        // ==========================================
+        const CONTENT = {
+            country: "Russia",
+            
+            // 景点：圣瓦西里大教堂
+            title: "Saint Basil's Cathedral",
+            imgs: ["saint basil.jpg", "saint basil_01.jpg", "saint basil_02.jpg"],
+            desc_en: "Located in Red Square, Moscow, Saint Basil's Cathedral is famous for its colorful, onion-shaped domes. Built in the 16th century by Ivan the Terrible, it is a symbol of Russia's unique architecture.",
+            desc_cn: "圣瓦西里大教堂位于莫斯科红场，以其色彩斑斓的洋葱头穹顶而闻名。由伊凡雷帝建于16世纪，它是俄罗斯独特建筑的象征。",
+            
+            // 趣味知识
+            facts: [
+                {
+                    title: "The Largest Country",
+                    icon: "ph-globe-hemisphere-east",
+                    en: "Russia is the largest country in the world, covering 11 time zones! It is so big that when it's morning in the west, it's evening in the east.",
+                    cn: "俄罗斯是世界上面积最大的国家，横跨11个时区！它大到当西部是早晨时，东部已经是晚上了。"
+                },
+                {
+                    title: "Deepest Lake",
+                    icon: "ph-drop",
+                    en: "Lake Baikal in Siberia is the deepest and oldest lake in the world. It holds about 20% of the world's unfrozen fresh water.",
+                    cn: "西伯利亚的贝加尔湖是世界上最深、最古老的湖泊。它储存了世界约20%的未冻结淡水。"
+                },
+                {
+                    title: "Longest Railway",
+                    icon: "ph-train",
+                    en: "The Trans-Siberian Railway is the longest railway line in the world, connecting Moscow to Vladivostok. The journey takes about a week!",
+                    cn: "西伯利亚大铁路是世界上最长的铁路线，连接莫斯科和符拉迪沃斯托克。全程大约需要一周时间！"
+                }
+            ],
+            
+            intro: "Privet! Let's explore the vast lands of Russia."
+        };
+
+        // ==========================================
+        // 🔹 组件区域
+        // ==========================================
+
+        const App = () => {
+            const [view, setView] = useState('focus'); // focus | learn
+            const [focusVal, setFocusVal] = useState(0);
+            const [imgIdx, setImgIdx] = useState(0); 
+            
+            useEffect(() => { setTimeout(() => speak(CONTENT.intro), 800); }, []);
+
+            const handleFocusComplete = () => {
+                speak("Magnificent! Welcome to Moscow.", () => {
+                    setTimeout(() => setView('learn'), 1000);
+                });
+            };
+
+            const changeImage = (dir) => {
+                const total = CONTENT.imgs.length;
+                let next = imgIdx + dir;
+                if (next >= total) next = 0;
+                if (next < 0) next = total - 1;
+                setImgIdx(next);
+            };
+
+            return (
+                <div className="app-container fade-in">
+                    
+                    {/* 1. 左侧：相机取景器 */}
+                    <div className="flex-1 md:flex-[1.8] relative bg-black overflow-hidden border-b-4 md:border-b-0 md:border-r-4 border-red-900/50 group h-[40vh] md:h-auto">
+                        <a href="FU303Main.html" className="nav-back">
+                            <i className="ph ph-arrow-u-up-left text-xl"></i> Back to Map
+                        </a>
+
+                        <div className="w-full h-full overflow-hidden relative">
+                            
+                            {/* 图片切换箭头 */}
+                            <button onClick={(e) => { e.stopPropagation(); changeImage(-1); }} 
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-md z-30 transition border border-white/20 hover:scale-110">
+                                <i className="ph ph-caret-left text-2xl"></i>
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); changeImage(1); }} 
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-md z-30 transition border border-white/20 hover:scale-110">
+                                <i className="ph ph-caret-right text-2xl"></i>
+                            </button>
+
+                            {/* 指示器 */}
+                            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+                                {CONTENT.imgs.map((_, i) => (
+                                    <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === imgIdx ? 'bg-yellow-400 w-6' : 'bg-white/40'}`}></div>
+                                ))}
+                            </div>
+
+                            <img 
+                                key={imgIdx} 
+                                src={CONTENT.imgs[imgIdx]} 
+                                className="w-full h-full object-cover transition-all duration-500 transform scale-110 animate-[fadeIn_0.5s]"
+                                style={{ 
+                                    filter: `blur(${Math.max(0, 20 - (focusVal / 4))}px) brightness(${0.6 + (focusVal/300)}) contrast(1.1)`,
+                                    transform: `scale(${1.1 - (focusVal/1000)})` 
+                                }}
+                                onError={(e) => e.target.src = 'https://placehold.co/1200x800/450a0a/fbbf24?text=Saint+Basil'}
+                            />
+                            {view !== 'focus' && <div className="absolute inset-0 bg-red-900/20 mix-blend-overlay animate-pulse pointer-events-none"></div>}
+                        </div>
+
+                        {/* 相机 UI */}
+                        <div className="absolute inset-0 pointer-events-none p-8 flex flex-col justify-between z-10">
+                            <div className="flex justify-between items-start">
+                                <div className="text-red-500 font-mono font-bold animate-pulse flex items-center gap-3 bg-black/40 px-3 py-1 rounded backdrop-blur-sm">
+                                    <div className="w-3 h-3 bg-red-500 rounded-full shadow-[0_0_10px_red]"></div> REC
+                                </div>
+                                <div className="text-white/80 font-mono text-sm flex flex-col items-end gap-1">
+                                    <span>ISO 800</span>
+                                    <span className="text-yellow-400">AF-S</span>
+                                </div>
+                            </div>
+                            
+                            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${view !== 'focus' ? 'w-full h-full border-4 border-yellow-500/50' : 'w-64 h-48 border-2 border-white/30'}`}>
+                                {view === 'focus' ? (
+                                    <>
+                                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-white"></div>
+                                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-white"></div>
+                                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-white"></div>
+                                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-white"></div>
+                                        <div className="w-2 h-2 bg-white/50 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+                                    </>
+                                ) : (
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-400 font-black tracking-widest text-3xl animate-ping opacity-50">LOCKED</div>
+                                )}
+                            </div>
+
+                            <div className="flex justify-between items-end text-white/60 font-mono text-sm">
+                                <div>MOSCOW, RUSSIA</div>
+                                <div className={`${focusVal > 90 ? 'text-yellow-400 font-bold' : 'text-white'}`}>FOCUS: {focusVal}%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2. 右侧：控制面板 */}
+                    <div className="flex-1 bg-slate-900/60 backdrop-blur-3xl border-l border-white/5 relative flex flex-col h-[60vh] md:h-auto overflow-hidden">
+                        
+                        {/* 进度条 */}
+                        <div className="flex justify-center gap-2 pt-6 pb-2 shrink-0">
+                            {['focus', 'learn'].map((v, i) => (
+                                <div key={v} className={`h-1.5 w-12 rounded-full transition-all ${view === v ? 'bg-yellow-500 shadow-[0_0_10px_#fbbf24]' : 'bg-slate-600'}`}></div>
+                            ))}
+                        </div>
+
+                        <div className="flex-1 relative overflow-y-auto custom-scroll p-6 md:p-8">
+                            <div className="min-h-full flex flex-col items-center justify-center">
+                            
+                                {/* --- Phase 1: Focus --- */}
+                                {view === 'focus' && (
+                                    <div className="w-full flex flex-col items-center fade-in">
+                                        <h2 className="text-yellow-200 font-bold uppercase tracking-[0.2em] text-xs mb-4">Step 1: Identify</h2>
+                                        <div className="bg-red-900/30 text-yellow-100 px-6 py-4 rounded-2xl border border-yellow-500/20 inline-block font-medium shadow-lg w-full max-w-sm text-center mb-10">
+                                            <i className="ph ph-aperture mr-2 align-middle"></i> "Adjust focus to reveal the landmark."
+                                        </div>
+
+                                        <div className="w-full max-w-sm mb-8 relative group">
+                                            <div className="flex justify-between text-xs text-slate-400 mb-3 font-mono tracking-widest">
+                                                <span>BLUR</span><span>SHARP</span>
+                                            </div>
+                                            <input 
+                                                type="range" min="0" max="100" value={focusVal} 
+                                                onChange={(e) => {
+                                                    const v = parseInt(e.target.value);
+                                                    setFocusVal(v);
+                                                    if(v > 90) handleFocusComplete();
+                                                }}
+                                                className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-slate-700"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* --- Phase 2: Learn --- */}
+                                {view === 'learn' && (
+                                    <div className="w-full fade-in flex flex-col items-center gap-6 pb-8">
+                                        
+                                        <div className="text-center">
+                                            <span className="text-yellow-500 font-bold tracking-widest text-xs uppercase mb-2 block">Destination: {CONTENT.country}</span>
+                                            <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-red-200 mb-2 drop-shadow-sm tsar-font">
+                                                {CONTENT.title}
+                                            </h1>
+                                            <button onClick={() => speak(CONTENT.title)} className="p-2 rounded-full text-yellow-400 hover:text-white transition">
+                                                <i className="ph ph-speaker-high text-2xl"></i>
+                                            </button>
+                                        </div>
+
+                                        {/* Card 1: Saint Basil Info */}
+                                        <div className="bg-gradient-to-b from-white/10 to-white/5 p-6 rounded-3xl border border-white/10 text-left shadow-2xl relative overflow-hidden w-full">
+                                            <div className="absolute top-0 right-0 p-4 opacity-10"><i className="ph ph-church text-8xl text-yellow-200"></i></div>
+                                            <h3 className="text-yellow-400 font-bold uppercase tracking-widest text-xs mb-2">Iconic Landmark</h3>
+                                            <p className="serif text-lg text-red-50 mb-3 leading-relaxed relative z-10">"{CONTENT.desc_en}"</p>
+                                            <p className="text-slate-400 text-sm mb-4 leading-relaxed">{CONTENT.desc_cn}</p>
+                                            <div className="text-right">
+                                                <button onClick={() => speak(CONTENT.desc_en)} className="px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-white shadow-lg transition gap-2 ml-auto font-bold text-sm border border-white/10">
+                                                    <i className="ph ph-speaker-high"></i> Listen
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Card 2: Fun Facts Stack */}
+                                        <div className="w-full flex flex-col gap-4">
+                                            <h3 className="text-red-400 font-bold uppercase tracking-widest text-xs ml-2 mb-1">Did You Know?</h3>
+                                            
+                                            {CONTENT.facts.map((fact, idx) => (
+                                                <div key={idx} className="group bg-slate-900/40 hover:bg-slate-800/60 p-5 rounded-2xl border border-white/5 hover:border-yellow-500/50 transition-all duration-300">
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="w-10 h-10 rounded-full bg-red-900/50 flex items-center justify-center text-yellow-400 group-hover:bg-yellow-500 group-hover:text-red-900 transition">
+                                                            <i className={`ph ${fact.icon} text-xl`}></i>
+                                                        </div>
+                                                        <h4 className="text-lg font-bold text-white">{fact.title}</h4>
+                                                    </div>
+                                                    <p className="text-sm text-slate-300 mb-2 leading-relaxed">{fact.en}</p>
+                                                    <p className="text-xs text-slate-500 mb-3">{fact.cn}</p>
+                                                    <button onClick={() => speak(fact.en)} className="text-xs font-bold text-yellow-500 hover:text-white flex items-center gap-1 transition">
+                                                        <i className="ph ph-speaker-high"></i> Read Fact
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

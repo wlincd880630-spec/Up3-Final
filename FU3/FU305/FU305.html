@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zootopia Academy: Micro vs Macro</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #4c1d95 0%, #8b5cf6 100%);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --micro-color: #10b981; /* Emerald */
+            --macro-color: #f59e0b; /* Amber */
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --accent: #7c3aed;
+        }
+
+        body {
+            margin: 0; font-family: 'Nunito', sans-serif; min-height: 100vh; overflow-y: auto;
+            background: var(--bg-gradient); display: flex; justify-content: center; align-items: flex-start;
+            user-select: none; padding: 20px 0;
+        }
+
+        /* --- Home 按钮 --- */
+        .home-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 2000;
+            background: rgba(255,255,255,0.2); color: white;
+            padding: 10px 20px; border-radius: 50px; text-decoration: none;
+            font-weight: 800; border: 2px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(5px); transition: 0.2s; display: flex; align-items: center; gap: 8px;
+        }
+        .home-btn:hover { background: rgba(255,255,255,0.4); transform: scale(1.05); }
+
+        /* --- 主容器 --- */
+        #app-frame {
+            width: 95vw; max-width: 1200px; min-height: 85vh;
+            background: var(--glass-bg); border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative; display: flex; flex-direction: column;
+            overflow: hidden; border: 4px solid rgba(255,255,255,0.5);
+        }
+
+        /* --- 顶部导航 --- */
+        .header {
+            height: 80px; padding: 0 40px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.5);
+        }
+        .logo { font-family: 'Fredoka'; font-size: 1.8rem; color: #4c1d95; display: flex; align-items: center; gap: 10px; }
+        .progress-dots { display: flex; gap: 10px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; background: #cbd5e1; transition: 0.3s; }
+        .dot.active { background: #7c3aed; transform: scale(1.3); box-shadow: 0 0 10px rgba(124, 58, 237, 0.5); }
+
+        /* --- 视图切换 --- */
+        .view-container { flex: 1; position: relative; width: 100%; height: 100%; }
+        .view {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            animation: fadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1); padding: 20px; box-sizing: border-box;
+        }
+        .view.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+        /* --- VIEW 1: SOUND LAB (Fixed) --- */
+        .sound-card {
+            background: white; padding: 40px; border-radius: 30px; text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 100%; max-width: 500px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .play-btn-large {
+            width: 120px; height: 120px; border-radius: 50%; 
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white; font-size: 3rem; border: 6px solid #e0e7ff;
+            cursor: pointer; transition: 0.2s; margin: 20px auto;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.4);
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .play-btn-large:active { transform: scale(0.95); }
+        .play-btn-large.playing { animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(139, 92, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); } }
+
+        .progress-text { font-weight: 800; color: #cbd5e1; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+
+        .choice-container { width: 100%; display: flex; justify-content: space-between; margin-top: 30px; gap: 20px; }
+        .choice-btn {
+            flex: 1; padding: 15px; border-radius: 16px; font-weight: 800; font-size: 1.2rem;
+            border: 3px solid transparent; cursor: pointer; transition: 0.2s; background: #f8fafc; color: var(--text-dark);
+        }
+        .choice-btn:hover { transform: translateY(-3px); }
+        .choice-micro:hover { border-color: var(--micro-color); color: var(--micro-color); background: #ecfdf5; }
+        .choice-macro:hover { border-color: var(--macro-color); color: var(--macro-color); background: #fffbeb; }
+
+        /* --- VIEW 2: SLIDER --- */
+        .slider-wrapper { 
+            position: relative; width: 100%; max-width: 800px; aspect-ratio: 16/9;
+            border-radius: 24px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2); 
+            background: #000;
+        }
+        .slide-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: clip-path 0.1s; }
+        
+        .slider-control {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 70%; appearance: none; height: 8px; background: rgba(255,255,255,0.5);
+            border-radius: 10px; outline: none; z-index: 50; backdrop-filter: blur(5px);
+        }
+        .slider-control::-webkit-slider-thumb {
+            appearance: none; width: 32px; height: 32px; background: white; border-radius: 50%;
+            cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 4px solid var(--accent);
+        }
+        .label-overlay {
+            position: absolute; top: 20px; padding: 8px 20px; border-radius: 50px;
+            background: rgba(255,255,255,0.9); font-weight: 800; font-size: 1.2rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); pointer-events: none;
+        }
+        #label-micro { left: 20px; color: var(--micro-color); }
+        #label-macro { right: 20px; color: var(--macro-color); opacity: 0; }
+
+        /* --- VIEW 3: WORD BUILDER --- */
+        .builder-layout { display: flex; gap: 20px; align-items: center; justify-content: center; width: 100%; max-width: 1000px; }
+        .col { display: flex; flex-direction: column; gap: 12px; }
+        
+        .word-piece {
+            padding: 15px 30px; background: white; border: 2px solid #e2e8f0;
+            border-radius: 16px; font-weight: 700; color: var(--text-light); cursor: pointer;
+            transition: 0.2s; text-align: center; font-size: 1.1rem;
+        }
+        .word-piece:hover { border-color: var(--accent); color: var(--accent); transform: translateX(5px); }
+        .word-piece.selected { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3); }
+
+        .result-box { 
+            width: 320px; height: 400px; background: white; border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; padding: 30px; text-align: center;
+            opacity: 0; transform: rotateY(90deg); transition: 0.5s;
+        }
+        .result-box.show { opacity: 1; transform: rotateY(0deg); }
+        .res-img { width: 150px; height: 150px; object-fit: contain; margin-bottom: 20px; }
+
+        /* --- VIEW 4: SORTING --- */
+        .sort-area { width: 100%; max-width: 900px; display: flex; flex-direction: column; align-items: center; }
+        
+        .draggable-card {
+            background: white; padding: 20px 40px; border-radius: 20px;
+            font-size: 1.5rem; font-weight: 800; color: var(--text-dark);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15); margin-bottom: 40px;
+            animation: float 3s ease-in-out infinite; cursor: grab;
+        }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        .bins-container { display: flex; gap: 40px; width: 100%; justify-content: center; }
+        .bin {
+            flex: 1; max-width: 300px; height: 250px; border-radius: 30px;
+            border: 4px dashed #cbd5e1; background: rgba(255,255,255,0.5);
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            padding-bottom: 30px; cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .bin:hover { transform: scale(1.05); background: rgba(255,255,255,0.8); }
+        .bin.micro-bin:hover { border-color: var(--micro-color); }
+        .bin.macro-bin:hover { border-color: var(--macro-color); }
+        .bin-icon { font-size: 4rem; margin-bottom: 10px; opacity: 0.5; transition: 0.2s; }
+        .bin:hover .bin-icon { opacity: 1; transform: scale(1.2); }
+
+        /* --- 导航按钮 --- */
+        .nav-btn {
+            position: absolute; bottom: 30px; right: 40px;
+            padding: 12px 30px; background: var(--text-dark); color: white; border-radius: 50px;
+            font-weight: bold; cursor: pointer; border: none; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            display: none; align-items: center; gap: 10px; transition: 0.2s;
+        }
+        .nav-btn:hover { background: var(--accent); transform: translateY(-3px); }
+        .nav-btn.show { display: flex; }
+
+        /* --- 反馈弹窗 --- */
+        #feedback-modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            background: white; padding: 40px; border-radius: 30px; text-align: center;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.4); z-index: 200; transition: 0.4s; width: 320px;
+        }
+        #feedback-modal.show { transform: translate(-50%, -50%) scale(1); }
+        .nick-img { width: 140px; height: 140px; object-fit: contain; margin-bottom: 20px; }
+
+        /* 手机适配 */
+        @media (max-width: 768px) {
+            .header { padding: 0 20px; height: 60px; }
+            .logo { font-size: 1.2rem; }
+            .builder-layout { flex-direction: column; gap: 10px; }
+            .result-box { width: 100%; height: auto; min-height: 300px; }
+            .bins-container { gap: 15px; }
+            .bin { height: 180px; }
+            .bin-icon { font-size: 2.5rem; }
+            .choice-container { flex-direction: column; width: 100%; gap: 15px; }
+            .choice-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<a href="../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
+
+<div id="app-frame">
+    <div class="header">
+        <div class="logo"><i class="fas fa-paw"></i> Zootopia Academy</div>
+        <div class="progress-dots">
+            <div class="dot active" id="dot-1"></div>
+            <div class="dot" id="dot-2"></div>
+            <div class="dot" id="dot-3"></div>
+            <div class="dot" id="dot-4"></div>
+        </div>
+    </div>
+
+    <div class="view-container">
+        
+        <div id="view-1" class="view active">
+            <h2 style="font-family:'Fredoka'; color:#334155; font-size:2rem; margin-bottom:10px;">Sound Lab</h2>
+            <p style="color:#64748b; font-size:1.1rem; margin-bottom:30px;">Is the sound <strong style="color:var(--micro-color)">Micro</strong> or <strong style="color:var(--macro-color)">Macro</strong>?</p>
+            
+            <div class="sound-card">
+                <div class="progress-text" id="sound-progress">Word 1 / 3</div>
+                
+                <button class="play-btn-large" id="play-btn" onclick="playCurrentSound()">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                
+                <div class="choice-container">
+                    <button class="choice-btn choice-micro" onclick="checkSound('micro')">
+                        <i class="fas fa-microscope"></i> Micro
+                    </button>
+                    <button class="choice-btn choice-macro" onclick="checkSound('macro')">
+                        <i class="fas fa-globe-americas"></i> Macro
+                    </button>
+                </div>
+                
+                <div id="sound-feedback" style="margin-top:20px; font-weight:bold; height:30px; font-size:1.2rem;"></div>
+            </div>
+        </div>
+
+        <div id="view-2" class="view">
+            <h2 style="font-family:'Fredoka'; color:#334155; font-size:2rem; margin-bottom:15px;">Perspective Shift</h2>
+            
+            <div class="slider-wrapper">
+                <img src="Scene_Macro.jpg" class="slide-layer" style="z-index: 1;" onerror="this.src='https://placehold.co/800x450/f59e0b/ffffff?text=Macro+View'">
+                <img src="Scene_Micro.jpg" class="slide-layer" id="micro-layer" style="z-index: 2;" onerror="this.src='https://placehold.co/800x450/10b981/ffffff?text=Micro+View'">
+                
+                <input type="range" min="0" max="100" value="0" class="slider-control" id="perspective-slider" oninput="updateSlider()">
+                
+                <div class="label-overlay" id="label-micro">MICRO</div>
+                <div class="label-overlay" id="label-macro">MACRO</div>
+            </div>
+            <p style="margin-top:20px; color:#64748b;">Drag slider to change perspective!</p>
+        </div>
+
+        <div id="view-3" class="view">
+            <h2 style="font-family:'Fredoka'; color:#334155; font-size:2rem; margin-bottom:20px;">Word Builder</h2>
+            
+            <div class="builder-layout">
+                <div class="col">
+                    <div style="font-weight:bold; color:#94a3b8; font-size:0.9rem;">PREFIX</div>
+                    <div class="word-piece" id="p-micro" onclick="selectPrefix('micro')">Micro-</div>
+                    <div class="word-piece" id="p-macro" onclick="selectPrefix('macro')">Macro-</div>
+                </div>
+                <i class="fas fa-plus" style="color:#cbd5e1; font-size:1.5rem;"></i>
+                <div class="col">
+                    <div style="font-weight:bold; color:#94a3b8; font-size:0.9rem;">ROOT</div>
+                    <div class="word-piece" id="r-scope" onclick="selectRoot('scope')">scope</div>
+                    <div class="word-piece" id="r-biology" onclick="selectRoot('biology')">biology</div>
+                    <div class="word-piece" id="r-economics" onclick="selectRoot('economics')">economics</div>
+                </div>
+                <i class="fas fa-arrow-right" style="color:#cbd5e1; font-size:1.5rem;"></i>
+                <div class="col">
+                    <div class="result-box" id="result-box">
+                        <img id="res-img" class="res-img" src="" onerror="this.style.display='none'">
+                        <h3 id="res-word" style="font-size:1.8rem; color:var(--text-dark); margin:0 0 10px 0;"></h3>
+                        <p id="res-def" style="color:var(--text-light); line-height:1.5;"></p>
+                        <button class="btn" style="margin-top:auto;" onclick="speakResult()"><i class="fas fa-volume-up"></i> Listen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-4" class="view">
+            <h2 style="font-family:'Fredoka'; color:#334155; font-size:2rem; margin-bottom:10px;">Nick's Sorting Job</h2>
+            <p style="color:#64748b; margin-bottom:20px;">Help Nick sort the evidence!</p>
+
+            <div class="sort-area">
+                <div id="drag-zone">
+                    <div class="draggable-card" id="current-drag">Loading...</div>
+                </div>
+
+                <div class="bins-container">
+                    <div class="bin micro-bin" onclick="checkSort('micro')">
+                        <i class="fas fa-search-plus bin-icon" style="color:var(--micro-color);"></i>
+                        <div style="font-family:'Fredoka'; font-size:1.5rem; color:var(--micro-color);">MICRO</div>
+                        <div style="color:#64748b; font-size:0.9rem; font-weight:bold;">Small Details</div>
+                    </div>
+                    <div class="bin macro-bin" onclick="checkSort('macro')">
+                        <i class="fas fa-globe bin-icon" style="color:var(--macro-color);"></i>
+                        <div style="font-family:'Fredoka'; font-size:1.5rem; color:var(--macro-color);">MACRO</div>
+                        <div style="color:#64748b; font-size:0.9rem; font-weight:bold;">Big Picture</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <button class="nav-btn" id="next-btn" onclick="nextView()">
+        Next Activity <i class="fas fa-arrow-right"></i>
+    </button>
+
+    <div id="feedback-modal">
+        <img id="feedback-nick-img" class="nick-img" src="" style="display:none;">
+        <div id="feedback-icon" style="font-size:4rem; margin-bottom:15px;"></div>
+        <h2 id="feedback-text" style="font-family:'Fredoka'; margin:0 0 20px 0;"></h2>
+        <button class="btn btn-primary" onclick="closeModal()">Continue</button>
+    </div>
+
+</div>
+
+<script>
+    // --- STATE & DATA ---
+    let currentView = 1;
+    const totalViews = 4;
+
+    // View 1 Data (3 Distinct Words)
+    const soundList = [
+        { w: "Microscope", t: "micro" },
+        { w: "Macroeconomics", t: "macro" },
+        { w: "Microorganism", t: "micro" }
+    ];
+    let soundIdx = 0;
+
+    // View 3 Data (Image Mappings)
+    const definitions = {
+        "micro-scope": { w: "Microscope", img: "Object_Microscope.jpg", d: "An instrument to see objects that are too small for the naked eye." },
+        "macro-economics": { w: "Macroeconomics", img: "Object_Globe.jpg", d: "The study of the economy as a whole (countries, global)." },
+        "micro-biology": { w: "Microbiology", icon: "🦠", d: "The study of microscopic organisms like bacteria and viruses." },
+        "micro-economics": { w: "Microeconomics", icon: "🏠", d: "The study of decisions made by individuals and businesses." },
+        "macro-biology": { w: "Macrobiology", icon: "🐘", d: "The study of large living organisms and ecosystems." },
+        "macro-scope": { w: "Macroscope", icon: "🔭", d: "Observation of objects large enough to be seen with the naked eye." }
+    };
+    let selPre = null; let selRoot = null;
+
+    // View 4 Data
+    const sortItems = [
+        { text: "One single ant", type: "micro" },
+        { text: "Forest Ecosystem", type: "macro" },
+        { text: "Family Budget", type: "micro" },
+        { text: "Global Warming", type: "macro" },
+        { text: "A specific virus", type: "micro" }
+    ];
+    let sortIdx = 0;
+
+    // --- AZURE SPEECH ---
+    const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const azureRegion = "eastus2"; 
+    let synthesizer = null;
+
+    function speak(text) {
+        if (synthesizer) { synthesizer.close(); synthesizer = null; }
+        try {
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+            speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+            
+            // Visual Feedback
+            const btn = document.getElementById('play-btn');
+            if(btn) btn.classList.add('playing');
+
+            synthesizer.speakTextAsync(text, res => {
+                if(btn) btn.classList.remove('playing');
+                synthesizer.close();
+                synthesizer = null;
+            });
+        } catch (e) { console.error("Azure Error:", e); }
+    }
+
+    // --- VIEW 1 LOGIC ---
+    function playCurrentSound() { 
+        speak(soundList[soundIdx].w); 
+    }
+    
+    function checkSound(choice) {
+        if (soundIdx >= soundList.length) return; // Prevent extra clicks
+
+        const correct = soundList[soundIdx].t;
+        const feedback = document.getElementById('sound-feedback');
+        
+        if (choice === correct) {
+            feedback.innerHTML = '<span style="color:#10b981">Correct!</span>';
+            soundIdx++;
+            
+            if(soundIdx < soundList.length) {
+                // Next Question
+                setTimeout(() => { 
+                    feedback.innerHTML = ""; 
+                    document.getElementById('sound-progress').innerText = `Word ${soundIdx + 1} / ${soundList.length}`;
+                    playCurrentSound(); 
+                }, 1000);
+            } else {
+                // Finish
+                feedback.innerHTML = "All Correct!";
+                document.getElementById('next-btn').classList.add('show');
+            }
+        } else {
+            feedback.innerHTML = '<span style="color:#ef4444">Listen again!</span>';
+            playCurrentSound();
+        }
+    }
+
+    // --- VIEW 2 LOGIC ---
+    function updateSlider() {
+        const val = document.getElementById('perspective-slider').value;
+        document.getElementById('micro-layer').style.clipPath = `inset(0 0 0 ${val}%)`;
+        document.getElementById('label-micro').style.opacity = 1 - (val/100);
+        document.getElementById('label-macro').style.opacity = val/100;
+        if(val > 80) document.getElementById('next-btn').classList.add('show');
+    }
+
+    // --- VIEW 3 LOGIC ---
+    function selectPrefix(p) {
+        selPre = p;
+        document.querySelectorAll('#view-3 .col:nth-child(1) .word-piece').forEach(b => b.classList.remove('selected'));
+        document.getElementById(`p-${p}`).classList.add('selected');
+        checkBuilder();
+    }
+    function selectRoot(r) {
+        selRoot = r;
+        document.querySelectorAll('#view-3 .col:nth-child(3) .word-piece').forEach(b => b.classList.remove('selected'));
+        document.getElementById(`r-${r}`).classList.add('selected');
+        checkBuilder();
+    }
+    function checkBuilder() {
+        if(selPre && selRoot) {
+            const data = definitions[`${selPre}-${selRoot}`];
+            if(data) {
+                const box = document.getElementById('result-box');
+                box.classList.remove('show');
+                
+                setTimeout(() => {
+                    const img = document.getElementById('res-img');
+                    if(data.img) {
+                        img.src = data.img;
+                        img.style.display = 'block';
+                    } else {
+                        img.style.display = 'none'; // Use Emoji/Icon logic if needed, simplified here
+                    }
+                    
+                    document.getElementById('res-word').innerText = data.w;
+                    document.getElementById('res-def').innerText = data.d;
+                    box.classList.add('show');
+                    speak(data.w);
+                    document.getElementById('next-btn').classList.add('show');
+                }, 300);
+            }
+        }
+    }
+    function speakResult() { speak(document.getElementById('res-word').innerText); }
+
+    // --- VIEW 4 LOGIC ---
+    function initSorting() {
+        if (sortIdx < sortItems.length) {
+            document.getElementById('current-drag').innerText = sortItems[sortIdx].text;
+            speak(sortItems[sortIdx].text);
+        }
+    }
+    
+    function checkSort(type) {
+        if (sortIdx >= sortItems.length) return;
+        
+        const correct = sortItems[sortIdx].type;
+        if (type === correct) {
+            showFeedback(true);
+            sortIdx++;
+            if (sortIdx >= sortItems.length) {
+                setTimeout(() => { 
+                    document.querySelector('#feedback-modal button').onclick = () => location.reload();
+                    document.getElementById('feedback-text').innerText = "Mission Complete!";
+                    document.getElementById('feedback-modal').classList.add('show');
+                }, 1000);
+            }
+        } else {
+            showFeedback(false);
+        }
+    }
+
+    function showFeedback(isHappy) {
+        const text = isHappy ? "Correct!" : "Oops, try again!";
+        document.getElementById('feedback-text').innerText = text;
+        const imgEl = document.getElementById('feedback-nick-img');
+        const iconEl = document.getElementById('feedback-icon');
+        
+        // Try to use Nick images if they exist
+        const imgName = isHappy ? 'Nick_Happy.png' : 'Nick_Confused.png';
+        
+        imgEl.src = imgName;
+        imgEl.style.display = 'block';
+        imgEl.onerror = function() {
+            // Fallback if user didn't generate Nick images
+            this.style.display = 'none';
+            iconEl.innerText = isHappy ? "🌟" : "🤔";
+            iconEl.style.display = 'block';
+        };
+        iconEl.style.display = 'none'; // Hide icon initially, rely on onerror to show it
+
+        document.getElementById('feedback-modal').classList.add('show');
+    }
+
+    function closeModal() {
+        document.getElementById('feedback-modal').classList.remove('show');
+        if (currentView === 4) initSorting();
+    }
+
+    // --- NAVIGATION ---
+    function nextView() {
+        if (currentView < totalViews) {
+            document.getElementById(`view-${currentView}`).classList.remove('active');
+            document.getElementById(`dot-${currentView}`).classList.remove('active');
+            currentView++;
+            document.getElementById(`view-${currentView}`).classList.add('active');
+            document.getElementById(`dot-${currentView}`).classList.add('active');
+            document.getElementById('next-btn').classList.remove('show');
+            if (currentView === 4) initSorting();
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore: Jordan (Pro)</title>
+    
+    <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/babel-standalone/7.22.17/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Fredoka:wght@500;600&family=Noto+Serif:ital,wght@0,500;1,500&family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* 全局设置 */
+        * { -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            color: #fff7ed; 
+            /* 玫瑰古城渐变：深红 -> 橙金 -> 深紫 */
+            background: linear-gradient(135deg, #4a0404, #9f1239, #ea580c, #4c0519);
+            background-size: 400% 400%;
+            animation: desertSunset 30s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        @keyframes desertSunset { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .serif { font-family: 'Noto Serif', serif; }
+        .ancient { font-family: 'Cinzel', serif; } /* 古典字体 */
+
+        /* 主容器 */
+        .app-container {
+            width: 95vw;
+            max-width: 1400px;
+            height: 90vh;
+            background: rgba(88, 28, 135, 0.4); /* 半透明深紫 */
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .app-container { flex-direction: column; height: 100vh; width: 100vw; border-radius: 0; }
+        }
+
+        /* 动画 */
+        .fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 滚动条 */
+        .custom-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(251, 146, 60, 0.3) transparent; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(251, 146, 60, 0.3); border-radius: 10px; }
+
+        /* 滑块 */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 28px; width: 28px; border-radius: 50%;
+            background: #f97316; border: 4px solid white; cursor: pointer; margin-top: -12px;
+            box-shadow: 0 0 15px rgba(249, 115, 22, 0.6); transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; cursor: pointer; 
+            background: rgba(255,255,255,0.2); border-radius: 10px;
+        }
+
+        /* 返回按钮 */
+        .nav-back { 
+            position: absolute; top: 24px; left: 24px; z-index: 50; 
+            background: rgba(0,0,0,0.6); color: white; 
+            padding: 10px 20px; border-radius: 99px; text-decoration: none; 
+            backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); 
+            font-weight: 600; font-size: 1rem;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .nav-back:hover { background: rgba(0,0,0,0.8); transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // 🔹 Azure 语音配置
+        // ==========================================
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const azureRegion = "eastus2"; 
+        
+        let currentSynthesizer = null;
+
+        const speak = (text, onComplete) => {
+            if (currentSynthesizer) { currentSynthesizer.close(); currentSynthesizer = null; }
+            if (!text) { if(onComplete) onComplete(); return; }
+            
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+                currentSynthesizer = synthesizer;
+                
+                synthesizer.speakTextAsync(text, result => {
+                    synthesizer.close(); currentSynthesizer = null;
+                    if(onComplete) onComplete();
+                }, err => { console.error(err); synthesizer.close(); currentSynthesizer = null; if(onComplete) onComplete(); });
+            } catch (e) { console.error("Azure Error", e); if(onComplete) onComplete(); }
+        };
+
+        // ==========================================
+        // 🔹 数据配置 (Focus on Interesting Facts)
+        // ==========================================
+        const CONTENT = {
+            title: "Petra",
+            subtitle: "The Rose City",
+            intro: "Let's explore the hidden city in the desert.",
+            
+            // 核心介绍
+            main_en: "Petra is a historical city in southern Jordan, famous for its rock-cut architecture. It is called the 'Rose City' because of the unique pinkish color of the stone.",
+            main_cn: "佩特拉是约旦南部的一座历史古城，以其在岩石上雕刻而成的建筑而闻名。因其岩石独特的粉红色泽，它被称为“玫瑰之城”。",
+
+            // 趣味知识点
+            facts: [
+                {
+                    id: "lost_city",
+                    icon: "ph-eye-slash",
+                    title: "The Lost City",
+                    en: "For centuries, Petra was 'lost' to the Western world. It was rediscovered in 1812 by a Swiss explorer named Johann Burckhardt, who disguised himself as a local to enter!",
+                    cn: "几个世纪以来，佩特拉对西方世界来说是“失落”的。直到1812年，瑞士探险家约翰·伯克哈特乔装成当地人才重新发现了它！"
+                },
+                {
+                    id: "movie",
+                    icon: "ph-film-strip",
+                    title: "Movie Star",
+                    en: "Does this building look familiar? The Treasury (Al-Khazneh) starred in 'Indiana Jones and the Last Crusade' as the hidden temple holding the Holy Grail.",
+                    cn: "这座建筑看起来眼熟吗？卡兹尼神殿曾在电影《夺宝奇兵3》中登场，作为藏有圣杯的神秘神庙。"
+                },
+                {
+                    id: "water",
+                    icon: "ph-drop",
+                    title: "Desert Water",
+                    en: "Despite being in a desert, ancient people built an amazing system of dams and channels to collect water, allowing 30,000 people to live here!",
+                    cn: "尽管身处沙漠，古人却建造了惊人的水坝和水渠系统来收集雨水，曾供养了3万人在此居住！"
+                }
+            ]
+        };
+
+        // ==========================================
+        // 🔹 组件区域
+        // ==========================================
+
+        const App = () => {
+            const [view, setView] = useState('focus'); // focus | learn
+            const [focusVal, setFocusVal] = useState(0);
+            
+            useEffect(() => { setTimeout(() => speak(CONTENT.intro), 800); }, []);
+
+            const handleFocusComplete = () => {
+                speak("Incredible! Welcome to Petra.", () => {
+                    setTimeout(() => setView('learn'), 1000);
+                });
+            };
+
+            return (
+                <div className="app-container fade-in">
+                    
+                    {/* 1. 左侧：相机取景器 */}
+                    <div className="flex-1 md:flex-[1.8] relative bg-black overflow-hidden border-b-4 md:border-b-0 md:border-r-4 border-orange-900/50 group h-[40vh] md:h-auto">
+                        <a href="FU303Main.html" className="nav-back">
+                            <i className="ph ph-arrow-u-up-left text-xl"></i> Back to Map
+                        </a>
+
+                        <div className="w-full h-full overflow-hidden relative">
+                            {/* 图片：Petra (Treasury) */}
+                            <img 
+                                src="petra.jpg" 
+                                className="w-full h-full object-cover transition-all duration-300 transform scale-110"
+                                style={{ 
+                                    filter: `blur(${Math.max(0, 20 - (focusVal / 4))}px) brightness(${0.6 + (focusVal/300)}) sepia(${0.3})`,
+                                    transform: `scale(${1.1 - (focusVal/1000)})` 
+                                }}
+                                onError={(e) => e.target.src = 'https://placehold.co/1200x800/4c0519/fb923c?text=Petra+Jordan'}
+                            />
+                            {view !== 'focus' && <div className="absolute inset-0 bg-orange-500/10 mix-blend-overlay animate-pulse"></div>}
+                        </div>
+
+                        {/* 相机 UI */}
+                        <div className="absolute inset-0 pointer-events-none p-8 flex flex-col justify-between z-10">
+                            <div className="flex justify-between items-start">
+                                <div className="text-red-500 font-mono font-bold animate-pulse flex items-center gap-3 bg-black/40 px-3 py-1 rounded backdrop-blur-sm">
+                                    <div className="w-3 h-3 bg-red-500 rounded-full shadow-[0_0_10px_red]"></div> REC
+                                </div>
+                                <div className="text-white/80 font-mono text-sm flex flex-col items-end gap-1">
+                                    <span>ISO 400</span>
+                                    <span className="text-orange-400">AF-C</span>
+                                </div>
+                            </div>
+                            
+                            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${view !== 'focus' ? 'w-full h-full border-4 border-orange-500/50' : 'w-64 h-48 border-2 border-white/30'}`}>
+                                {view === 'focus' ? (
+                                    <>
+                                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-white"></div>
+                                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-white"></div>
+                                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-white"></div>
+                                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-white"></div>
+                                        <div className="w-2 h-2 bg-white/50 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+                                    </>
+                                ) : (
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-orange-400 font-black tracking-widest text-3xl animate-ping opacity-50">LOCKED</div>
+                                )}
+                            </div>
+
+                            <div className="flex justify-between items-end text-white/60 font-mono text-sm">
+                                <div>MA'AN, JORDAN</div>
+                                <div className={`${focusVal > 90 ? 'text-orange-400 font-bold' : 'text-white'}`}>FOCUS: {focusVal}%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2. 右侧：控制面板 */}
+                    <div className="flex-1 bg-slate-900/60 backdrop-blur-3xl border-l border-white/5 relative flex flex-col h-[60vh] md:h-auto overflow-hidden">
+                        
+                        {/* 进度条 (仅2步) */}
+                        <div className="flex justify-center gap-2 pt-6 pb-2 shrink-0">
+                            {['focus', 'learn'].map((v, i) => (
+                                <div key={v} className={`h-1.5 w-12 rounded-full transition-all ${view === v ? 'bg-orange-500 shadow-[0_0_10px_#f97316]' : 'bg-slate-600'}`}></div>
+                            ))}
+                        </div>
+
+                        <div className="flex-1 relative overflow-y-auto custom-scroll p-6 md:p-8">
+                            <div className="min-h-full flex flex-col items-center justify-center">
+                            
+                                {/* --- Phase 1: Focus --- */}
+                                {view === 'focus' && (
+                                    <div className="w-full flex flex-col items-center fade-in">
+                                        <h2 className="text-orange-200 font-bold uppercase tracking-[0.2em] text-xs mb-4">Step 1: Identify</h2>
+                                        <div className="bg-orange-500/10 text-orange-200 px-6 py-4 rounded-2xl border border-orange-500/20 inline-block font-medium shadow-lg w-full max-w-sm text-center mb-10">
+                                            <i className="ph ph-aperture mr-2 align-middle"></i> "Adjust focus to reveal the Rose City."
+                                        </div>
+
+                                        <div className="w-full max-w-sm mb-8 relative group">
+                                            <div className="flex justify-between text-xs text-slate-400 mb-3 font-mono tracking-widest">
+                                                <span>BLUR</span><span>SHARP</span>
+                                            </div>
+                                            <input 
+                                                type="range" min="0" max="100" value={focusVal} 
+                                                onChange={(e) => {
+                                                    const v = parseInt(e.target.value);
+                                                    setFocusVal(v);
+                                                    if(v > 90) handleFocusComplete();
+                                                }}
+                                                className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-slate-700"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* --- Phase 2: Learn (Rich Content) --- */}
+                                {view === 'learn' && (
+                                    <div className="w-full fade-in flex flex-col items-center gap-6 pb-8">
+                                        
+                                        {/* Main Title */}
+                                        <div className="text-center mb-2">
+                                            <h1 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-200 via-white to-orange-100 mb-1 drop-shadow-sm ancient">
+                                                {CONTENT.title}
+                                            </h1>
+                                            <p className="text-orange-300 font-serif italic text-lg tracking-wide">{CONTENT.subtitle}</p>
+                                            <button onClick={() => speak(CONTENT.title)} className="mt-2 p-2 rounded-full text-orange-400 hover:text-white transition"><i className="ph ph-speaker-high text-2xl"></i></button>
+                                        </div>
+
+                                        {/* Core Intro Card */}
+                                        <div className="bg-gradient-to-b from-white/10 to-white/5 p-6 rounded-3xl border border-white/10 text-left shadow-2xl relative overflow-hidden w-full">
+                                            <div className="absolute top-0 right-0 p-4 opacity-10"><i className="ph ph-columns text-8xl text-orange-200"></i></div>
+                                            <p className="serif text-lg text-orange-50 mb-3 leading-relaxed relative z-10">"{CONTENT.main_en}"</p>
+                                            <p className="text-slate-400 text-sm mb-4 leading-relaxed">{CONTENT.main_cn}</p>
+                                            <div className="text-right">
+                                                <button onClick={() => speak(CONTENT.main_en)} className="px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-white shadow-lg transition gap-2 ml-auto font-bold text-sm border border-white/10">
+                                                    <i className="ph ph-speaker-high"></i> Listen
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Fun Facts Stack */}
+                                        <div className="w-full flex flex-col gap-4">
+                                            <h3 className="text-orange-400 font-bold uppercase tracking-widest text-xs ml-2 mb-1">Did You Know?</h3>
+                                            
+                                            {CONTENT.facts.map((fact, idx) => (
+                                                <div key={idx} className="group bg-slate-800/50 hover:bg-slate-800 p-5 rounded-2xl border border-white/5 hover:border-orange-500/50 transition-all duration-300">
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="w-10 h-10 rounded-full bg-orange-900/50 flex items-center justify-center text-orange-400 group-hover:bg-orange-500 group-hover:text-white transition">
+                                                            <i className={`ph ${fact.icon} text-xl`}></i>
+                                                        </div>
+                                                        <h4 className="text-lg font-bold text-white">{fact.title}</h4>
+                                                    </div>
+                                                    <p className="text-sm text-slate-300 mb-2 leading-relaxed">{fact.en}</p>
+                                                    <p className="text-xs text-slate-500 mb-3">{fact.cn}</p>
+                                                    <button onClick={() => speak(fact.en)} className="text-xs font-bold text-orange-400 hover:text-white flex items-center gap-1 transition">
+                                                        <i className="ph ph-speaker-high"></i> Read Fact
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore: Egypt (Pro V4 - Math Mystery)</title>
+    
+    <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.staticfile.net/babel-standalone/7.22.17/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Fredoka:wght@500;600&family=Noto+Serif:ital,wght@0,500;1,500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* 全局设置 */
+        * { -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            color: #f8fafc; 
+            /* 沙漠星空背景 (深蓝+金) */
+            background: linear-gradient(135deg, #0f172a, #1e1b4b, #312e81, #1e293b);
+            background-size: 400% 400%;
+            animation: nightSky 30s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        @keyframes nightSky { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .serif { font-family: 'Noto Serif', serif; }
+        .mono { font-family: 'Space Grotesk', monospace; }
+
+        /* 主容器 */
+        .app-container {
+            width: 95vw;
+            max-width: 1400px;
+            height: 90vh;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .app-container { flex-direction: column; height: 100vh; width: 100vw; border-radius: 0; }
+        }
+
+        /* 动画 */
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 自定义滚动条 */
+        .custom-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(234, 179, 8, 0.3) transparent; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(234, 179, 8, 0.3); border-radius: 10px; }
+
+        /* 滑块 */
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 28px; width: 28px; border-radius: 50%;
+            background: #eab308; border: 4px solid white; cursor: pointer; margin-top: -12px;
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.6); transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; cursor: pointer; 
+            background: rgba(255,255,255,0.2); border-radius: 10px;
+        }
+
+        /* 返回按钮 */
+        .nav-back { 
+            position: absolute; top: 24px; left: 24px; z-index: 50; 
+            background: rgba(0,0,0,0.6); color: white; 
+            padding: 10px 20px; border-radius: 99px; text-decoration: none; 
+            backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); 
+            font-weight: 600; font-size: 1rem;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .nav-back:hover { background: rgba(0,0,0,0.8); transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // 🔹 Azure 语音配置
+        // ==========================================
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const azureRegion = "eastus2"; 
+        
+        let currentSynthesizer = null;
+
+        const speak = (text, onComplete) => {
+            if (currentSynthesizer) { currentSynthesizer.close(); currentSynthesizer = null; }
+            if (!text) {
+                if(onComplete) onComplete();
+                return;
+            }
+            
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+                currentSynthesizer = synthesizer;
+                
+                synthesizer.speakTextAsync(text, result => {
+                    synthesizer.close(); 
+                    currentSynthesizer = null;
+                    if(onComplete) onComplete();
+                }, err => { 
+                    console.error(err); 
+                    synthesizer.close(); 
+                    currentSynthesizer = null; 
+                    if(onComplete) onComplete();
+                });
+            } catch (e) { 
+                console.error("Azure Error", e); 
+                if(onComplete) onComplete();
+            }
+        };
+
+        // ==========================================
+        // 🔹 数据配置 (新增高度/周长/数学奥秘)
+        // ==========================================
+        const CONTENT = {
+            title: "The Pyramids",
+            word: "Pyramid",
+            sounds: ["p", "y", "r", "a", "m", "i", "d"], 
+            // 历史简介
+            desc_en: "Built over 4,500 years ago, the Pyramids of Giza are massive stone tombs for ancient Egyptian kings. The Great Pyramid is the largest and is one of the Seven Wonders of the Ancient World.",
+            desc_cn: "吉萨金字塔群建于4500多年前，是古埃及国王的巨大石墓。大金字塔是其中最大的一个，也是古代世界七大奇迹之一。",
+            // 数学奥秘 (新增)
+            math_title: "Mathematical Mystery",
+            math_en: "The Great Pyramid originally stood 146.6 meters tall. Amazingly, if you divide its perimeter by twice its height, the result is almost exactly Pi (3.14159), showing the ancient Egyptians' advanced knowledge of mathematics!",
+            math_cn: "大金字塔原高146.6米。惊人的是，如果用塔的周长除以塔高的两倍，结果几乎正好等于圆周率（π），展示了古埃及人高超的数学智慧！",
+            
+            intro: "Let's adjust the lens to reveal the ancient wonder."
+        };
+
+        // ==========================================
+        // 🔹 组件区域
+        // ==========================================
+
+        const App = () => {
+            const [view, setView] = useState('focus'); // focus | mapping | learn
+            const [focusVal, setFocusVal] = useState(0);
+            
+            useEffect(() => {
+                setTimeout(() => speak(CONTENT.intro), 800);
+            }, []);
+
+            const handleFocusComplete = () => {
+                speak("Excellent! Now, let's learn the word.");
+                setTimeout(() => setView('mapping'), 1000);
+            };
+
+            const handleMappingComplete = () => {
+                speak("Correct! Pyramid.", () => {
+                    setTimeout(() => setView('learn'), 500);
+                });
+            };
+
+            return (
+                <div className="app-container fade-in">
+                    
+                    {/* 1. 左侧：相机取景器 */}
+                    <div className="flex-1 md:flex-[1.8] relative bg-black overflow-hidden border-b-4 md:border-b-0 md:border-r-4 border-slate-700/50 group h-[40vh] md:h-auto">
+                        <a href="FU303Main.html" className="nav-back">
+                            <i className="ph ph-arrow-u-up-left text-xl"></i> Back to Map
+                        </a>
+
+                        <div className="w-full h-full overflow-hidden relative">
+                            <img 
+                                src="pyramid.jpg" 
+                                className="w-full h-full object-cover transition-all duration-300 transform scale-110"
+                                style={{ 
+                                    filter: `blur(${Math.max(0, 20 - (focusVal / 4))}px) brightness(${0.5 + (focusVal/200)})`,
+                                    transform: `scale(${1.1 - (focusVal/1000)})` 
+                                }}
+                                onError={(e) => e.target.src = 'https://placehold.co/1200x800/1e1b4b/eab308?text=Pyramids'}
+                            />
+                            {view !== 'focus' && <div className="absolute inset-0 bg-yellow-500/10 mix-blend-overlay animate-pulse"></div>}
+                        </div>
+
+                        {/* 相机 UI */}
+                        <div className="absolute inset-0 pointer-events-none p-8 flex flex-col justify-between z-10">
+                            <div className="flex justify-between items-start">
+                                <div className="text-red-500 font-mono font-bold animate-pulse flex items-center gap-3 bg-black/40 px-3 py-1 rounded backdrop-blur-sm">
+                                    <div className="w-3 h-3 bg-red-500 rounded-full shadow-[0_0_10px_red]"></div> REC
+                                </div>
+                                <div className="text-white/80 font-mono text-sm flex flex-col items-end gap-1">
+                                    <span>ISO 200</span>
+                                    <span className="text-yellow-400">AF-S</span>
+                                </div>
+                            </div>
+                            
+                            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${view !== 'focus' ? 'w-full h-full border-4 border-yellow-500/50' : 'w-64 h-48 border-2 border-white/30'}`}>
+                                {view === 'focus' ? (
+                                    <>
+                                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-white"></div>
+                                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-white"></div>
+                                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-white"></div>
+                                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-white"></div>
+                                        <div className="w-2 h-2 bg-white/50 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+                                    </>
+                                ) : (
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-400 font-black tracking-widest text-3xl animate-ping opacity-50">LOCKED</div>
+                                )}
+                            </div>
+
+                            <div className="flex justify-between items-end text-white/60 font-mono text-sm">
+                                <div>GIZA, EGYPT</div>
+                                <div className={`${focusVal > 90 ? 'text-yellow-400 font-bold' : 'text-white'}`}>FOCUS: {focusVal}%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2. 右侧：控制面板 (可滚动) */}
+                    <div className="flex-1 bg-slate-900/60 backdrop-blur-3xl border-l border-white/5 relative flex flex-col h-[60vh] md:h-auto overflow-hidden">
+                        
+                        {/* 进度条 */}
+                        <div className="flex justify-center gap-2 pt-6 pb-2 shrink-0">
+                            {['focus', 'mapping', 'learn'].map((v, i) => (
+                                <div key={v} className={`h-1.5 w-12 rounded-full transition-all ${view === v ? 'bg-yellow-500 shadow-[0_0_10px_#eab308]' : 'bg-slate-600'}`}></div>
+                            ))}
+                        </div>
+
+                        <div className="flex-1 relative overflow-y-auto custom-scroll p-6 md:p-8">
+                            <div className="min-h-full flex flex-col items-center justify-center">
+                            
+                                {/* --- Phase 1: Focus --- */}
+                                {view === 'focus' && (
+                                    <div className="w-full flex flex-col items-center fade-in">
+                                        <h2 className="text-slate-400 font-bold uppercase tracking-[0.2em] text-xs mb-4">Step 1: Identify</h2>
+                                        <div className="bg-yellow-500/10 text-yellow-200 px-6 py-4 rounded-2xl border border-yellow-500/20 inline-block font-medium shadow-lg w-full max-w-sm text-center mb-10">
+                                            <i className="ph ph-aperture mr-2 align-middle"></i> "Adjust focus to clear the image."
+                                        </div>
+
+                                        <div className="w-full max-w-sm mb-8 relative group">
+                                            <div className="flex justify-between text-xs text-slate-400 mb-3 font-mono tracking-widest">
+                                                <span>BLUR</span><span>SHARP</span>
+                                            </div>
+                                            <input 
+                                                type="range" min="0" max="100" value={focusVal} 
+                                                onChange={(e) => {
+                                                    const v = parseInt(e.target.value);
+                                                    setFocusVal(v);
+                                                    if(v > 90) handleFocusComplete();
+                                                }}
+                                                className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-slate-700"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* --- Phase 2: Mapping --- */}
+                                {view === 'mapping' && (
+                                    <MappingInterface onComplete={handleMappingComplete} />
+                                )}
+
+                                {/* --- Phase 3: Learn (Expanded) --- */}
+                                {view === 'learn' && (
+                                    <div className="w-full fade-in flex flex-col items-center gap-6 pb-8">
+                                        
+                                        {/* Title */}
+                                        <div className="text-center">
+                                            <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-yellow-100 mb-2 drop-shadow-sm display-font">
+                                                {CONTENT.title}
+                                            </h1>
+                                            <button onClick={() => speak(CONTENT.title)} className="p-2 rounded-full text-yellow-400 hover:text-white transition">
+                                                <i className="ph ph-speaker-high text-2xl"></i>
+                                            </button>
+                                        </div>
+
+                                        {/* Card 1: History */}
+                                        <div className="bg-gradient-to-b from-white/10 to-white/5 p-6 rounded-3xl border border-white/10 text-left shadow-2xl relative overflow-hidden w-full">
+                                            <div className="absolute top-0 right-0 p-4 opacity-10"><i className="ph ph-pyramid text-8xl text-yellow-200"></i></div>
+                                            <h3 className="text-yellow-400 font-bold uppercase tracking-widest text-xs mb-2">History</h3>
+                                            <p className="serif text-lg text-yellow-50 mb-3 leading-relaxed relative z-10">"{CONTENT.desc_en}"</p>
+                                            <p className="text-slate-400 text-sm mb-4 leading-relaxed">{CONTENT.desc_cn}</p>
+                                            <div className="text-right">
+                                                <button onClick={() => speak(CONTENT.desc_en)} className="px-4 py-2 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-white shadow-lg transition gap-2 ml-auto font-bold text-sm">
+                                                    <i className="ph ph-speaker-high"></i> Listen
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Card 2: Math Mystery (New!) */}
+                                        <div className="bg-gradient-to-br from-yellow-900/40 to-slate-900/40 p-6 rounded-3xl border border-yellow-500/30 text-left shadow-2xl relative overflow-hidden w-full group">
+                                            <div className="absolute -bottom-4 -right-4 p-4 opacity-20 text-yellow-500"><i className="ph ph-pi text-8xl"></i></div>
+                                            <h3 className="text-yellow-400 font-bold uppercase tracking-widest text-xs mb-2 flex items-center gap-2">
+                                                <i className="ph ph-sparkle"></i> {CONTENT.math_title}
+                                            </h3>
+                                            <p className="serif text-lg text-white mb-3 leading-relaxed relative z-10 font-medium">"{CONTENT.math_en}"</p>
+                                            <p className="text-slate-400 text-sm mb-4 leading-relaxed">{CONTENT.math_cn}</p>
+                                            <div className="text-right relative z-10">
+                                                <button onClick={() => speak(CONTENT.math_en)} className="px-5 py-2 rounded-full bg-yellow-600 hover:bg-yellow-500 flex items-center justify-center text-white shadow-lg shadow-yellow-900/50 transition gap-2 ml-auto font-bold text-sm">
+                                                    <i className="ph ph-speaker-high"></i> Math Secret
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Sub-component: Mapping Interface ---
+        const MappingInterface = ({ onComplete }) => {
+            const sounds = CONTENT.sounds;
+            const [inputs, setInputs] = useState(Array(sounds.length).fill(""));
+            const [status, setStatus] = useState("idle");
+            const inputsRef = useRef([]);
+
+            const handleChange = (val, i) => {
+                const newInputs = [...inputs];
+                newInputs[i] = val.toLowerCase().slice(-1); 
+                setInputs(newInputs);
+                setStatus("idle");
+                if (val && i < sounds.length - 1) inputsRef.current[i + 1].focus();
+            };
+
+            const handleKeyDown = (e, i) => {
+                if (e.key === "Backspace" && !inputs[i] && i > 0) inputsRef.current[i - 1].focus();
+            };
+
+            const check = () => {
+                const isCorrect = inputs.every((val, i) => val === sounds[i]);
+                setStatus(isCorrect ? "correct" : "wrong");
+                if (isCorrect) onComplete();
+                else speak("Try again.");
+            };
+
+            return (
+                <div className="w-full flex flex-col items-center fade-in">
+                    <h2 className="text-slate-400 font-bold uppercase tracking-[0.2em] text-xs mb-6">Step 2: Sound Mapping</h2>
+                    <button onClick={() => speak("Pyramid")} className="w-20 h-20 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg mb-8 transition animate-bounce">
+                        <i className="ph ph-speaker-high text-3xl"></i>
+                    </button>
+                    
+                    <div className="flex flex-wrap justify-center gap-2 mb-10">
+                        {sounds.map((sound, i) => (
+                            <input
+                                key={i}
+                                ref={el => inputsRef.current[i] = el}
+                                type="text"
+                                value={inputs[i]}
+                                onChange={(e) => handleChange(e.target.value, i)}
+                                onKeyDown={(e) => handleKeyDown(e, i)}
+                                className={`w-10 h-14 md:w-12 md:h-16 rounded-xl border-4 text-center text-2xl font-bold mono focus:outline-none focus:-translate-y-1 transition shadow-sm
+                                    ${status === 'correct' ? 'border-green-400 bg-green-50 text-green-700' : 
+                                      status === 'wrong' ? 'border-red-400 bg-red-50 text-red-700' : 
+                                      'border-slate-200 bg-white text-slate-800 focus:border-yellow-400'}`}
+                            />
+                        ))}
+                    </div>
+
+                    <button onClick={check} className="px-10 py-4 bg-slate-800 text-white rounded-full font-bold text-lg shadow-xl hover:bg-slate-700 transition active:scale-95 flex items-center gap-3">
+                        Check Spelling <i className="ph ph-check-circle text-xl"></i>
+                    </button>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
