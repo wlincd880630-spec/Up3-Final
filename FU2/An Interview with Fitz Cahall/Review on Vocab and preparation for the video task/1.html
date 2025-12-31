@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Page 1: Homework Review</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* 主题：探险与友谊 (深蓝/橙/白) */
+            --primary: #2c3e50;
+            --secondary: #e67e22;
+            --accent: #3498db;
+            --bg-body: #ecf0f1;
+            --card-bg: #ffffff;
+            --text-main: #2d3436;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(#bdc3c7 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%; max-width: 1000px;
+            min-height: 600px; height: 85vh;
+            background: var(--card-bg); border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* 顶部导航 */
+        .nav-bar {
+            height: 60px; border-bottom: 1px solid #eee;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px; background: #fff; z-index: 10;
+        }
+        .lesson-title { font-weight: 900; color: var(--primary); font-size: 1.1rem; text-transform: uppercase; }
+        .page-num { font-weight: bold; color: #95a5a6; }
+
+        /* 内容区 */
+        .content-area {
+            flex: 1; overflow-y: auto; padding: 40px;
+            display: flex; flex-direction: column; align-items: center;
+            position: relative;
+        }
+
+        /* Scene 1: Big Question */
+        .scene { width: 100%; display: none; flex-direction: column; align-items: center; animation: fadeIn 0.5s ease; }
+        .scene.active { display: flex; }
+
+        .big-question {
+            font-size: 2.2rem; color: var(--primary); font-weight: 900;
+            text-align: center; margin-bottom: 40px; line-height: 1.4;
+            max-width: 800px;
+        }
+
+        /* Scene 2: Profiles */
+        .profile-container {
+            display: flex; gap: 30px; width: 100%; justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .profile-card {
+            background: #fff; border: 2px solid #eee; border-radius: 20px;
+            padding: 25px; width: 300px; max-width: 90%;
+            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column; align-items: center;
+            transition: 0.3s;
+        }
+        .profile-card:hover { border-color: var(--secondary); transform: translateY(-5px); }
+
+        .profile-img {
+            width: 120px; height: 120px; border-radius: 50%;
+            object-fit: cover; border: 4px solid #f1f2f6;
+            margin-bottom: 15px; background-color: #ddd;
+        }
+
+        .profile-name { font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-bottom: 15px; }
+
+        /* 填空交互 */
+        .sentence-box {
+            font-size: 1.1rem; color: #555; background: #fdfdfd;
+            padding: 15px; border-radius: 10px; width: 100%; box-sizing: border-box;
+            text-align: left; border: 1px solid #eee;
+        }
+
+        .blank-line {
+            display: inline-block; min-width: 120px; border-bottom: 2px solid var(--secondary);
+            color: transparent; cursor: pointer; text-align: center; font-weight: bold;
+            transition: 0.3s; padding: 0 5px; background: rgba(211, 84, 0, 0.1); border-radius: 4px;
+        }
+        .blank-line:hover { background: rgba(211, 84, 0, 0.2); }
+        .blank-line.revealed {
+            color: var(--secondary); background: transparent; border-bottom-color: transparent;
+            animation: popIn 0.3s forwards;
+        }
+
+        /* Scene 3 & 4: Info Cards */
+        .info-card {
+            background: white; border-radius: 20px; padding: 40px;
+            width: 80%; max-width: 600px; text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.08); border-top: 6px solid var(--accent);
+        }
+        .info-q { font-size: 1.6rem; color: var(--primary); font-weight: 800; margin-bottom: 25px; }
+        
+        .answer-box {
+            background: #eaf6ff; color: #2c3e50; font-size: 1.4rem;
+            padding: 20px; border-radius: 12px; margin-top: 20px;
+            display: none; font-weight: bold; text-align: left;
+        }
+        .highlight { color: var(--secondary); }
+
+        /* 按钮与图标 */
+        .control-bar {
+            height: 80px; border-top: 1px solid #eee; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 30px; gap: 20px; z-index: 10;
+        }
+
+        .btn {
+            padding: 12px 35px; font-size: 1.1rem; border: none; border-radius: 50px;
+            cursor: pointer; font-weight: 800; transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--secondary); color: white;
+            box-shadow: 0 5px 15px rgba(211, 84, 0, 0.3);
+        }
+        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        
+        .btn-nav { background: white; border: 2px solid #bdc3c7; color: #7f8c8d; box-shadow: none; }
+        .btn-nav:hover { border-color: var(--primary); color: var(--primary); transform: none; }
+        .btn-nav:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .tts-icon {
+            width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.05);
+            display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 1rem; color: var(--primary); transition: 0.2s;
+            margin-left: 10px; vertical-align: middle; flex-shrink: 0;
+        }
+        .tts-icon:hover { background: var(--primary); color: white; transform: scale(1.1); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .content-area { padding: 20px; }
+            .profile-card { width: 90%; }
+            .big-question { font-size: 1.5rem; }
+            .info-card { width: 95%; padding: 25px; }
+            .info-q { font-size: 1.3rem; }
+            .answer-box { font-size: 1.2rem; }
+            .btn { padding: 10px 20px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    
+    <div class="nav-bar">
+        <div class="lesson-title">Homework Review</div>
+        <div class="page-num">1 / 8</div>
+    </div>
+
+    <div class="content-area">
+        
+        <div class="scene active" id="scene-1">
+            <div class="big-question">
+                What are the people in the film called?
+                <div class="tts-icon" onclick="speak('What are the people in the film called?')">🔊</div>
+            </div>
+            <button class="btn" onclick="nextScene(2)">Reveal Characters ➡️</button>
+        </div>
+
+        <div class="scene" id="scene-2">
+            <div class="profile-container">
+                <div class="profile-card">
+                    <img src="Roger Strong.jpg" class="profile-img" alt="Roger Strong" onerror="this.src='https://placehold.co/150x150/e67e22/ffffff?text=Roger'">
+                    <div class="profile-name">
+                        Roger Strong
+                        <div class="tts-icon" onclick="speak('Roger Strong')">🔊</div>
+                    </div>
+                    
+                    <div class="sentence-box">
+                        Roger Strong is a <span class="blank-line" onclick="revealBlank(this, 'professional skier', 'Roger Strong is a professional skier.')">_____________</span>.
+                    </div>
+                </div>
+
+                <div class="profile-card">
+                    <img src="Fitz Cahall.jpg" class="profile-img" alt="Fitz Cahall" onerror="this.src='https://placehold.co/150x150/2c3e50/ffffff?text=Fitz'">
+                    <div class="profile-name">
+                        Fitz Cahall
+                        <div class="tts-icon" onclick="speak('Fitz Cahall')">🔊</div>
+                    </div>
+
+                    <div class="sentence-box">
+                        Fitz Cahall is a <span class="blank-line" onclick="revealBlank(this, 'filmmaker', 'Fitz Cahall is a filmmaker.')">_____________</span>.
+                    </div>
+                </div>
+            </div>
+            <p style="color:#999; margin-top:10px; font-size:0.9rem;">(Click on the blanks to reveal answers)</p>
+            <button class="btn" id="btn-next-3" style="display:none; margin-top:20px;" onclick="nextScene(3)">Next Question ➡️</button>
+        </div>
+
+        <div class="scene" id="scene-3">
+            <div class="info-card">
+                <div class="info-q">
+                    What is their relationship?
+                    <div class="tts-icon" onclick="speak('What is their relationship?')">🔊</div>
+                </div>
+                
+                <button class="btn" id="btn-rev-rel" onclick="revealAnswer('rel')">Reveal Answer</button>
+                
+                <div class="answer-box" id="ans-rel">
+                    Fitz Cahall and Roger Strong are <span class="highlight">friends</span>.
+                    <div class="tts-icon" style="float:right;" onclick="speak('Fitz Cahall and Roger Strong are friends.')">🔊</div>
+                </div>
+            </div>
+            <button class="btn" id="btn-next-4" style="display:none; margin-top:30px;" onclick="nextScene(4)">Next Question ➡️</button>
+        </div>
+
+        <div class="scene" id="scene-4">
+            <div class="info-card">
+                <div class="info-q">
+                    What did Fitz Cahall make about Roger Strong?
+                    <div class="tts-icon" onclick="speak('What did Fitz Cahall make about Roger Strong?')">🔊</div>
+                </div>
+
+                <button class="btn" id="btn-rev-film" onclick="revealAnswer('film')">Reveal Answer</button>
+
+                <div class="answer-box" id="ans-film">
+                    Fitz Cahall made a <span class="highlight">documentary</span> about Roger Strong.
+                    <div class="tts-icon" style="float:right;" onclick="speak('Fitz Cahall made a documentary about Roger Strong.')">🔊</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="control-bar">
+        <button class="btn btn-nav" onclick="location.href='index.html'">🏠 Home</button>
+        <button class="btn btn-nav" id="nav-next-page" style="display:none; background:var(--primary); color:white; border:none;" onclick="location.href='2.html'">Next Page ➡️</button>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration (使用已验证的完整 Key)
+       ========================================================== */
+    // 这是您在 page 03.html 中使用的完整 Key (修复了之前的截断问题)
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function speak(text) {
+        if (!text) return;
+
+        // 如果已有播放，先停止
+        if (synthesizer) {
+            synthesizer.close();
+            synthesizer = undefined;
+        }
+
+        // 核心配置：使用 Azure 神经语音
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        
+        synthesizer.speakTextAsync(
+            text,
+            result => {
+                synthesizer.close();
+                synthesizer = undefined;
+            },
+            err => {
+                console.error("TTS Error:", err);
+                synthesizer.close();
+                synthesizer = undefined;
+            }
+        );
+    }
+
+    /* ==========================================================
+       Interaction Logic
+       ========================================================== */
+    
+    // 场景切换
+    function nextScene(id) {
+        document.querySelectorAll('.scene').forEach(s => {
+            s.classList.remove('active');
+            s.style.opacity = 0; // 配合 CSS 动画
+            setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500);
+        });
+        
+        const next = document.getElementById('scene-' + id);
+        next.style.display = 'flex';
+        void next.offsetWidth; // 强制重绘
+        next.classList.add('active');
+        next.style.opacity = 1;
+    }
+
+    // 填空逻辑 (点击横线 -> 显示单词 -> 朗读完整句子)
+    let blanksRevealed = 0;
+    function revealBlank(element, word, fullSentence) {
+        if (!element.classList.contains('revealed')) {
+            element.innerText = word;
+            element.classList.add('revealed');
+            speak(fullSentence); // 关键：朗读完整句子
+            blanksRevealed++;
+            
+            // 当两个填空都完成后，显示下一题按钮
+            if (blanksRevealed >= 2) {
+                document.getElementById('btn-next-3').style.display = 'inline-flex';
+            }
+        }
+    }
+
+    // 问答揭示逻辑
+    function revealAnswer(type) {
+        document.getElementById('btn-rev-' + type).style.display = 'none';
+        document.getElementById('ans-' + type).style.display = 'block';
+        
+        if (type === 'rel') {
+            speak("Fitz Cahall and Roger Strong are friends.");
+            document.getElementById('btn-next-4').style.display = 'inline-flex';
+        } 
+        else if (type === 'film') {
+            speak("Fitz Cahall made a documentary about Roger Strong.");
+            // 最后一页，显示翻页到 2.html 的按钮
+            document.getElementById('nav-next-page').style.display = 'inline-flex';
+        }
+    }
+
+</script>
+
+</body>
+</html>

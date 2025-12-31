@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Page 2: The Films</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Adventure (Consistent with Page 1) */
+            --primary: #2c3e50;   /* Mountain Rock */
+            --secondary: #e67e22; /* Safety Orange */
+            --accent: #27ae60;    /* Forest Green (Success) */
+            --bg-body: #ecf0f1;
+            --card-bg: #ffffff;
+            --text-main: #2d3436;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(#bdc3c7 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%; max-width: 1200px; min-height: 650px; height: 85vh;
+            background: var(--card-bg); border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* --- 导航栏 --- */
+        .nav-bar {
+            height: 60px; border-bottom: 1px solid #eee;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px; background: #fff; z-index: 10;
+        }
+        .lesson-title { font-weight: 900; color: var(--primary); font-size: 1.1rem; text-transform: uppercase; }
+        .page-num { font-weight: bold; color: #95a5a6; }
+
+        /* --- 内容区 --- */
+        .content-area {
+            flex: 1; overflow-y: auto; padding: 40px;
+            display: flex; flex-direction: column; align-items: center;
+            position: relative;
+        }
+
+        /* 场景通用 */
+        .scene { width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; animation: fadeIn 0.5s ease; }
+        .scene.active { display: flex; }
+
+        /* SCENE 1: VIDEOS */
+        .video-title { font-size: 2rem; color: var(--primary); font-weight: 900; margin-bottom: 30px; text-align: center; }
+        
+        .video-container {
+            display: flex; gap: 30px; width: 100%; justify-content: center; flex-wrap: wrap;
+        }
+        .video-wrapper {
+            width: 45%; min-width: 300px; aspect-ratio: 16/9;
+            background: black; border-radius: 16px; overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); position: relative;
+        }
+        .video-wrapper video { width: 100%; height: 100%; object-fit: cover; }
+        .video-label {
+            position: absolute; bottom: 10px; left: 10px;
+            color: white; background: rgba(0,0,0,0.6);
+            padding: 5px 15px; border-radius: 8px; font-size: 0.9rem; font-weight: bold;
+        }
+
+        /* SCENE 2 & 5: QUESTIONS */
+        .question-card {
+            background: #fff; padding: 40px; border-radius: 24px;
+            text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+            width: 90%; max-width: 800px; border-top: 6px solid var(--secondary);
+        }
+        .q-title { font-size: 1.8rem; color: var(--primary); margin-bottom: 10px; font-weight: 900; line-height: 1.3; }
+        .q-subtitle { color: #7f8c8d; font-size: 1rem; margin-bottom: 30px; font-weight: bold; }
+
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; }
+        .options-grid.single-col { grid-template-columns: 1fr; }
+
+        .option-btn {
+            padding: 20px; border: 2px solid #dfe6e9; background: white;
+            border-radius: 16px; font-size: 1.2rem; cursor: pointer;
+            transition: 0.2s; color: var(--text-main); font-weight: bold;
+        }
+        .option-btn:hover { border-color: var(--secondary); background: #fffcf5; }
+        .option-btn.selected { border-color: var(--secondary); background: var(--secondary); color: white; }
+        .option-btn.correct { border-color: var(--accent); background: var(--accent); color: white; }
+
+        /* SCENE 3 & 4: UNSCRAMBLE GAME */
+        .scramble-area {
+            width: 90%; max-width: 900px; display: flex; flex-direction: column; align-items: center;
+        }
+        .drop-zone {
+            border: 3px dashed #bdc3c7; background: #f9f9f9;
+            border-radius: 20px; padding: 20px; min-height: 100px; width: 100%;
+            display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center;
+            margin-bottom: 30px;
+        }
+        .word-bank {
+            display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+            margin-bottom: 30px; width: 100%;
+        }
+        .word-chip {
+            background: var(--primary); color: white; padding: 10px 20px;
+            border-radius: 50px; cursor: pointer; font-size: 1.1rem; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: 0.2s; user-select: none;
+        }
+        .word-chip:hover { transform: translateY(-2px); background: #34495e; }
+        .static-text {
+            font-size: 1.2rem; color: #555; background: #eee;
+            padding: 10px 20px; border-radius: 50px; margin-bottom: 10px; font-weight: bold;
+        }
+
+        /* 按钮与图标 */
+        .control-bar {
+            height: 80px; border-top: 1px solid #eee; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 30px; gap: 20px; z-index: 10;
+        }
+
+        .btn {
+            padding: 12px 35px; font-size: 1.1rem; border: none; border-radius: 50px;
+            cursor: pointer; font-weight: 800; transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--secondary); color: white;
+            box-shadow: 0 5px 15px rgba(230, 126, 34, 0.3);
+        }
+        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn-check { background: var(--accent); box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3); }
+        
+        .btn-nav { background: white; border: 2px solid #bdc3c7; color: #7f8c8d; box-shadow: none; }
+        .btn-nav:hover { border-color: var(--primary); color: var(--primary); transform: none; }
+
+        .tts-icon {
+            width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,0.05);
+            display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 0.9rem; color: var(--primary); transition: 0.2s;
+            margin-left: 10px; vertical-align: middle;
+        }
+        .tts-icon:hover { background: var(--primary); color: white; transform: scale(1.1); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .video-wrapper { width: 100%; }
+            .options-grid { grid-template-columns: 1fr; }
+            .q-title { font-size: 1.4rem; }
+            .word-chip { font-size: 0.9rem; padding: 8px 15px; }
+            .control-bar { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div class="nav-bar">
+        <div class="lesson-title">Page 2: The Films</div>
+        <div class="page-num">2 / 8</div>
+    </div>
+
+    <div class="content-area">
+        
+        <div class="scene active" id="scene-1">
+            <h1 class="video-title">Watch Fitz Cahall's Films</h1>
+            <div class="video-container">
+                <div class="video-wrapper">
+                    <video src="Gimp Monkeys.mp4" controls onplay="pauseOthers(this)"></video>
+                    <div class="video-label">Gimp Monkeys</div>
+                </div>
+                <div class="video-wrapper">
+                    <video src="Strong.mp4" controls onplay="pauseOthers(this)"></video>
+                    <div class="video-label">Strong</div>
+                </div>
+            </div>
+            <button class="btn" style="margin-top:30px;" onclick="nextScene(2)">Next: Question ➡️</button>
+        </div>
+
+        <div class="scene" id="scene-2">
+            <div class="question-card">
+                <div class="q-title">
+                    What are the people in the film called?
+                    <div class="tts-icon" onclick="playAzureAudio('What are the people in the film called?')">🔊</div>
+                </div>
+                <p class="q-subtitle">(Select 2 correct answers)</p>
+                
+                <div class="options-grid" id="q1-options">
+                    <div class="option-btn" onclick="toggleSelect(this, 'A')">A. Explorers</div>
+                    <div class="option-btn" onclick="toggleSelect(this, 'B')">B. Adventurers</div>
+                    <div class="option-btn" onclick="toggleSelect(this, 'C')">C. Developers</div>
+                    <div class="option-btn" onclick="toggleSelect(this, 'D')">D. Creators</div>
+                </div>
+
+                <button class="btn" id="btn-check-q1" style="margin-top:30px;" onclick="checkQ1()">Check Answer</button>
+                <button class="btn" id="btn-next-3" style="margin-top:30px; display:none;" onclick="nextScene(3)">Next ➡️</button>
+            </div>
+        </div>
+
+        <div class="scene" id="scene-3">
+            <div class="scramble-area">
+                <h2 class="video-title" style="font-size:1.5rem;">Unscramble the Sentence (1/2)</h2>
+                <div class="drop-zone" id="zone-1"></div>
+                <div class="word-bank" id="bank-1"></div>
+                
+                <button class="btn btn-check" id="btn-check-s1" onclick="checkSentence1()">Check Order</button>
+                <button class="btn" id="btn-next-4" style="display:none;" onclick="nextScene(4)">Next Question ➡️</button>
+            </div>
+        </div>
+
+        <div class="scene" id="scene-4">
+            <div class="scramble-area">
+                <h2 class="video-title" style="font-size:1.5rem;">Finish the Sentence (2/2)</h2>
+                
+                <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+                    <div class="static-text">
+                        He tells different stories of people...
+                        <div class="tts-icon" style="display:inline-flex;" onclick="playAzureAudio('He tells different stories of people who are on the path to achieve their dreams.')">🔊</div>
+                    </div>
+                    <div class="drop-zone" id="zone-2"></div>
+                </div>
+
+                <div class="word-bank" id="bank-2"></div>
+                
+                <button class="btn btn-check" id="btn-check-s2" onclick="checkSentence2()">Check Order</button>
+                <button class="btn" id="btn-next-5" style="display:none;" onclick="nextScene(5)">Final Question ➡️</button>
+            </div>
+        </div>
+
+        <div class="scene" id="scene-5">
+            <div class="question-card">
+                <div class="q-title">
+                    What does Fitz Cahall need to make these films?
+                    <div class="tts-icon" onclick="playAzureAudio('What do you think Fitz Cahall has to have in order to make those films?')">🔊</div>
+                </div>
+                <p class="q-subtitle">(More than one correct answer)</p>
+
+                <div class="options-grid single-col" id="q2-options">
+                    <div class="option-btn" onclick="toggleSelect(this, 'A')">A. Knowledge of camera and documentary</div>
+                    <div class="option-btn" onclick="toggleSelect(this, 'B')">B. Strong physical and mental strength</div>
+                    <div class="option-btn" onclick="toggleSelect(this, 'C')">C. Passion for outdoor sports</div>
+                </div>
+
+                <button class="btn" id="btn-check-q2" style="margin-top:30px;" onclick="checkQ2()">Check Answer</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="control-bar">
+        <button class="btn btn-nav" onclick="location.href='1.html'">⬅️ Prev</button>
+        <button class="btn btn-nav" onclick="location.href='index.html'">🏠 Home</button>
+        <button class="btn btn-nav" id="nav-next-page" style="display:none; background:var(--primary); color:white; border:none;" onclick="location.href='3.html'">Next Page ➡️</button>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration (完整密钥 + 官方 SDK)
+       ========================================================== */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+        if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        
+        synthesizer.speakTextAsync(
+            text,
+            result => { synthesizer.close(); synthesizer = undefined; },
+            err => { console.error("TTS Error:", err); synthesizer.close(); synthesizer = undefined; }
+        );
+    }
+
+    /* ==========================================================
+       页面交互逻辑
+       ========================================================== */
+    
+    function nextScene(id) {
+        document.querySelectorAll('.scene').forEach(s => {
+            s.classList.remove('active');
+            s.style.opacity = 0;
+            setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500);
+        });
+        const next = document.getElementById('scene-' + id);
+        next.style.display = 'flex';
+        void next.offsetWidth;
+        next.classList.add('active');
+        next.style.opacity = 1;
+    }
+
+    // 视频播放控制
+    function pauseOthers(vid) {
+        document.querySelectorAll('video').forEach(v => {
+            if (v !== vid) v.pause();
+        });
+    }
+
+    // --- Q1 & Q2 Logic ---
+    let q1Selection = [];
+    let q2Selection = [];
+
+    function toggleSelect(btn, val) {
+        const parentID = btn.parentNode.id;
+        btn.classList.toggle('selected');
+        let targetArray = (parentID === 'q1-options') ? q1Selection : q2Selection;
+        if (targetArray.includes(val)) {
+            const idx = targetArray.indexOf(val);
+            targetArray.splice(idx, 1);
+        } else {
+            targetArray.push(val);
+        }
+    }
+
+    function checkQ1() {
+        const correct = ['A', 'B'];
+        const isCorrect = q1Selection.sort().toString() === correct.sort().toString();
+        const btns = document.querySelectorAll('#q1-options .option-btn');
+        
+        btns.forEach(btn => {
+            // 简单判断首字母
+            const text = btn.innerText.charAt(0); 
+            if (correct.includes(text)) btn.classList.add('correct');
+        });
+
+        if (isCorrect) {
+            playAzureAudio("Correct! They are explorers and adventurers.");
+            document.getElementById('btn-check-q1').style.display = 'none';
+            document.getElementById('btn-next-3').style.display = 'inline-flex';
+        } else {
+            playAzureAudio("Not quite. Try finding two answers.");
+        }
+    }
+
+    function checkQ2() {
+        const correct = ['A', 'B', 'C'];
+        const isCorrect = q2Selection.sort().toString() === correct.sort().toString();
+        const btns = document.querySelectorAll('#q2-options .option-btn');
+        btns.forEach(btn => btn.classList.add('correct')); 
+
+        if (isCorrect) {
+            playAzureAudio("Exactly! He needs knowledge, strength, and passion.");
+            document.getElementById('btn-check-q2').style.display = 'none';
+            // 显示下一页按钮
+            document.getElementById('nav-next-page').style.display = 'inline-flex';
+        } else {
+            playAzureAudio("Actually, he needs all of these things.");
+        }
+    }
+
+    // --- Unscramble Logic ---
+    const chunks1 = ["Fitz Cahall", "makes", "films about stories", "of", "different", "adventurers", "and", "explorers."];
+    const chunks2 = ["who", "are", "on", "the", "path", "to", "achieve", "their", "dreams."];
+
+    function initGame(id, chunks) {
+        const bank = document.getElementById('bank-' + id);
+        const zone = document.getElementById('zone-' + id);
+        const shuffled = [...chunks].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach(text => {
+            const chip = document.createElement('div');
+            chip.className = 'word-chip';
+            chip.innerText = text;
+            chip.onclick = () => {
+                if (chip.parentNode === bank) zone.appendChild(chip);
+                else bank.appendChild(chip);
+                playAzureAudio(text);
+            };
+            bank.appendChild(chip);
+        });
+    }
+
+    initGame(1, chunks1);
+    initGame(2, chunks2);
+
+    function checkSentence1() {
+        const zone = document.getElementById('zone-1');
+        const answer = Array.from(zone.children).map(c => c.innerText).join(' ');
+        const correct = chunks1.join(' ');
+
+        if (answer === correct) {
+            zone.style.border = "4px solid var(--accent)";
+            playAzureAudio("Correct! Fitz Cahall makes films about stories of different adventurers and explorers.");
+            document.getElementById('btn-check-s1').style.display = 'none';
+            document.getElementById('btn-next-4').style.display = 'inline-flex';
+        } else {
+            zone.style.border = "4px solid #c0392b";
+            playAzureAudio("Try again.");
+        }
+    }
+
+    function checkSentence2() {
+        const zone = document.getElementById('zone-2');
+        const answer = Array.from(zone.children).map(c => c.innerText).join(' ');
+        const correct = chunks2.join(' ');
+
+        if (answer === correct) {
+            zone.style.border = "4px solid var(--accent)";
+            playAzureAudio("Correct! He tells different stories of people who are on the path to achieve their dreams.");
+            document.getElementById('btn-check-s2').style.display = 'none';
+            document.getElementById('btn-next-5').style.display = 'inline-flex';
+        } else {
+            zone.style.border = "4px solid #c0392b";
+            playAzureAudio("Try again.");
+        }
+    }
+
+</script>
+
+</body>
+</html>

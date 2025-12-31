@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Page 4: Childhood Path</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Adventure (Consistent with Page 1-3) */
+            --primary: #2c3e50;   /* Mountain Rock */
+            --secondary: #e67e22; /* Safety Orange */
+            --accent: #27ae60;    /* Forest Green */
+            --book-color: #8e44ad;/* Magic Book Purple */
+            --bg-body: #ecf0f1;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text: #2d3436;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(#bdc3c7 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%; max-width: 1200px; min-height: 650px; height: 85vh;
+            /* Background matches Page 1 */
+            background: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop') no-repeat center center;
+            background-size: cover;
+            border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* Dark Overlay */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(44, 62, 80, 0.85); z-index: 0;
+        }
+
+        /* --- 导航栏 --- */
+        .nav-bar {
+            position: relative; z-index: 10;
+            height: 60px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px;
+        }
+        .lesson-title { font-weight: 900; color: white; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
+        .page-num { font-weight: bold; color: rgba(255,255,255,0.6); font-size: 0.9rem; }
+
+        /* --- 舞台系统 --- */
+        .stage {
+            position: absolute; top: 60px; left: 0; bottom: 80px; width: 100%;
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 20px; box-sizing: border-box; z-index: 10;
+            opacity: 0; transition: opacity 0.8s ease;
+        }
+        .stage.active { display: flex; opacity: 1; }
+
+        /* --- STAGE 0: THE BOOK (CSS 3D) --- */
+        .book-title {
+            font-size: 2.5rem; color: white; margin-bottom: 40px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; font-weight: 900;
+        }
+
+        .book-container { perspective: 1500px; cursor: pointer; }
+
+        .book {
+            width: 260px; height: 360px; position: relative;
+            transform-style: preserve-3d; transition: transform 1s;
+        }
+        .book:hover { transform: rotateY(-10deg); }
+        .book.open { transform: rotateY(-180deg) translateX(-130px); }
+
+        .book-cover {
+            position: absolute; width: 100%; height: 100%;
+            background: var(--book-color);
+            border-radius: 5px 15px 15px 5px;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-size: 1.8rem; font-weight: 900; text-align: center;
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
+            border: 4px solid #f1c40f; z-index: 2;
+            transform-origin: left; transition: transform 1s;
+            backface-visibility: hidden;
+        }
+        .book.open .book-cover { transform: rotateY(-180deg); }
+
+        .book-pages {
+            position: absolute; width: 94%; height: 96%; top: 2%; left: 2%;
+            background: white; border-radius: 3px 10px 10px 3px;
+            box-shadow: inset 5px 0 10px rgba(0,0,0,0.1); z-index: 1;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.2rem; color: #333; padding: 20px; text-align: center;
+            font-family: 'Times New Roman', serif;
+        }
+
+        .book-spine {
+            position: absolute; width: 40px; height: 100%;
+            background: #5e2c73; left: -20px; transform: rotateY(90deg);
+            border-radius: 5px;
+        }
+
+        /* --- STAGE 1-3: STORY PAGES --- */
+        .story-layout {
+            display: flex; width: 95%; max-width: 1000px; height: 100%;
+            background: var(--card-bg); border-radius: 20px;
+            overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+
+        .story-img-col { flex: 1.2; background: #000; position: relative; overflow: hidden; }
+        .story-img { width: 100%; height: 100%; object-fit: contain; }
+
+        .story-content-col {
+            flex: 1; padding: 30px;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: #fff; border-left: 6px solid var(--secondary);
+        }
+
+        .instruction {
+            font-size: 1.4rem; color: var(--primary); font-weight: 800;
+            margin-bottom: 20px; text-align: center; line-height: 1.4;
+        }
+
+        /* Unscramble Game */
+        .drop-zone {
+            border: 3px dashed #bdc3c7; background: #f8f9fa;
+            border-radius: 15px; padding: 15px; min-height: 100px; width: 100%;
+            display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center;
+            margin-bottom: 20px; transition: 0.3s;
+        }
+        
+        .word-bank {
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+            margin-bottom: 20px; width: 100%;
+        }
+        
+        .word-chip {
+            background: var(--primary); color: white; padding: 8px 15px;
+            border-radius: 30px; cursor: pointer; font-size: 1.1rem; font-weight: bold;
+            transition: 0.2s; box-shadow: 0 4px 8px rgba(0,0,0,0.1); user-select: none;
+        }
+        .word-chip:hover { transform: scale(1.05); background: #34495e; }
+
+        /* Controls */
+        .control-bar {
+            position: relative; z-index: 10; height: 80px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px;
+        }
+
+        .btn {
+            padding: 12px 30px; font-size: 1.1rem; border: none; border-radius: 50px;
+            cursor: pointer; background: var(--secondary); color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-3px); filter: brightness(1.1); }
+        .btn-check { background: var(--accent); }
+        
+        .btn-nav {
+            background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.8); font-size: 1rem; padding: 10px 25px;
+            cursor: pointer; border-radius: 50px; transition: 0.2s;
+        }
+        .btn-nav:hover { background: white; color: var(--primary); }
+
+        .tts-icon {
+            cursor: pointer; width: 30px; height: 30px; border-radius: 50%;
+            background: rgba(0,0,0,0.1); display: inline-flex;
+            align-items: center; justify-content: center;
+            font-size: 1rem; color: var(--primary); transition: 0.2s;
+            margin-left: 10px; vertical-align: middle;
+        }
+        .tts-icon:hover { background: var(--primary); color: white; transform: scale(1.1); }
+        .tts-white { color: white; background: rgba(255,255,255,0.2); }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .story-layout { flex-direction: column; width: 95%; height: 95%; }
+            .story-img-col { flex: none; height: 35%; }
+            .story-content-col { flex: 1; padding: 15px; }
+            .instruction { font-size: 1.2rem; }
+            .word-chip { font-size: 0.9rem; padding: 6px 12px; }
+            .book { width: 200px; height: 280px; }
+            .book-title { font-size: 1.8rem; margin-bottom: 30px; }
+        }
+    </style>
+</head>
+<body onload="playIntro()">
+
+<div id="app-container">
+    <div class="overlay"></div>
+    
+    <div class="nav-bar">
+        <div class="lesson-title">Childhood Path</div>
+        <div class="page-num">4 / 8</div>
+    </div>
+
+    <div class="stage active" id="stage-0">
+        <div class="book-title">
+            What was his career path like?
+            <br>
+            <span style="font-size:1.5rem; font-weight:normal; display:block; margin-top:10px;">Let’s open up the story book of his life.</span>
+            <div class="tts-icon tts-white" style="margin-top:15px;" onclick="playAzureAudio('What was his career path like? Let’s open up the story book of his life.')">🔊</div>
+        </div>
+
+        <div class="book-container" onclick="openBook()">
+            <div class="book" id="my-book">
+                <div class="book-cover">
+                    <div style="border: 3px solid white; padding: 20px; border-radius: 10px;">
+                        Fitz Cahall:<br>A Life Story
+                        <div style="font-size:1rem; margin-top:20px; font-weight:normal;">(Tap to Open)</div>
+                    </div>
+                </div>
+                <div class="book-spine"></div>
+                <div class="book-pages">
+                    <p>Chapter 1:<br>The Beginning<br><br><i>Loading Story...</i></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-1">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_04.jpg" class="story-img" alt="Child with Magazine" onerror="this.src='https://placehold.co/600x800/2c3e50/ffffff?text=Magazine+Scene'">
+            </div>
+            <div class="story-content-col">
+                <div class="instruction">
+                    What did he do when he was six years old?
+                    <div class="tts-icon" onclick="playAzureAudio('What did he do when he was six years old?')">🔊</div>
+                </div>
+                
+                <div class="drop-zone" id="zone-1"></div>
+                <div class="word-bank" id="bank-1"></div>
+                
+                <button class="btn btn-check" id="check-1" onclick="checkSentence(1)">Check Answer</button>
+                <button class="btn" style="background:#7f8c8d; display:none;" id="next-s1" onclick="nextStage(2)">Next Page ➡️</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-2">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_05.jpg" class="story-img" alt="Child Watching TV" onerror="this.src='https://placehold.co/600x800/e67e22/ffffff?text=TV+Scene'">
+            </div>
+            <div class="story-content-col">
+                <div class="instruction">
+                    Describe the picture.
+                    <div class="tts-icon" onclick="playAzureAudio('Describe the picture. Fitz Cahall buried his face in the documentaries.')">🔊</div>
+                </div>
+                
+                <div class="drop-zone" id="zone-2"></div>
+                <div class="word-bank" id="bank-2"></div>
+                
+                <button class="btn btn-check" id="check-2" onclick="checkSentence(2)">Check Answer</button>
+                <button class="btn" style="background:#7f8c8d; display:none;" id="next-s2" onclick="nextStage(3)">Next Page ➡️</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-3">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_06.jpg" class="story-img" alt="Child Dreaming" onerror="this.src='https://placehold.co/600x800/27ae60/ffffff?text=Dream+Scene'">
+            </div>
+            <div class="story-content-col">
+                <div class="instruction">
+                    What did he imagine?
+                    <div class="tts-icon" onclick="playAzureAudio('What did he imagine? Fitz Cahall developed his interest in outdoor activities.')">🔊</div>
+                </div>
+                
+                <div class="drop-zone" id="zone-3"></div>
+                <div class="word-bank" id="bank-3"></div>
+                
+                <button class="btn btn-check" id="check-3" onclick="checkSentence(3)">Check Answer</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-bar">
+        <button class="btn-nav" onclick="location.href='3.html'">⬅️ Prev</button>
+        <button class="btn-nav" id="nav-next-page" style="display:none; background:var(--secondary); color:white; border:none;" onclick="location.href='5.html'">Next Page ➡️</button>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration (完整密钥 + 官方 SDK)
+       ========================================================== */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+        if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        
+        synthesizer.speakTextAsync(
+            text,
+            result => { synthesizer.close(); synthesizer = undefined; },
+            err => { console.error("TTS Error:", err); synthesizer.close(); synthesizer = undefined; }
+        );
+    }
+
+    function playIntro() {
+        // Delay slightly to ensure load
+        setTimeout(() => playAzureAudio('What was his career path like? Let’s open up the story book of his life.'), 1000);
+    }
+
+    /* ==========================================================
+       Interaction Logic
+       ========================================================== */
+
+    // --- Book Animation ---
+    function openBook() {
+        const book = document.getElementById('my-book');
+        book.classList.add('open');
+        
+        // Wait for animation (1.2s) then transition
+        setTimeout(() => {
+            const stage0 = document.getElementById('stage-0');
+            stage0.style.opacity = '0';
+            setTimeout(() => {
+                stage0.style.display = 'none';
+                nextStage(1);
+            }, 800);
+        }, 1200);
+    }
+
+    function nextStage(id) {
+        // Hide previous
+        document.querySelectorAll('.stage').forEach(s => {
+            if(s.id !== 'stage-0') { // Keep stage 0 hidden
+                s.style.display = 'none';
+                s.style.opacity = '0';
+            }
+        });
+
+        // Show next
+        const stage = document.getElementById('stage-' + id);
+        stage.style.display = 'flex';
+        setTimeout(() => stage.style.opacity = '1', 50);
+        
+        // Initialize game for this stage
+        initGame(id);
+    }
+
+    // --- Unscramble Logic ---
+    const sentenceData = [
+        { 
+            id: 1, 
+            correct: "Fitz Cahall was a super fan of National Geographics.",
+            chunks: ["Fitz Cahall", "was", "a", "super fan", "of", "National Geographics."]
+        },
+        { 
+            id: 2, 
+            correct: "Fitz Cahall buried his face in the documentaries when he was six year old.",
+            chunks: ["Fitz Cahall", "buried", "his face", "in the documentaries", "when he was", "six year old."]
+        },
+        { 
+            id: 3, 
+            correct: "Fitz Cahall developed his interest in outdoor activities.",
+            chunks: ["Fitz Cahall", "developed", "his interest", "in", "outdoor activities."]
+        }
+    ];
+
+    function initGame(id) {
+        const data = sentenceData.find(d => d.id === id);
+        if (!data) return;
+
+        const bank = document.getElementById('bank-' + id);
+        const zone = document.getElementById('zone-' + id);
+        
+        // Avoid duplicate init
+        if (bank.children.length > 0) return;
+
+        const shuffled = [...data.chunks].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach(text => {
+            const chip = document.createElement('div');
+            chip.className = 'word-chip';
+            chip.innerText = text;
+            chip.onclick = () => {
+                if (chip.parentNode === bank) zone.appendChild(chip);
+                else bank.appendChild(chip);
+                playAzureAudio(text);
+            };
+            bank.appendChild(chip);
+        });
+    }
+
+    function checkSentence(id) {
+        const data = sentenceData.find(d => d.id === id);
+        const zone = document.getElementById('zone-' + id);
+        const answer = Array.from(zone.children).map(c => c.innerText).join(' ');
+
+        if (answer === data.correct) {
+            zone.style.border = "3px solid var(--accent)";
+            zone.style.background = "#e8f5e9";
+            playAzureAudio("Correct! " + data.correct);
+            
+            // Disable clicks
+            Array.from(zone.children).forEach(c => c.onclick = null);
+            document.getElementById('check-' + id).style.display = 'none';
+
+            // Show next button or finish
+            if(id === 3) {
+                // Show final next page button at bottom
+                document.getElementById('nav-next-page').style.display = 'inline-block';
+            } else {
+                document.getElementById('next-s' + id).style.display = 'inline-block';
+            }
+
+        } else {
+            zone.style.border = "3px solid #c0392b";
+            zone.style.background = "#ffebee";
+            playAzureAudio("Try again.");
+            setTimeout(() => { 
+                zone.style.background = "#fff"; 
+                zone.style.borderColor = "#bdc3c7"; 
+            }, 1000);
+        }
+    }
+
+</script>
+
+</body>
+</html>

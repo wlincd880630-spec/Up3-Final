@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Page 6: Young Adult</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Struggle to Success (Consistent with Series) */
+            --primary: #2c3e50;   /* Mountain Rock */
+            --secondary: #e67e22; /* Safety Orange */
+            --accent: #27ae60;    /* Success Green */
+            --bg-body: #ecf0f1;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #2d3436;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(#bdc3c7 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%; max-width: 1200px; min-height: 650px; height: 85vh;
+            /* Background matches Page 1 */
+            background: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop') no-repeat center center;
+            background-size: cover;
+            border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* Dark Overlay */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(44, 62, 80, 0.85); z-index: 0;
+        }
+
+        /* --- 导航栏 --- */
+        .nav-bar {
+            position: relative; z-index: 10;
+            height: 60px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px;
+        }
+        .lesson-title { font-weight: 900; color: white; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
+        .page-num { font-weight: bold; color: rgba(255,255,255,0.6); font-size: 0.9rem; }
+
+        /* --- 舞台系统 --- */
+        .stage {
+            position: absolute; top: 60px; left: 0; bottom: 80px; width: 100%;
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 20px; box-sizing: border-box; z-index: 10;
+            opacity: 0; transition: opacity 0.8s ease;
+        }
+        .stage.active { display: flex; opacity: 1; }
+
+        /* --- STAGE 0: INTRO TITLE --- */
+        .intro-title {
+            font-size: 3rem; color: white; font-weight: 900; text-align: center;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5); animation: floatUp 1s ease-out;
+            line-height: 1.3;
+        }
+        
+        .intro-sub {
+            font-size: 1.8rem; color: var(--secondary); margin-top: 30px;
+            font-weight: bold; opacity: 0; animation: fadeIn 1s forwards 0.5s;
+            text-align: center;
+        }
+
+        /* --- STORY LAYOUT --- */
+        .story-layout {
+            display: flex; width: 95%; max-width: 1000px; height: 100%;
+            background: var(--card-bg); border-radius: 20px;
+            overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+
+        .story-img-col { flex: 1.3; background: #000; position: relative; overflow: hidden; }
+        .story-img { width: 100%; height: 100%; object-fit: contain; transition: transform 1s ease, opacity 0.5s ease; }
+        .stage.active .story-img { transform: scale(1.05); }
+
+        .story-content-col {
+            flex: 1; padding: 40px;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: #fff; border-left: 6px solid var(--secondary);
+            text-align: center;
+        }
+
+        .instruction {
+            font-size: 1.4rem; color: var(--primary); font-weight: 800;
+            margin-bottom: 20px; line-height: 1.4;
+        }
+
+        .fill-blank-container {
+            background: #f8f9fa; padding: 20px; border-radius: 15px; width: 90%;
+            margin-bottom: 20px; border: 2px dashed #bdc3c7;
+            font-size: 1.3rem; line-height: 1.8; text-align: left;
+        }
+
+        input.blank-input {
+            border: none; border-bottom: 3px solid var(--primary); background: transparent;
+            font-size: 1.3rem; width: 140px; text-align: center; color: var(--secondary);
+            font-weight: bold; outline: none; transition: 0.3s;
+        }
+        input.blank-input:focus { border-color: var(--secondary); }
+        input.blank-input.correct { border-color: var(--accent); color: var(--accent); }
+        input.blank-input.wrong { border-color: #c0392b; background: #fadbd8; }
+
+        /* Controls */
+        .control-bar {
+            position: relative; z-index: 10; height: 80px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px;
+        }
+
+        .btn {
+            padding: 12px 35px; font-size: 1.2rem; border: none; border-radius: 50px;
+            cursor: pointer; background: var(--secondary); color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-weight: bold;
+            transition: transform 0.2s; margin-top: 10px;
+        }
+        .btn:hover { transform: translateY(-3px); filter: brightness(1.1); }
+        .btn-check { background: var(--accent); }
+        
+        .btn-nav {
+            background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.8); font-size: 1rem; padding: 10px 25px;
+            cursor: pointer; border-radius: 50px; transition: 0.2s;
+        }
+        .btn-nav:hover { background: white; color: var(--primary); }
+
+        .tts-icon {
+            cursor: pointer; width: 30px; height: 30px; border-radius: 50%;
+            background: rgba(0,0,0,0.1); display: inline-flex;
+            align-items: center; justify-content: center;
+            font-size: 1rem; color: var(--primary); transition: 0.2s;
+            margin-left: 10px; vertical-align: middle;
+        }
+        .tts-icon:hover { background: var(--primary); color: white; transform: scale(1.1); }
+        .tts-white { color: white; background: rgba(255,255,255,0.2); }
+        
+        .tts-large {
+            font-size: 3rem; color: var(--secondary); cursor: pointer;
+            margin-bottom: 15px; transition: transform 0.2s; display: block;
+        }
+        .tts-large:hover { transform: scale(1.1); }
+
+        /* Animations */
+        @keyframes floatUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .story-layout { flex-direction: column; width: 95%; height: 95%; }
+            .story-img-col { flex: none; height: 35%; }
+            .story-content-col { flex: 1; padding: 15px; }
+            .intro-title { font-size: 2rem; }
+            .fill-blank-container { font-size: 1.1rem; }
+            .btn { padding: 10px 25px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body onload="playIntro()">
+
+<div id="app-container">
+    <div class="overlay"></div>
+    
+    <div class="nav-bar">
+        <div class="lesson-title">Young Adulthood</div>
+        <div class="page-num">6 / 8</div>
+    </div>
+
+    <div class="stage active" id="stage-0">
+        <div class="intro-title">
+            What did he do as a young adult?
+            <div class="tts-icon tts-white" style="margin-top:10px;" onclick="playAzureAudio('What did he do as a young adult?')">🔊</div>
+        </div>
+        <div class="intro-sub">
+            Let’s follow his journey of struggle and realization.
+            <div class="tts-icon tts-white" onclick="playAzureAudio('Let’s follow his journey of struggle and realization.')">🔊</div>
+        </div>
+        <button class="btn" style="margin-top:50px; background:transparent; border:2px solid white;" onclick="nextStage(1)">Start Scene 1 →</button>
+    </div>
+
+    <div class="stage" id="stage-1">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_09.jpg" class="story-img" alt="Looking for jobs" onerror="this.src='https://placehold.co/600x800/2c3e50/ffffff?text=Job+Search'">
+            </div>
+            <div class="story-content-col">
+                <div class="instruction">Listen and fill in the missing word:</div>
+                
+                <div class="fill-blank-container">
+                    "There wasn’t really a job <input type="text" id="ans-1" class="blank-input" autocomplete="off"> for what he wanted to do."
+                    <div class="tts-icon" onclick="playAzureAudio('There wasn’t really a job description for what he wanted to do.')">🔊</div>
+                </div>
+                
+                <button class="btn btn-check" onclick="checkAnswer(1, 'description')">Check Answer</button>
+                <button class="btn" style="background:#7f8c8d; display:none;" id="next-s1" onclick="nextStage(2)">Next Scene →</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-2">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_10.jpg" class="story-img" alt="Walking away sad" onerror="this.src='https://placehold.co/600x800/e67e22/ffffff?text=Sad+Walk'">
+            </div>
+            <div class="story-content-col">
+                <div class="tts-large" onclick="playAzureAudio('Fitz Cahall tried so hard looking for jobs he wanted, but he wound up with all these stories he’d gathered from his time on the road left in his hand.')">🔊</div>
+                
+                <div class="instruction">Listen and fill in the blank:</div>
+                <div class="fill-blank-container" style="font-size:1.1rem;">
+                    "Fitz Cahall tried so hard looking for jobs he wanted, but he <input type="text" id="ans-2" class="blank-input" style="width:180px;" autocomplete="off"> all these stories he’d gathered from his time on the road."
+                </div>
+                
+                <button class="btn btn-check" onclick="checkAnswer(2, 'wound up with')">Check Answer</button>
+                <button class="btn" style="background:#7f8c8d; display:none;" id="next-s2" onclick="nextStage(3)">Next Scene →</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-3">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_11.jpg" class="story-img" id="img-s3" alt="Realization" onerror="this.src='https://placehold.co/600x800/9b59b6/ffffff?text=Thinking'">
+            </div>
+            <div class="story-content-col">
+                
+                <div id="s3-part1">
+                    <div class="instruction">
+                       After failures in his job seeking, he had the realization that he had to create his own job!
+                        <div class="tts-icon" onclick="playAzureAudio('After failures in his job seeking, he had the realization that he had to create his own job!')">🔊</div>
+                    </div>
+                    <div class="fill-blank-container" style="border:none; background:transparent; font-style:italic;">
+                        He began his own radio show. It was like a...
+                    </div>
+                    <button class="btn" onclick="revealHorizon()">Reveal What Happened</button>
+                </div>
+
+                <div id="s3-part2" style="display:none;">
+                    <div class="instruction">Listen and fill in the blanks:</div>
+                    
+                    <div class="fill-blank-container">
+                        "This was like a 
+                        <input type="text" id="ans-3a" class="blank-input" style="width:100px;" autocomplete="off">
+                        <input type="text" id="ans-3b" class="blank-input" style="width:100px;" autocomplete="off">
+                        <input type="text" id="ans-3c" class="blank-input" style="width:50px;" autocomplete="off"> !"
+                        
+                        <div class="tts-icon" onclick="playAzureAudio('This was like a horizon opened up!')">🔊</div>
+                    </div>
+
+                    <button class="btn btn-check" onclick="checkScene3()">Check Answer</button>
+                </div>
+
+                <button class="btn" style="background:#7f8c8d; display:none; margin-top:10px;" id="next-s3" onclick="nextStage(4)">Next Scene →</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-4">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_13.jpg" class="story-img" alt="Community" onerror="this.src='https://placehold.co/600x800/27ae60/ffffff?text=Community'">
+            </div>
+            <div class="story-content-col">
+                <div class="instruction">
+                    He got in touch with people who had the same interests.
+                    <div class="tts-icon" onclick="playAzureAudio('He got in touch with a lot of people who had the same interests as him.')">🔊</div>
+                </div>
+                
+                <div class="fill-blank-container">
+                    What is the synonym for "people who have the same interest"?<br><br>
+                    Answer: <input type="text" id="ans-4" class="blank-input" autocomplete="off">
+                </div>
+                
+                <button class="btn btn-check" onclick="checkAnswer(4, 'community')">Check Answer</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-bar">
+        <button class="btn-nav" onclick="location.href='5.html'">⬅️ Prev</button>
+        <button class="btn-nav" id="nav-next-page" style="display:none; background:var(--secondary); color:white; border:none;" onclick="location.href='7.html'">Next Page ➡️</button>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration (完整密钥 + 官方 SDK)
+       ========================================================== */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+        if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        
+        synthesizer.speakTextAsync(
+            text,
+            result => { synthesizer.close(); synthesizer = undefined; },
+            err => { console.error("TTS Error:", err); synthesizer.close(); synthesizer = undefined; }
+        );
+    }
+
+    function playIntro() {
+        setTimeout(() => {
+            playAzureAudio("What did he do when he was a young adult? Let’s describe the pictures and learn.");
+        }, 1000);
+    }
+
+    /* ==========================================================
+       Interaction Logic
+       ========================================================== */
+
+    function nextStage(id) {
+        document.querySelectorAll('.stage').forEach(s => {
+            s.classList.remove('active');
+            s.style.opacity = 0;
+            setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500);
+        });
+
+        const next = document.getElementById('stage-' + id);
+        next.style.display = 'flex';
+        setTimeout(() => {
+            next.classList.add('active');
+            next.style.opacity = 1;
+        }, 50);
+    }
+
+    // --- 通用填空检查 (Scene 1, 2, 4) ---
+    function checkAnswer(id, correct) {
+        const input = document.getElementById('ans-' + id);
+        const userVal = input.value.trim().toLowerCase();
+        
+        if (userVal === correct.toLowerCase()) {
+            input.classList.add('correct');
+            input.classList.remove('wrong');
+            
+            // 构造完整句子进行朗读
+            let fullSentence = "";
+            if(id === 1) fullSentence = "There wasn’t really a job description for what he wanted to do.";
+            if(id === 2) fullSentence = "He wound up with all these stories he’d gathered from his time on the road.";
+            if(id === 4) fullSentence = "He got in touch with a community of people.";
+
+            playAzureAudio("Correct! " + fullSentence);
+            
+            // 逻辑分支
+            if(id === 4) {
+                // 最后一题，显示页面导航
+                document.getElementById('nav-next-page').style.display = 'inline-block';
+            } else {
+                document.getElementById('next-s' + id).style.display = 'inline-block';
+            }
+        } else {
+            input.classList.add('wrong');
+            playAzureAudio("Try again.");
+        }
+    }
+
+    // --- Scene 3 逻辑 (图片切换 + 填空) ---
+
+    // 1. 点击 Reveal 按钮
+    function revealHorizon() {
+        const img = document.getElementById('img-s3');
+        img.style.opacity = 0; // 淡出
+        
+        setTimeout(() => {
+            img.src = 'image_12.jpg'; // 切换到新图 (Open Horizon)
+            img.onerror = function() { this.src='https://placehold.co/600x800/27ae60/ffffff?text=Horizon+Scene'; };
+            img.style.opacity = 1; // 淡入
+        }, 500);
+
+        document.getElementById('s3-part1').style.display = 'none';
+        document.getElementById('s3-part2').style.display = 'block';
+        playAzureAudio("He began his own radio show. It was like a...");
+    }
+
+    // 2. 检查 Scene 3 的填空
+    function checkScene3() {
+        const a1 = document.getElementById('ans-3a');
+        const a2 = document.getElementById('ans-3b');
+        const a3 = document.getElementById('ans-3c');
+        
+        const v1 = a1.value.trim().toLowerCase();
+        const v2 = a2.value.trim().toLowerCase();
+        const v3 = a3.value.trim().toLowerCase();
+        
+        let allCorrect = true;
+
+        if(v1 === 'horizon') { a1.classList.add('correct'); a1.classList.remove('wrong'); }
+        else { a1.classList.add('wrong'); allCorrect = false; }
+
+        if(v2 === 'opened') { a2.classList.add('correct'); a2.classList.remove('wrong'); }
+        else { a2.classList.add('wrong'); allCorrect = false; }
+
+        if(v3 === 'up') { a3.classList.add('correct'); a3.classList.remove('wrong'); }
+        else { a3.classList.add('wrong'); allCorrect = false; }
+
+        if (allCorrect) {
+            playAzureAudio("Correct! This was like a horizon opened up!");
+            document.getElementById('next-s3').style.display = 'inline-block';
+        } else {
+            playAzureAudio("Try again.");
+        }
+    }
+
+</script>
+
+</body>
+</html>

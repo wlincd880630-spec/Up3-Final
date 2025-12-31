@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Page 5: Teenage Years</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Growth & Adventure */
+            --primary: #2c3e50;   
+            --secondary: #e67e22; 
+            --accent: #9b59b6;    
+            --bg-body: #ecf0f1;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text: #2d3436;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(#bdc3c7 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%; max-width: 1200px; min-height: 650px; height: 85vh;
+            background: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop') no-repeat center center;
+            background-size: cover;
+            border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(44, 62, 80, 0.85); z-index: 0;
+        }
+
+        /* --- 导航栏 --- */
+        .nav-bar {
+            position: relative; z-index: 10;
+            height: 60px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px;
+        }
+        .lesson-title { font-weight: 900; color: white; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
+        .page-num { font-weight: bold; color: rgba(255,255,255,0.6); font-size: 0.9rem; }
+
+        /* --- 舞台系统 --- */
+        .stage {
+            position: absolute; top: 60px; left: 0; bottom: 80px; width: 100%;
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 20px; box-sizing: border-box; z-index: 10;
+            opacity: 0; transition: opacity 0.8s ease;
+        }
+        .stage.active { display: flex; opacity: 1; }
+
+        /* --- Story Layout --- */
+        .story-layout {
+            display: flex; width: 95%; max-width: 1000px; height: 100%;
+            background: var(--card-bg); border-radius: 20px;
+            overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+
+        .story-img-col { flex: 1.2; background: #000; position: relative; overflow: hidden; }
+        .story-img { width: 100%; height: 100%; object-fit: contain; }
+
+        /* 修复重点：增加 overflow-y: auto 防止内容被遮挡 */
+        .story-content-col {
+            flex: 1; padding: 20px 30px;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: #fff; border-left: 6px solid var(--secondary);
+            overflow-y: auto; /* 关键修复：允许滚动 */
+        }
+
+        .instruction {
+            font-size: 1.4rem; color: var(--primary); font-weight: 800;
+            margin-bottom: 15px; text-align: center; line-height: 1.4;
+            flex-shrink: 0;
+        }
+
+        /* Intro styles */
+        .intro-title {
+            font-size: 2.8rem; color: white; font-weight: 900; text-align: center;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .intro-sub {
+            font-size: 1.6rem; color: var(--secondary); margin-top: 30px;
+            font-weight: bold;
+        }
+
+        /* Listening Box */
+        .listening-box {
+            background: #f1f2f6; padding: 20px; border-radius: 15px; width: 90%;
+            text-align: center; margin-bottom: 20px; display: none;
+            font-size: 1.3rem; line-height: 1.5; color: var(--primary); font-weight: bold;
+            border: 2px solid var(--accent);
+        }
+
+        /* Unscramble Game - 优化间距 */
+        .drop-zone {
+            border: 3px dashed #bdc3c7; background: #f8f9fa;
+            border-radius: 15px; padding: 15px; min-height: 80px; width: 100%;
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center;
+            margin-bottom: 15px; transition: 0.3s; flex-shrink: 0;
+        }
+        
+        .word-bank {
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+            margin-bottom: 15px; width: 100%; min-height: 50px;
+            flex-shrink: 0;
+        }
+        
+        .word-chip {
+            background: var(--primary); color: white; padding: 8px 15px;
+            border-radius: 30px; cursor: pointer; font-size: 1rem; font-weight: bold;
+            transition: 0.2s; box-shadow: 0 4px 8px rgba(0,0,0,0.1); user-select: none;
+        }
+        .word-chip:hover { transform: scale(1.05); background: #34495e; }
+
+        /* Controls */
+        .control-bar {
+            position: relative; z-index: 10; height: 80px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px;
+        }
+
+        .btn {
+            padding: 10px 30px; font-size: 1.1rem; border: none; border-radius: 50px;
+            cursor: pointer; background: var(--secondary); color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-weight: bold;
+            transition: transform 0.2s; margin-top: 5px; flex-shrink: 0;
+        }
+        .btn:hover { transform: translateY(-3px); filter: brightness(1.1); }
+        .btn-check { background: var(--accent); }
+        
+        .btn-nav {
+            background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.8); font-size: 1rem; padding: 10px 25px;
+            cursor: pointer; border-radius: 50px; transition: 0.2s;
+        }
+        .btn-nav:hover { background: white; color: var(--primary); }
+
+        .tts-big {
+            font-size: 3rem; color: var(--secondary); cursor: pointer;
+            margin-bottom: 15px; transition: transform 0.2s;
+        }
+        .tts-big:hover { transform: scale(1.1); }
+
+        .tts-icon {
+            cursor: pointer; width: 30px; height: 30px; border-radius: 50%;
+            background: rgba(0,0,0,0.1); display: inline-flex;
+            align-items: center; justify-content: center;
+            font-size: 1rem; color: var(--primary); transition: 0.2s;
+            margin-left: 10px; vertical-align: middle;
+        }
+        .tts-icon:hover { background: var(--primary); color: white; transform: scale(1.1); }
+        .tts-white { color: white; background: rgba(255,255,255,0.2); }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .story-layout { flex-direction: column; width: 95%; height: 95%; }
+            .story-img-col { flex: none; height: 35%; }
+            /* 手机端更加需要滚动，且对齐方式改为 flex-start 防止中间内容被切 */
+            .story-content-col { flex: 1; padding: 15px; justify-content: flex-start; overflow-y: auto; }
+            .instruction { font-size: 1.1rem; margin-top: 10px; }
+            .intro-title { font-size: 2rem; }
+            .word-chip { font-size: 0.9rem; padding: 6px 12px; }
+        }
+    </style>
+</head>
+<body onload="playIntro()">
+
+<div id="app-container">
+    <div class="overlay"></div>
+    
+    <div class="nav-bar">
+        <div class="lesson-title">Teenage Years</div>
+        <div class="page-num">5 / 8</div>
+    </div>
+
+    <div class="stage active" id="stage-0">
+        <div class="intro-title">
+            Fast forward to his teenage years...
+            <div class="tts-icon tts-white" style="margin-top:10px;" onclick="playAzureAudio('Fast forward to his teenage years.')">🔊</div>
+        </div>
+        <div class="intro-sub">
+            Let’s describe the pictures and learn.
+            <div class="tts-icon tts-white" onclick="playAzureAudio('Let’s describe the pictures and learn: What did he do when he was a teenager?')">🔊</div>
+        </div>
+        <button class="btn" style="margin-top:50px; background:transparent; border:2px solid white;" onclick="nextStage('car')">Start Scene 1 →</button>
+    </div>
+
+    <div class="stage" id="stage-car">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_car.jpg" class="story-img" alt="Loading the car" onerror="this.src='https://placehold.co/600x800/2c3e50/ffffff?text=Car+Scene'">
+            </div>
+            <div class="story-content-col">
+                <div class="instruction">
+                    Listen and Repeat
+                    <div style="font-size:1rem; color:#7f8c8d; font-weight:normal; margin-top:5px;">What did he do next?</div>
+                </div>
+
+                <div class="tts-big" onclick="playAzureAudio('He loaded all this stuff up into his car and hit the road.')">
+                    🔊
+                </div>
+                
+                <div class="listening-box" id="listen-text">
+                    "He <b>loaded all this stuff up</b> into his car and <b>hit the road</b>."
+                </div>
+                
+                <button class="btn" id="reveal-btn-car" onclick="revealListenText()">Show Text</button>
+                <button class="btn" style="background:#7f8c8d; display:none; margin-top:15px;" id="next-s-car" onclick="nextStage(1)">Next Scene →</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-1">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_07.jpg" class="story-img" alt="Teenager Skiing" onerror="this.src='https://placehold.co/600x800/3498db/ffffff?text=Skiing+Scene'">
+            </div>
+            <div class="story-content-col">
+                <div class="instruction">
+                    Unscramble the sentence
+                    <div class="tts-icon" onclick="playAzureAudio('Unscramble the sentence.')">🔊</div>
+                </div>
+                
+                <div class="drop-zone" id="zone-1"></div>
+                <div class="word-bank" id="bank-1"></div>
+                
+                <button class="btn btn-check" id="check-1" onclick="checkSentence(1)">Check Sentence</button>
+                <button class="btn" style="background:#7f8c8d; display:none; margin-top:15px;" id="next-s1" onclick="nextStage(2)">Next Scene →</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-2">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_08.jpg" class="story-img" alt="Teenager Writing" onerror="this.src='https://placehold.co/600x800/9b59b6/ffffff?text=Writing+Scene'">
+            </div>
+            <div class="story-content-col">
+                <div class="instruction">
+                    What did he do back home?
+                    <div class="tts-icon" onclick="playAzureAudio('What did he do back home?')">🔊</div>
+                </div>
+                
+                <div class="drop-zone" id="zone-2"></div>
+                <div class="word-bank" id="bank-2"></div>
+                
+                <button class="btn btn-check" id="check-2" onclick="checkSentence(2)">Check Sentence</button>
+                <button class="btn" style="background:#7f8c8d; display:none; margin-top:15px;" id="next-s2" onclick="alert('Go to Page 6')">Finish Page 5 →</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-bar">
+        <button class="btn-nav" onclick="location.href='4.html'">⬅️ Prev</button>
+        <button class="btn-nav" id="nav-next-page" style="display:none; background:var(--secondary); color:white; border:none;" onclick="location.href='6.html'">Next Page ➡️</button>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration
+       ========================================================== */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+        if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        synthesizer.speakTextAsync(text, 
+            result => { synthesizer.close(); synthesizer = undefined; },
+            err => { console.error("TTS Error:", err); synthesizer.close(); synthesizer = undefined; }
+        );
+    }
+
+    function playIntro() {
+        setTimeout(() => {
+            playAzureAudio("Fast forward to his teenage years. Let’s describe the pictures and learn: What did he do when he was a teenager?");
+        }, 1000);
+    }
+
+    /* ==========================================================
+       Interaction Logic
+       ========================================================== */
+
+    function nextStage(id) {
+        document.querySelectorAll('.stage').forEach(s => {
+            s.classList.remove('active');
+            s.style.opacity = 0;
+            setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500);
+        });
+
+        const nextId = (typeof id === 'number' || !isNaN(id)) ? 'stage-' + id : 'stage-' + id;
+        const next = document.getElementById(nextId);
+        
+        if (next) {
+            next.style.display = 'flex';
+            setTimeout(() => {
+                next.classList.add('active');
+                next.style.opacity = 1;
+            }, 50);
+
+            if (!isNaN(id)) initGame(id);
+        }
+    }
+
+    // --- Listen & Repeat Logic ---
+    function revealListenText() {
+        const textBox = document.getElementById('listen-text');
+        const revealBtn = document.getElementById('reveal-btn-car');
+        const nextBtn = document.getElementById('next-s-car');
+
+        textBox.style.display = 'block';
+        revealBtn.style.display = 'none';
+        nextBtn.style.display = 'inline-block';
+        
+        playAzureAudio("He loaded all this stuff up into his car and hit the road.");
+    }
+
+    // --- Unscramble Logic ---
+    const sentenceData = [
+        { 
+            id: 1, 
+            correct: "He loved the magical world of outdoor activities.",
+            chunks: ["He", "loved", "the", "magical world", "of", "outdoor activities."]
+        },
+        { 
+            id: 2, 
+            correct: "He came back home and began his writing about the life on the road.",
+            chunks: ["He", "came back home", "and", "began", "his writing", "about", "the life", "on the road."]
+        }
+    ];
+
+    function initGame(id) {
+        const data = sentenceData.find(d => d.id === id);
+        if (!data) return;
+
+        const bank = document.getElementById('bank-' + id);
+        const zone = document.getElementById('zone-' + id);
+        
+        if (bank.children.length > 0) return;
+
+        const shuffled = [...data.chunks].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach(text => {
+            const chip = document.createElement('div');
+            chip.className = 'word-chip';
+            chip.innerText = text;
+            chip.onclick = () => {
+                if (chip.parentNode === bank) zone.appendChild(chip);
+                else bank.appendChild(chip);
+                playAzureAudio(text);
+            };
+            bank.appendChild(chip);
+        });
+    }
+
+    function checkSentence(id) {
+        const data = sentenceData.find(d => d.id === id);
+        const zone = document.getElementById('zone-' + id);
+        const answer = Array.from(zone.children).map(c => c.innerText).join(' ');
+
+        if (answer === data.correct) {
+            zone.style.border = "3px solid var(--accent)";
+            playAzureAudio("Correct! " + data.correct);
+            
+            document.getElementById('check-' + id).style.display = 'none';
+            
+            if (id === 2) {
+                document.getElementById('next-s2').style.display = 'none';
+                document.getElementById('nav-next-page').style.display = 'block';
+            } else {
+                document.getElementById('next-s' + id).style.display = 'inline-block';
+            }
+            
+            Array.from(zone.children).forEach(c => c.onclick = null);
+        } else {
+            zone.style.border = "3px solid #c0392b";
+            playAzureAudio("Try again.");
+        }
+    }
+
+</script>
+
+</body>
+</html>

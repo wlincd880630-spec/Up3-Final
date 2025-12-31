@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Study: Inspire & Inspiration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Creativity & Energy */
+            --primary: #8e44ad;   /* Creative Purple */
+            --primary-light: #9b59b6;
+            --secondary: #f1c40f; /* Energy Gold */
+            --accent: #2980b9;    /* Trust Blue */
+            --bg-body: #2c3e50;   /* Deep Night Sky */
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --radius: 20px;
+        }
+
+        body { margin: 0; padding: 0; background-color: var(--bg-body); background-image: radial-gradient(white 1px, transparent 1px), radial-gradient(#ffffff 1px, transparent 1px); background-size: 50px 50px, 20px 20px; font-family: 'Nunito', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        #app-container { width: 95%; max-width: 1200px; min-height: 650px; height: 85vh; background: var(--card-bg); border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .scene { flex: 1; display: none; flex-direction: column; padding: 30px; opacity: 0; transition: opacity 0.5s ease; overflow-y: auto; }
+        .scene.active { display: flex; opacity: 1; }
+
+        .mapping-layout { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; background: linear-gradient(135deg, #fdfbfd 0%, #f4ecf7 100%); }
+        .sound-container { display: flex; gap: 6px; margin: 40px 0; justify-content: center; align-items: flex-end; flex-wrap: wrap; }
+        .sound-input { width: 50px; height: 70px; font-size: 1.8rem; text-align: center; border: 3px solid #dcdde1; border-radius: 12px; color: var(--text-main); font-weight: bold; background: white; }
+        .sound-input:focus { border-color: var(--primary); transform: translateY(-3px); }
+        .sound-input.correct { background: #f3e5f5; border-color: var(--primary); color: var(--primary); }
+        .suffix-label { position: absolute; top: -28px; background: var(--secondary); color: #fff; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; font-weight: bold; }
+
+        .story-container { display: flex; flex-direction: column; height: 100%; gap: 20px; }
+        .img-display-area { flex: 1.6; background: #2c3e50; border-radius: 16px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        .img-blurred { position: absolute; width: 100%; height: 100%; object-fit: cover; filter: blur(25px) brightness(0.6); transform: scale(1.1); z-index: 0; }
+        .img-sharp { position: absolute; width: 100%; height: 100%; object-fit: contain; clip-path: inset(0 100% 0 0); transition: clip-path 1.5s cubic-bezier(0.4, 0.0, 0.2, 1); z-index: 2; }
+        .text-interaction-area { flex: 1; background: #fffbf0; border-radius: 16px; padding: 20px 30px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border-top: 5px solid var(--primary); }
+        .question-box { font-size: 1.4rem; color: var(--primary); font-weight: 800; margin-bottom: 15px; display: none; animation: slideUp 0.5s forwards; }
+        .answer-box { font-size: 1.2rem; color: var(--text-main); line-height: 1.6; display: none; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); animation: fadeIn 0.5s forwards; width: 90%; text-align: left; border-left: 4px solid var(--secondary); }
+
+        .def-layout { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; max-width: 800px; margin: 0 auto; }
+        .phrase-title { font-size: 3.5rem; color: var(--primary); font-weight: 900; margin-bottom: 20px; }
+        .def-box-large { background: #fdfefe; border-left: 8px solid var(--secondary); padding: 30px 40px; border-radius: 16px; font-size: 1.5rem; color: #2d3436; width: 90%; margin-bottom: 30px; text-align: left; }
+        .example-list { width: 90%; display: flex; flex-direction: column; gap: 15px; }
+        .example-card { background: white; padding: 15px 25px; border-radius: 12px; border: 1px solid #eee; font-size: 1.2rem; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        .highlight { color: var(--primary); font-weight: 800; }
+
+        .btn { padding: 12px 35px; font-size: 1.1rem; border: none; border-radius: 50px; cursor: pointer; font-weight: 700; background: var(--primary); color: white; margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-reveal { background: var(--secondary); color: #2c3e50; }
+        .nav-btn { position: absolute; bottom: 30px; right: 30px; background: white; border: 2px solid #b2bec3; color: #7f8c8d; font-size: 1rem; padding: 10px 20px; cursor: pointer; border-radius: 50px; }
+        .tts-icon { width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.05); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; color: var(--primary); margin-left: 8px; vertical-align: middle; }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .scene { padding: 20px; }
+            .sound-input { width: 40px; height: 55px; font-size: 1.4rem; }
+            .story-container { flex-direction: column; }
+            .img-display-area { flex: none; height: 35vh; }
+            .def-box-large { padding: 20px; font-size: 1.2rem; }
+            .nav-btn { bottom: 20px; right: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div class="scene active" id="scene-1">
+        <div class="mapping-layout">
+            <h2 style="color:var(--primary); font-size:2.5rem; margin-bottom: 10px;">Step 1: Listen & Spell</h2>
+            <button class="btn" onclick="playAzureAudio('Inspire')">🔊 Listen to the word</button>
+            <div class="sound-container" id="spell-1">
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="i"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="n"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="s"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="p"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="i"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="r"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="e"></div>
+            </div>
+            <button class="btn" onclick="checkSpellingInspire()">Check Spelling</button>
+            <p id="feedback-1" style="height:20px; font-weight:bold; font-size:1.2rem; margin-top:20px; text-align:center; color:var(--primary);"></p>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-1" onclick="nextScene(2)">Next: The Story →</button>
+    </div>
+
+    <div class="scene" id="scene-2">
+        <div class="story-container">
+            <div class="img-display-area">
+                <img src="inspire.jpg" class="img-blurred" alt="Blurred">
+                <img src="inspire.jpg" class="img-sharp" id="sharp-img-1" alt="Clear" onerror="this.src='https://placehold.co/800x400/8e44ad/ffffff?text=Inspiration+Scene'">
+            </div>
+            <div class="text-interaction-area">
+                <div id="s2-q1" class="question-box">Look at the girl. Where is she? What is she looking at? <div class="tts-icon" onclick="playAzureAudio('Look at the girl. Where is she? What is she looking at?')">🔊</div></div>
+                <div id="s2-a1" class="answer-box">She is sitting outside and looking at a beautiful, colorful butterfly. Her eyes are wide and she is smiling. She thinks, 'Wow!' <div class="tts-icon" onclick="playAzureAudio('She is sitting outside and looking at a beautiful, colorful butterfly. Her eyes are wide and she is smiling.')">🔊</div></div>
+                <button class="btn" id="s2-btn" onclick="story1Next()">👁️ Reveal Description</button>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-2" onclick="nextScene(3)">Next: The Action →</button>
+    </div>
+
+    <div class="scene" id="scene-3">
+        <div class="story-container">
+            <div class="img-display-area">
+                <img src="inspire.jpg" class="img-sharp" id="sharp-img-2" style="clip-path: inset(0 50% 0 0);" alt="Action">
+            </div>
+            <div class="text-interaction-area">
+                <div id="s3-q1" class="question-box">Now look at the second picture. What is she doing now? <div class="tts-icon" onclick="playAzureAudio('Now look at the second picture. What is she doing now?')">🔊</div></div>
+                <div id="s3-a1" class="answer-box">The girl is at home. She is holding a paintbrush and painting a picture of that same butterfly. <div class="tts-icon" onclick="playAzureAudio('The girl is at home. She is holding a paintbrush and painting a picture of that same butterfly.')">🔊</div></div>
+                <div id="s3-summary" class="answer-box" style="border-left-color: var(--primary); background:#f3e5f5; font-weight:bold;">The butterfly gave her the idea. We say: The butterfly <b>inspired</b> her to paint. <div class="tts-icon" onclick="playAzureAudio('The butterfly gave her the idea. We say: The butterfly inspired her to paint.')">🔊</div></div>
+                <button class="btn" id="s3-btn" onclick="story2Next()">👁️ Reveal Description</button>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-3" onclick="nextScene(4)">Next: Definition →</button>
+    </div>
+
+    <div class="scene" id="scene-4">
+        <div class="def-layout">
+            <div class="phrase-title">Inspire (v.)</div>
+            <div class="def-box-large">
+                <b style="color:var(--primary); font-size:1rem; display:block; margin-bottom:5px;">DEFINITION</b>
+                To give someone the idea, confidence, or enthusiasm to do something creative or important.
+                <div class="tts-icon" onclick="playAzureAudio('To give someone the idea, confidence, or enthusiasm to do something creative or important.')">🔊</div>
+            </div>
+            <div class="example-list">
+                <div class="example-card"><span>"His speech <span class="highlight">inspired</span> me to study harder."</span><div class="tts-icon" onclick="playAzureAudio('His speech inspired me to study harder.')">🔊</div></div>
+                <div class="example-card"><span>"Nature often <span class="highlight">inspires</span> artists."</span><div class="tts-icon" onclick="playAzureAudio('Nature often inspires artists to create beautiful paintings.')">🔊</div></div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="nextScene(5)">Next: Noun Form →</button>
+    </div>
+
+    <div class="scene" id="scene-5">
+        <div class="mapping-layout">
+            <h2 style="color:var(--primary); font-size:2.5rem; margin-bottom: 10px;">Step 2: Listen & Spell</h2>
+            <button class="btn" onclick="playAzureAudio('Inspiration')">🔊 Listen</button>
+            <div class="sound-container" id="spell-2">
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="i"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="n"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="s"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="p"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="i"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="r"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="a"></div>
+                <div class="sound-box-wrapper"><div class="suffix-label">Suffix</div><input type="text" class="sound-input" maxlength="4" style="width: 90px; background:#fffde7; border-color:var(--secondary);" data-ans="tion"></div>
+            </div>
+            <button class="btn" onclick="checkSpellingInspiration()">Check Spelling</button>
+            <p id="feedback-2" style="height:20px; font-weight:bold; font-size:1.2rem; margin-top:20px; text-align:center;"></p>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-5" onclick="nextScene(6)">Next: Definition →</button>
+    </div>
+
+    <div class="scene" id="scene-6">
+        <div class="def-layout">
+            <div class="phrase-title">Inspiration (n.)</div>
+            <div class="def-box-large">
+                <b style="color:var(--primary); font-size:1rem; display:block; margin-bottom:5px;">DEFINITION</b>
+                A sudden good idea, or someone/something that gives you new ideas and energy.
+                <div class="tts-icon" onclick="playAzureAudio('A sudden good idea, or someone or something that gives you new ideas and energy.')">🔊</div>
+            </div>
+            <div class="example-list">
+                <div class="example-card"><span>"She found <span class="highlight">inspiration</span> in childhood memories."</span><div class="tts-icon" onclick="playAzureAudio('She found inspiration for her novel in childhood memories.')">🔊</div></div>
+                <div class="example-card"><span>"His courage is an <span class="highlight">inspiration</span> to us all."</span><div class="tts-icon" onclick="playAzureAudio('His courage is an inspiration to us all.')">🔊</div></div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="location.reload()">↺ Review Lesson</button>
+    </div>
+</div>
+
+<script>
+    /* Azure TTS */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+        if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        synthesizer.speakTextAsync(text, result => { synthesizer.close(); synthesizer = undefined; }, err => { console.error(err); synthesizer.close(); synthesizer = undefined; });
+    }
+
+    function nextScene(id) {
+        document.querySelectorAll('.scene').forEach(s => { s.classList.remove('active'); s.style.opacity = 0; setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500); });
+        const next = document.getElementById('scene-' + id);
+        next.style.display = 'flex'; void next.offsetWidth; next.classList.add('active'); next.style.opacity = 1;
+    }
+
+    /* Logic */
+    let s2Step = 0;
+    function story1Next() {
+        s2Step++; const img = document.getElementById('sharp-img-1'); const btn = document.getElementById('s2-btn');
+        if (s2Step === 1) { img.style.clipPath = 'inset(0 50% 0 0)'; document.getElementById('s2-q1').style.display = 'block'; playAzureAudio("Look at the girl. Where is she?"); btn.innerText = 'Reveal Description'; btn.classList.add('btn-reveal'); }
+        else if (s2Step === 2) { document.getElementById('s2-a1').style.display = 'block'; playAzureAudio("She is sitting outside and looking at a beautiful butterfly."); btn.style.display = 'none'; document.getElementById('nav-2').style.display = 'block'; }
+    }
+
+    let s3Step = 0;
+    function story2Next() {
+        s3Step++; const img = document.getElementById('sharp-img-2'); const btn = document.getElementById('s3-btn');
+        if (s3Step === 1) { img.style.clipPath = 'inset(0 0 0 0)'; document.getElementById('s3-q1').style.display = 'block'; playAzureAudio("Now look at the second picture. What is she doing now?"); btn.innerText = 'Reveal Description'; btn.classList.add('btn-reveal'); }
+        else if (s3Step === 2) { document.getElementById('s3-a1').style.display = 'block'; playAzureAudio("She is holding a paintbrush and painting the butterfly."); btn.innerText = 'Show Key Sentence'; btn.classList.remove('btn-reveal'); }
+        else if (s3Step === 3) { document.getElementById('s3-summary').style.display = 'block'; playAzureAudio("The butterfly inspired her to paint."); btn.style.display = 'none'; document.getElementById('nav-3').style.display = 'block'; }
+    }
+
+    const inputs1 = document.querySelectorAll('#spell-1 .sound-input');
+    inputs1.forEach((input, idx) => { input.addEventListener('input', () => { if(input.value.length === input.maxLength && idx < inputs1.length - 1) inputs1[idx+1].focus(); }); });
+    function checkSpellingInspire() {
+        let allCorrect = true; inputs1.forEach(input => { if(input.value.toLowerCase() === input.dataset.ans) { input.classList.add('correct'); input.classList.remove('wrong'); } else { input.classList.add('wrong'); allCorrect = false; } });
+        if(allCorrect) { document.getElementById('feedback-1').innerText = "Correct! Inspire."; playAzureAudio("Inspire."); document.getElementById('nav-1').style.display = 'block'; }
+    }
+
+    const inputs2 = document.querySelectorAll('#spell-2 .sound-input');
+    inputs2.forEach((input, idx) => { input.addEventListener('input', () => { if(input.value.length === input.maxLength && idx < inputs2.length - 1) inputs2[idx+1].focus(); }); });
+    function checkSpellingInspiration() {
+        let allCorrect = true; inputs2.forEach(input => { if(input.value.toLowerCase() === input.dataset.ans) { input.classList.add('correct'); input.classList.remove('wrong'); } else { input.classList.add('wrong'); allCorrect = false; } });
+        if(allCorrect) { document.getElementById('feedback-2').innerText = "Perfect! Inspiration."; playAzureAudio("Inspiration."); document.getElementById('nav-5').style.display = 'block'; }
+    }
+</script>
+</body>
+</html>

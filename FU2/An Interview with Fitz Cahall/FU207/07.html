@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Study: Community</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Connection & Warmth */
+            --primary: #009688;   /* Teal */
+            --primary-light: #80cbc4;
+            --secondary: #ff7043; /* Coral */
+            --accent: #ffca28;    /* Amber */
+            --bg-body: #eceff1;
+            --card-bg: #ffffff;
+            --text-main: #37474f;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0; padding: 0; background-color: var(--bg-body);
+            background-image: radial-gradient(#cfd8dc 1px, transparent 1px); background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%; max-width: 1200px; min-height: 650px; height: 85vh;
+            background: var(--card-bg); border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(55, 71, 79, 0.1); position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        .scene { flex: 1; display: none; flex-direction: column; padding: 30px; opacity: 0; transition: opacity 0.5s ease; overflow-y: auto; }
+        .scene.active { display: flex; opacity: 1; }
+
+        /* Scene 1: Mapping */
+        .mapping-layout { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; background: linear-gradient(135deg, #e0f2f1 0%, #ffffff 100%); }
+        .sound-container { display: flex; gap: 6px; margin: 50px 0; justify-content: center; align-items: flex-end; flex-wrap: wrap; }
+        .sound-input { width: 50px; height: 70px; font-size: 1.8rem; text-align: center; border: 3px solid #cfd8dc; border-radius: 12px; font-weight: bold; background: white; }
+        .sound-input:focus { border-color: var(--primary); transform: translateY(-3px); }
+        .sound-input.correct { background: #e0f2f1; border-color: var(--primary); color: var(--primary); }
+        .prefix-label { position: absolute; top: -30px; background: var(--secondary); color: white; font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
+
+        /* Story Scenes */
+        .story-container { display: flex; flex-direction: column; height: 100%; gap: 20px; }
+        .img-display-area { flex: 1.5; background: #263238; border-radius: 16px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        .img-layer { width: 100%; height: 100%; object-fit: contain; transition: transform 0.5s; }
+        .img-layer:hover { transform: scale(1.02); }
+        .text-interaction-area { flex: 1; background: #fafafa; border-radius: 16px; padding: 20px 30px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border-top: 5px solid var(--primary); }
+        .question-box { font-size: 1.4rem; color: var(--primary); font-weight: 800; margin-bottom: 15px; display: none; animation: slideUp 0.5s forwards; }
+        .answer-box { font-size: 1.3rem; color: var(--text-main); display: none; background: white; padding: 15px 25px; border-radius: 12px; width: 90%; border-left: 5px solid var(--secondary); text-align: left; }
+        .example-list { margin-top: 20px; width: 90%; text-align: left; display: none; flex-direction: column; gap: 10px; }
+        .example-item { font-size: 1.1rem; color: #455a64; background: #eceff1; padding: 12px 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Quiz */
+        .quiz-layout { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; background: #f1f8e9; }
+        .quiz-card { width: 85%; max-width: 700px; background: white; border-radius: 16px; padding: 25px; margin-bottom: 20px; text-align: left; border-left: 6px solid var(--accent); }
+        .quiz-options { display: flex; gap: 15px; margin-top: 15px; }
+        .quiz-btn { flex: 1; padding: 10px 15px; border: 2px solid #cfd8dc; background: white; border-radius: 50px; cursor: pointer; font-weight: bold; color: #607d8b; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .quiz-btn.correct { background: var(--primary); color: white; border-color: var(--primary); }
+        .quiz-btn.wrong { background: #ef5350; color: white; border-color: #ef5350; }
+
+        .btn { padding: 12px 35px; font-size: 1.1rem; border: none; border-radius: 50px; cursor: pointer; font-weight: 800; background: var(--primary); color: white; margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-reveal { background: var(--secondary); box-shadow: 0 5px 15px rgba(255, 112, 67, 0.3); }
+        .nav-btn { position: absolute; bottom: 30px; right: 30px; background: white; border: 2px solid #b0bec5; color: #78909c; font-size: 1rem; padding: 10px 20px; cursor: pointer; border-radius: 50px; }
+        .tts-icon { width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.05); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; color: var(--primary); margin-left: 8px; vertical-align: middle; }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .scene { padding: 20px; }
+            .sound-input { width: 40px; height: 55px; font-size: 1.4rem; }
+            .story-container { flex-direction: column; }
+            .img-display-area { flex: none; height: 30vh; }
+            .quiz-options { flex-direction: column; }
+            .nav-btn { bottom: 20px; right: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div class="scene active" id="scene-1">
+        <div class="mapping-layout">
+            <h2 style="color:var(--primary); font-size:2.5rem; margin-bottom: 20px;">Step 1: Listen & Spell</h2>
+            <button class="btn" onclick="playAzureAudio('Community')">🔊 Listen to the word</button>
+            <div class="sound-container">
+                <div class="sound-box-wrapper"><div class="prefix-label">Prefix</div><input type="text" class="sound-input" maxlength="3" style="width:80px; background:#e0f2f1; border-color:var(--primary-light);" data-ans="com"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="m"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="u"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="n"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="i"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="t"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="y"></div>
+            </div>
+            <button class="btn" onclick="checkSpelling()">Check Spelling</button>
+            <p id="spelling-feedback" style="height:20px; font-weight:bold; font-size:1.2rem; margin-top:20px; text-align:center; color:var(--primary);"></p>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-1" onclick="nextScene(2)">Next: Meaning 1 →</button>
+    </div>
+
+    <div class="scene" id="scene-2">
+        <div class="story-container">
+            <div class="img-display-area">
+                <img src="community 01.jpg" class="img-layer" alt="Neighborhood" onerror="this.src='https://placehold.co/800x600/009688/ffffff?text=Neighborhood'">
+            </div>
+            <div class="text-interaction-area">
+                <div id="s2-q1" class="question-box" style="display:block;">Look at the picture. What do you see? Houses? Neighbors? <div class="tts-icon" onclick="playAzureAudio('Look at the picture. What do you see? Houses? Neighbors?')">🔊</div></div>
+                <div id="s2-a1" class="answer-box"><b>Meaning 1:</b> A group of people who live in an area. (居住社区) <div class="tts-icon" onclick="playAzureAudio('Meaning 1. A group of people who live in an area.')">🔊</div></div>
+                <div id="s2-ex" class="example-list">
+                    <div class="example-item">"The park is great for the <b>community</b>." <div class="tts-icon" onclick="playAzureAudio('The new park is a great place for the local community.')">🔊</div></div>
+                    <div class="example-item">"Keep our <b>community</b> safe." <div class="tts-icon" onclick="playAzureAudio('We need more police officers to keep our community safe.')">🔊</div></div>
+                </div>
+                <button class="btn btn-reveal" id="s2-btn" onclick="revealMeaning1()">👁️ Reveal Definition</button>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-2" onclick="nextScene(3)">Next: Meaning 2 →</button>
+    </div>
+
+    <div class="scene" id="scene-3">
+        <div class="story-container">
+            <div class="img-display-area">
+                <img src="community 02.jpg" class="img-layer" alt="Group Interest" onerror="this.src='https://placehold.co/800x600/ff7043/ffffff?text=Group+Interest'">
+            </div>
+            <div class="text-interaction-area">
+                <div id="s3-q1" class="question-box" style="display:block;">Do these people live in the same house? No. What connects them? <div class="tts-icon" onclick="playAzureAudio('Do these people live in the same house? No. What connects them?')">🔊</div></div>
+                <div id="s3-a1" class="answer-box"><b>Meaning 2:</b> A group of people who share the same interest, job, etc. (社群; 界) <div class="tts-icon" onclick="playAzureAudio('Meaning 2. A group of people who share the same interest, job, etc.')">🔊</div></div>
+                <div id="s3-ex" class="example-list">
+                    <div class="example-item">"The scientific <b>community</b>." <div class="tts-icon" onclick="playAzureAudio('The scientific community is working hard to find a cure.')">🔊</div></div>
+                    <div class="example-item">"A supportive <b>community</b> of artists." <div class="tts-icon" onclick="playAzureAudio('She found a supportive community of artists online.')">🔊</div></div>
+                </div>
+                <button class="btn btn-reveal" id="s3-btn" onclick="revealMeaning2()">👁️ Reveal Definition</button>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-3" onclick="nextScene(4)">Next: Quiz →</button>
+    </div>
+
+    <div class="scene" id="scene-4">
+        <div class="quiz-layout">
+            <h2 style="color:var(--primary); font-size:2.5rem; margin-bottom: 30px;">Which meaning is it?</h2>
+            <div class="quiz-card">
+                <div style="font-size:1.2rem; font-weight:bold; margin-bottom:15px;">1. "He is a well-known figure in the business <b>community</b>."</div>
+                <div class="quiz-options">
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'Interest')">🤝 Interest (Group)</button>
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'Location')">🏘️ Location (Area)</button>
+                </div>
+            </div>
+            <div class="quiz-card">
+                <div style="font-size:1.2rem; font-weight:bold; margin-bottom:15px;">2. "People in this <b>community</b> help each other during storms."</div>
+                <div class="quiz-options">
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'Interest')">🤝 Interest (Group)</button>
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'Location')">🏘️ Location (Area)</button>
+                </div>
+            </div>
+            <div class="quiz-card">
+                <div style="font-size:1.2rem; font-weight:bold; margin-bottom:15px;">3. "The gaming <b>community</b> is excited about the new console."</div>
+                <div class="quiz-options">
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'Interest')">🤝 Interest (Group)</button>
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'Location')">🏘️ Location (Area)</button>
+                </div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="location.reload()">↺ Replay Lesson</button>
+    </div>
+</div>
+
+<script>
+    /* Azure TTS */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+        if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        synthesizer.speakTextAsync(text, result => { synthesizer.close(); synthesizer = undefined; }, err => { console.error(err); synthesizer.close(); synthesizer = undefined; });
+    }
+
+    function nextScene(id) {
+        document.querySelectorAll('.scene').forEach(s => { s.classList.remove('active'); s.style.opacity = 0; setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500); });
+        const next = document.getElementById('scene-' + id);
+        next.style.display = 'flex'; void next.offsetWidth; next.classList.add('active'); next.style.opacity = 1;
+    }
+
+    const inputs = document.querySelectorAll('.sound-input');
+    inputs.forEach((input, idx) => { input.addEventListener('input', () => { if(input.value.length === input.maxLength && idx < inputs.length - 1) inputs[idx+1].focus(); }); });
+    function checkSpelling() {
+        let allCorrect = true; inputs.forEach(input => { if(input.value.toLowerCase() === input.dataset.ans) { input.classList.add('correct'); input.classList.remove('wrong'); } else { input.classList.add('wrong'); input.classList.remove('correct'); allCorrect = false; } });
+        if(allCorrect) { document.getElementById('spelling-feedback').innerText = "Excellent! COM-M-U-N-I-T-Y."; playAzureAudio("Community."); document.getElementById('nav-1').style.display = 'block'; }
+        else { document.getElementById('spelling-feedback').innerText = "Try again."; document.getElementById('spelling-feedback').style.color = "#ef5350"; playAzureAudio("Try again."); }
+    }
+
+    let s2Step = 0;
+    function revealMeaning1() { s2Step++; const btn = document.getElementById('s2-btn'); if(s2Step === 1) { document.getElementById('s2-q1').style.display = 'none'; document.getElementById('s2-a1').style.display = 'block'; playAzureAudio("Meaning 1. A group of people who live in an area."); btn.innerText = 'Show Examples'; btn.style.background = 'var(--primary)'; } else if(s2Step === 2) { document.getElementById('s2-ex').style.display = 'flex'; playAzureAudio("The new park is a great place for the local community."); btn.style.display = 'none'; document.getElementById('nav-2').style.display = 'block'; } }
+
+    let s3Step = 0;
+    function revealMeaning2() { s3Step++; const btn = document.getElementById('s3-btn'); if(s3Step === 1) { document.getElementById('s3-q1').style.display = 'none'; document.getElementById('s3-a1').style.display = 'block'; playAzureAudio("Meaning 2. A group of people who share the same interest, job, etc."); btn.innerText = 'Show Examples'; btn.style.background = 'var(--primary)'; } else if(s3Step === 2) { document.getElementById('s3-ex').style.display = 'flex'; playAzureAudio("The scientific community is working hard to find a cure."); btn.style.display = 'none'; document.getElementById('nav-3').style.display = 'block'; } }
+
+    function checkQuiz(btn, type) {
+        const card = btn.closest('.quiz-card');
+        const index = Array.from(document.querySelectorAll('.quiz-card')).indexOf(card);
+        let correctType = (index === 0) ? 'Interest' : (index === 1) ? 'Location' : 'Interest';
+        card.querySelectorAll('.quiz-btn').forEach(b => { b.classList.remove('correct', 'wrong'); });
+        if(type === correctType) { btn.classList.add('correct'); playAzureAudio("Correct!"); } else { btn.classList.add('wrong'); playAzureAudio("Try again."); }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fitz Cahall: A Life of Adventure - Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #e67e22; /* Safety Orange */
+            --accent: #27ae60;    /* Forest Green */
+            --highlight: #f1c40f; /* Achievement Gold */
+            --video-blue: #2980b9; /* Video Task Blue */
+            --bg-body: #ecf0f1;
+            --card-bg: rgba(255, 255, 255, 0.96);
+            --radius: 24px;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(#bdc3c7 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%; max-width: 1200px; height: 92vh;
+            background: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop') no-repeat center center;
+            background-size: cover;
+            border-radius: var(--radius);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(44, 62, 80, 0.95) 0%, rgba(44, 62, 80, 0.75) 100%);
+            z-index: 0;
+        }
+
+        header {
+            position: relative; z-index: 10;
+            padding: 40px 20px 20px 20px; text-align: center;
+        }
+        h1 {
+            color: white; font-size: 3.2rem; font-weight: 900; margin: 0;
+            text-transform: uppercase; letter-spacing: 3px;
+            text-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .subtitle {
+            color: var(--secondary); font-size: 1.4rem; font-weight: 700;
+            margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 12px;
+        }
+
+        .content-layout {
+            position: relative; z-index: 10;
+            flex: 1; display: flex; gap: 30px; padding: 0 40px 40px 40px;
+            overflow: hidden;
+        }
+
+        .story-grid {
+            flex: 2; overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px; padding-right: 10px;
+        }
+
+        .featured-sidebar {
+            flex: 1; display: flex; flex-direction: column; gap: 20px;
+        }
+
+        /* --- Card Styles --- */
+        .menu-item {
+            background: var(--card-bg); border-radius: 18px; padding: 20px;
+            text-decoration: none; color: var(--primary);
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border-top: 5px solid transparent;
+        }
+        .menu-item:hover { transform: translateY(-5px); background: #fff; border-top-color: var(--secondary); }
+
+        .icon-box { font-size: 2.2rem; margin-bottom: 10px; }
+        .item-title { font-weight: 900; font-size: 1.1rem; text-align: center; line-height: 1.2; }
+        .item-desc { font-size: 0.85rem; color: #7f8c8d; text-align: center; margin-top: 5px; }
+
+        /* Sidebar Cards */
+        .featured-card {
+            color: white; border-radius: 20px; padding: 25px;
+            text-decoration: none; display: flex; flex-direction: column;
+            align-items: center; text-align: center;
+            transition: 0.3s; justify-content: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .featured-card:hover { transform: translateY(-5px); filter: brightness(1.1); }
+        .featured-card .icon-box { font-size: 2.5rem; }
+        .featured-card .item-title { font-size: 1.3rem; margin-top: 10px; }
+        .featured-card .item-desc { color: rgba(255,255,255,0.9); font-size: 0.85rem; margin-top: 5px; }
+
+        .btn-link {
+            margin-top: 15px; background: white; padding: 6px 15px; 
+            border-radius: 20px; font-weight: 900; font-size: 0.8rem;
+        }
+
+        /* --- TTS Component --- */
+        .tts-icon {
+            cursor: pointer; width: 34px; height: 34px; border-radius: 50%;
+            background: rgba(255,255,255,0.2); display: inline-flex;
+            align-items: center; justify-content: center; color: white;
+            transition: 0.2s;
+        }
+        .tts-icon:hover { transform: scale(1.15); background: var(--secondary); }
+
+        .story-grid::-webkit-scrollbar { width: 6px; }
+        .story-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        /* Mobile */
+        @media (max-width: 992px) {
+            .content-layout { flex-direction: column; padding: 0 20px 30px 20px; overflow-y: auto; }
+            .story-grid { grid-template-columns: 1fr 1fr; overflow: visible; }
+            h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body onload="playIntro()">
+
+<div id="app-container">
+    <div class="overlay"></div>
+
+    <header>
+        <h1>Fitz Cahall</h1>
+        <div class="subtitle">
+            Life Story & Video Comprehension
+            <div class="tts-icon" onclick="playAzureAudio('Select a story chapter or start the video comprehension task.')">🔊</div>
+        </div>
+    </header>
+
+    <div class="content-layout">
+        <div class="story-grid">
+            <a href="1.html" class="menu-item">
+                <div class="icon-box">📋</div>
+                <div class="item-title">1. Homework Review</div>
+                <div class="item-desc">Character profiles</div>
+            </a>
+            <a href="2.html" class="menu-item">
+                <div class="icon-box">🎥</div>
+                <div class="item-title">2. The Films</div>
+                <div class="item-desc">Documentary explore</div>
+            </a>
+            <a href="3.html" class="menu-item">
+                <div class="icon-box">👨‍🎨</div>
+                <div class="item-title">3. Fitz's Roles</div>
+                <div class="item-desc">Adventurer & Storyteller</div>
+            </a>
+            <a href="4.html" class="menu-item">
+                <div class="icon-box">📖</div>
+                <div class="item-title">4. Childhood Path</div>
+                <div class="item-desc">Where dreams began</div>
+            </a>
+            <a href="5.html" class="menu-item">
+                <div class="icon-box">🚗</div>
+                <div class="item-title">5. Teenage Years</div>
+                <div class="item-desc">Life on the road</div>
+            </a>
+            <a href="6.html" class="menu-item">
+                <div class="icon-box">🌱</div>
+                <div class="item-title">6. Young Adult</div>
+                <div class="item-desc">Realization & Creating</div>
+            </a>
+            <a href="7.html" class="menu-item">
+                <div class="icon-box">🔄</div>
+                <div class="item-title">7. Come Full Circle</div>
+                <div class="item-desc">Back to nature</div>
+            </a>
+            <a href="8.html" class="menu-item" style="border-top-color: var(--highlight);">
+                <div class="icon-box">🏆</div>
+                <div class="item-title">8. Spirit of Adventure</div>
+                <div class="item-desc">Final Achievement</div>
+            </a>
+        </div>
+
+        <div class="featured-sidebar">
+            <a href="../Video Task/Video Comprehension.html" class="featured-card" style="background: linear-gradient(145deg, var(--video-blue), #1a5276);">
+                <div class="icon-box">🎬</div>
+                <div class="item-title">Video Comprehension</div>
+                <div class="item-desc">Interview with Fitz Cahall: Deep listening task</div>
+                <div class="btn-link" style="color:var(--video-blue)">WATCH VIDEO →</div>
+            </a>
+
+            <a href="../index.html" class="featured-card" style="background: linear-gradient(145deg, var(--secondary), #d35400);">
+                <div class="icon-box">⭐</div>
+                <div class="item-title">Core Vocabulary Course</div>
+                <div class="item-desc">Master the key words [FU201-FU210]</div>
+                <div class="btn-link" style="color:var(--secondary)">GO TO COURSE →</div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+        if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        synthesizer.speakTextAsync(text, result => { synthesizer.close(); synthesizer = undefined; }, err => { console.error(err); });
+    }
+
+    function playIntro() {
+        setTimeout(() => { playAzureAudio("Welcome back. Explore the story chapters or complete the video comprehension task."); }, 1200);
+    }
+</script>
+
+</body>
+</html>

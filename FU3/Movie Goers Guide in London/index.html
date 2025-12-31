@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Navigation: A Movie-Goer's Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-red: #C8102E;
+            --royal-blue: #003399;
+            --gold: #D4AF37;
+            --bg-color: #111;
+            --card-bg: #1a1a1a;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#222 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: #fff;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 1000px;
+            width: 90%;
+            animation: fadeIn 1s ease;
+        }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 4rem;
+            color: var(--gold);
+            margin-bottom: 10px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.8);
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            color: #aaa;
+            font-size: 1.2rem;
+            margin-bottom: 50px;
+            font-style: italic;
+        }
+
+        /* 导航卡片容器 */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+        }
+
+        /* 单个卡片 */
+        .nav-card {
+            background: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 15px;
+            padding: 30px 20px;
+            text-decoration: none;
+            color: #fff;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* 悬停效果 */
+        .nav-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--gold);
+            box-shadow: 0 20px 40px rgba(212, 175, 55, 0.2);
+        }
+
+        /* 卡片图标 */
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--royal-blue);
+            transition: 0.3s;
+        }
+        .nav-card:hover .card-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .card-desc {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        /* 装饰性数字 */
+        .page-num {
+            position: absolute;
+            top: -10px; right: -10px;
+            font-size: 4rem;
+            font-weight: 900;
+            color: rgba(255,255,255,0.03);
+            font-family: 'Bebas Neue', sans-serif;
+            transition: 0.3s;
+        }
+        .nav-card:hover .page-num {
+            color: rgba(212, 175, 55, 0.1);
+            transform: scale(1.2);
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 底部信息 */
+        footer {
+            margin-top: 60px;
+            color: #444;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>London: A Movie-Goer's Guide</h1>
+        <div class="subtitle">Interactive Reading Lesson Navigation</div>
+
+        <div class="nav-grid">
+            
+            <a href="page 01/page 01.html" class="nav-card">
+                <div class="page-num">01</div>
+                <div class="card-icon"><i class="fas fa-video"></i></div>
+                <div class="card-title">Introduction</div>
+                <div class="card-desc">The Movie City Map & Video Clips</div>
+            </a>
+
+            <a href="page 02/page 02.html" class="nav-card">
+                <div class="page-num">02</div>
+                <div class="card-icon"><i class="fas fa-search"></i></div>
+                <div class="card-title">Text Analysis</div>
+                <div class="card-desc">Genre, Audience & Structure</div>
+            </a>
+
+            <a href="page 03/page 03.html" class="nav-card">
+                <div class="page-num">03</div>
+                <div class="card-icon"><i class="fas fa-route"></i></div>
+                <div class="card-title">Guided Tour</div>
+                <div class="card-desc">Audio Reading & Map Routing</div>
+            </a>
+
+            <a href="page 04/page 04.html" class="nav-card">
+                <div class="page-num">04</div>
+                <div class="card-icon"><i class="fas fa-microscope"></i></div>
+                <div class="card-title">Intensive Reading</div>
+                <div class="card-desc">Deep Analysis & Information Extraction</div>
+            </a>
+
+        </div>
+
+        <footer>
+            Interactive Courseware Design &copy; 2023
+        </footer>
+    </div>
+
+</body>
+</html>

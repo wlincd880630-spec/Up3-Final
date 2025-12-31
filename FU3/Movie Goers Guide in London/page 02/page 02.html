@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page 02: Text Analysis</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- 2. CSS 样式 --- */
+        :root {
+            --primary-red: #C8102E;
+            --royal-blue: #003399;
+            --gold: #D4AF37;
+            /* 保持 0.3 透明度，背景清晰可见 */
+            --glass-bg: rgba(0, 0, 0, 0.3); 
+            --text-light: #fff;
+        }
+
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Nunito', sans-serif; overflow: hidden; background: #000; }
+
+        /* --- 3D 海报墙 (慢速漂浮) --- */
+        .wall-wrapper {
+            position: absolute; top: 0; left: 0; width: 55%; height: 100%;
+            overflow: hidden; perspective: 1000px; z-index: 0;
+        }
+        .poster-wall-3d {
+            width: 120%; height: 120%; margin-left: -10%; margin-top: -10%;
+            display: flex; gap: 20px; justify-content: center;
+            transform: rotateY(15deg) rotateX(5deg) scale(1.1); transform-style: preserve-3d;
+        }
+        /* 鼠标悬停暂停 */
+        .wall-wrapper:hover .wall-col { animation-play-state: paused; }
+        
+        .wall-col { width: 33%; display: flex; flex-direction: column; gap: 20px; }
+        
+        .scroll-up { animation: scrollVertical 60s linear infinite; }
+        .scroll-down { animation: scrollVerticalReverse 80s linear infinite; }
+        .scroll-fast { animation: scrollVertical 50s linear infinite; }
+
+        @keyframes scrollVertical { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
+        @keyframes scrollVerticalReverse { 0% { transform: translateY(-50%); } 100% { transform: translateY(0); } }
+
+        .poster-item {
+            width: 100%; height: 360px; background-size: cover; background-position: center;
+            border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.9);
+            /* 亮度保持高亮 */
+            opacity: 1; transition: 0.3s; filter: brightness(1.1); 
+        }
+        .poster-item:hover { transform: scale(1.05); z-index: 10; filter: brightness(1.3); }
+        
+        .wall-wrapper::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.4) 100%);
+            pointer-events: none; z-index: 1;
+        }
+
+        /* --- 主布局 --- */
+        .main-container {
+            display: grid; grid-template-columns: 40% 60%; height: 100vh;
+            position: relative; z-index: 2;
+        }
+
+        /* --- 左侧面板 --- */
+        .left-panel {
+            background: var(--glass-bg); 
+            backdrop-filter: blur(5px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 40px; display: flex; flex-direction: column;
+            overflow-y: auto; color: var(--text-light);
+            box-shadow: 5px 0 30px rgba(0,0,0,0.5);
+            transform: translateX(-100%);
+            animation: slideInPanel 1s cubic-bezier(0.19, 1, 0.22, 1) forwards 0.5s;
+            position: relative; z-index: 20;
+        }
+        @keyframes slideInPanel { to { transform: translateX(0); } }
+
+        /* 标题区 */
+        .title-container { border-bottom: 2px solid var(--primary-red); padding-bottom: 20px; margin-bottom: 30px; position: relative; }
+        .lesson-title { 
+            font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; line-height: 1; 
+            color: #fff; letter-spacing: 2px; text-shadow: 2px 2px 0px #000, 0 0 10px rgba(0,0,0,0.8);
+        }
+        .highlight-word { display: inline-block; padding: 0 5px; border-radius: 4px; transition: 0.5s; }
+        .highlight-word.active { background: var(--gold); color: #000; transform: scale(1.1); box-shadow: 0 0 20px var(--gold); text-shadow: none; }
+
+        .main-tts-btn {
+            background: var(--primary-red); border: none; color: white;
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+            font-size: 1.2rem; position: absolute; right: 0; top: 10px;
+            box-shadow: 0 0 15px var(--primary-red); transition: 0.3s;
+        }
+        .main-tts-btn:hover { transform: scale(1.1); background: #fff; color: var(--primary-red); }
+
+        /* 互动问题卡片 */
+        .question-box {
+            margin-top: 20px; opacity: 0; transform: translateY(20px);
+            display: none; border-top: 1px dashed rgba(255,255,255,0.4); padding-top: 20px;
+        }
+        .question-box.active { display: block; }
+
+        .q-text { 
+            font-size: 1.4rem; margin-bottom: 15px; font-weight: 700; color: var(--gold); 
+            display: flex; align-items: center; justify-content: space-between; 
+            font-family: 'Playfair Display', serif; text-shadow: 2px 2px 4px #000; 
+        }
+        .mini-tts { 
+            background: rgba(0,0,0,0.5); width: 30px; height: 30px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.9rem;
+            color: #fff; transition: 0.2s; border: 1px solid rgba(255,255,255,0.5);
+        }
+        .mini-tts:hover { background: var(--gold); color: #000; border-color: var(--gold); }
+
+        /* 选项样式 */
+        .options-container { display: flex; gap: 12px; flex-direction: column; }
+        .option-card {
+            background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.3);
+            padding: 15px; border-radius: 8px; cursor: pointer; transition: 0.3s;
+            position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center;
+        }
+        .option-card:hover { background: rgba(50,50,50,0.9); border-color: var(--gold); transform: translateX(5px); }
+        
+        .opt-content { flex: 1; }
+        .option-title { font-size: 1.15rem; font-weight: bold; margin-bottom: 4px; color: #fff; text-shadow: 1px 1px 2px #000; }
+        .option-def { font-size: 0.95rem; color: #ddd; font-style: normal; line-height: 1.4; }
+        
+        .opt-play-btn {
+            width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.4); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            margin-left: 10px; transition: 0.2s; z-index: 5;
+        }
+        .opt-play-btn:hover { background: #fff; color: #000; border-color: #fff; transform: scale(1.1); }
+
+        .option-card.correct { background: linear-gradient(90deg, #27ae60, #1e8449) !important; border-color: #2ecc71 !important; }
+        .option-card.wrong { background: linear-gradient(90deg, #c0392b, #922b21) !important; border-color: #e74c3c !important; }
+
+        .next-btn {
+            margin-top: 25px; padding: 12px 30px; border-radius: 30px; border: none;
+            background: var(--gold); color: #000; font-weight: bold; cursor: pointer;
+            display: none; align-self: flex-start; box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+            font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .next-btn:hover { transform: scale(1.05); background: #fff; box-shadow: 0 0 30px rgba(255,255,255,0.5); }
+
+        .explanation {
+            background: rgba(0, 0, 0, 0.7); border-left: 4px solid var(--gold);
+            padding: 15px; margin-top: 15px; font-size: 1.05rem; line-height: 1.6; color: #fff;
+            display: none; animation: fadeIn 0.5s;
+        }
+        .explanation strong { color: var(--gold); }
+
+        /* --- 右侧：地图 --- */
+        .right-panel { position: relative; opacity: 0; animation: fadeInMap 1s forwards 1s; z-index: 10; }
+        #map { width: 100%; height: 100%; }
+        @keyframes fadeInMap { to { opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="wall-wrapper">
+        <div class="poster-wall-3d" id="wall-3d"></div>
+    </div>
+
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="title-container">
+                <div class="lesson-title">
+                    A <span id="word-movie-goer" class="highlight-word">MOVIE-GOER’S</span> <span id="word-guide" class="highlight-word">GUIDE</span> TO LONDON
+                </div>
+                <button class="main-tts-btn" onclick="azureSpeak('A Movie-Goer\'s Guide to London')">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+            </div>
+
+            <div id="quiz-flow">
+                <button id="btn-start-q1" class="next-btn" style="display:block; background:var(--royal-blue); color:#fff;" onclick="showQ1()">Start Text Analysis ➔</button>
+
+                <div id="q1-box" class="question-box">
+                    <div class="q-text">1. Text Type <div class="mini-tts" onclick="azureSpeak('What type of text is this? Narrative, Argumentative, or Expository?')"><i class="fas fa-volume-up"></i></div></div>
+                    <p style="margin-bottom:15px; font-size:0.95rem; color:#fff; text-shadow:1px 1px 2px #000;">What type of text is this article?</p>
+                    <div class="options-container">
+                        <div class="option-card" onclick="checkAnswer(this, false, 'q1', 'Incorrect. Narrative tells a story.')"><div class="opt-content"><div class="option-title">Narrative (记叙文)</div><div class="option-def">Tells a story with characters and plot.</div></div><div class="opt-play-btn" onclick="event.stopPropagation(); azureSpeak('Narrative. Tells a story.')"><i class="fas fa-volume-up"></i></div></div>
+                        <div class="option-card" onclick="checkAnswer(this, false, 'q1', 'Incorrect. Argumentative gives an opinion.')"><div class="opt-content"><div class="option-title">Argumentative (议论文)</div><div class="option-def">Gives an opinion to agree or disagree.</div></div><div class="opt-play-btn" onclick="event.stopPropagation(); azureSpeak('Argumentative. Gives an opinion.')"><i class="fas fa-volume-up"></i></div></div>
+                        <div class="option-card" onclick="checkAnswer(this, true, 'q1', 'Correct. Expository gives facts.')"><div class="opt-content"><div class="option-title">Expository (说明文)</div><div class="option-def">Gives facts, information, or instructions.</div></div><div class="opt-play-btn" onclick="event.stopPropagation(); azureSpeak('Expository. Gives facts.')"><i class="fas fa-volume-up"></i></div></div>
+                    </div>
+                    <button id="btn-q1-next" class="next-btn" onclick="showQ2()">Next Question ➔</button>
+                </div>
+
+                <div id="q2-box" class="question-box">
+                    <div class="q-text">2. Key Word <div class="mini-tts" onclick="azureSpeak('Which word shows this is an expository text?')"><i class="fas fa-volume-up"></i></div></div>
+                    <p style="margin-bottom:15px; font-size:0.95rem; color:#fff; text-shadow:1px 1px 2px #000;">Which word in the title shows this is a guide?</p>
+                    <button class="next-btn" style="display:inline-block; background:var(--royal-blue); color:#fff;" onclick="revealQ2()">Show Keyword</button>
+                    <div id="q2-expl" class="explanation">The word is <strong>GUIDE</strong>. A guide helps you visit places.<div class="mini-tts" style="float:right;" onclick="azureSpeak('The word is Guide.')"><i class="fas fa-volume-up"></i></div></div>
+                    <button id="btn-q2-next" class="next-btn" onclick="showQ3()">Next Question ➔</button>
+                </div>
+
+                <div id="q3-box" class="question-box">
+                    <div class="q-text">3. Audience <div class="mini-tts" onclick="azureSpeak('Who is this text written for?')"><i class="fas fa-volume-up"></i></div></div>
+                    <p style="margin-bottom:15px; font-size:0.95rem; color:#fff; text-shadow:1px 1px 2px #000;">Who is this text written for?</p>
+                    <button class="next-btn" style="display:inline-block; background:var(--royal-blue); color:#fff;" onclick="revealQ3()">Show Audience</button>
+                    <div id="q3-expl" class="explanation">It is written for <strong>MOVIE-GOERS</strong>.<div class="mini-tts" style="float:right;" onclick="azureSpeak('It is written for Movie-goers.')"><i class="fas fa-volume-up"></i></div></div>
+                    <button id="btn-q3-next" class="next-btn" onclick="showQ4()">Final Application ➔</button>
+                </div>
+
+                <div id="q4-box" class="question-box">
+                    <div class="q-text">4. Application <div class="mini-tts" onclick="azureSpeak('Choose the best title for a Chengdu food guide.')"><i class="fas fa-volume-up"></i></div></div>
+                    <p style="margin-bottom:15px; font-size:0.95rem; color:#fff; text-shadow:1px 1px 2px #000;">Imagine writing a guide for <strong>food lovers</strong> visiting <strong>Chengdu</strong>. Choose the best title:</p>
+                    <div class="options-container">
+                        <div class="option-card" onclick="checkAnswer(this, false, 'q4', 'Incorrect. Too personal.')"><div class="opt-content"><div class="option-title">A. My Trip to Chengdu</div></div><div class="opt-play-btn" onclick="event.stopPropagation(); azureSpeak('My Trip to Chengdu.')"><i class="fas fa-volume-up"></i></div></div>
+                        <div class="option-card" onclick="checkAnswer(this, true, 'q4', 'Correct! A Food Lover\'s Guide to Chengdu.')"><div class="opt-content"><div class="option-title" style="color:var(--gold)">B. A Food Lover's Guide to Chengdu</div></div><div class="opt-play-btn" onclick="event.stopPropagation(); azureSpeak('A Food Lover\'s Guide to Chengdu.')"><i class="fas fa-volume-up"></i></div></div>
+                        <div class="option-card" onclick="checkAnswer(this, false, 'q4', 'Incorrect. Not a full guide.')"><div class="opt-content"><div class="option-title">C. Why Chengdu Food is Spicy</div></div><div class="opt-play-btn" onclick="event.stopPropagation(); azureSpeak('Why Chengdu Food is Spicy.')"><i class="fas fa-volume-up"></i></div></div>
+                    </div>
+                    
+                    <button id="btn-next-page" class="next-btn" style="background:#27ae60; color:#fff; width:100%; margin-top:30px; display:none;" onclick="window.location.href='page03.html'">
+                        Next: Full Reading Session ➔
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="right-panel"><div id="map"></div></div>
+    </div>
+
+    <script>
+        // --- Poster Wall ---
+        const posterFiles = ["poster_skyfall.jpg", "poster_harry_potter.jpg", "poster_paddington.jpg", "poster_notting_hill.jpg", "poster_kingsman.jpg", "poster_sherlock.jpg", "poster_love_actually.jpg", "poster_bridget_jones.jpg", "poster_spiderman.jpg", "poster_mission_impossible.jpg", "poster_fast_furious.jpg", "poster_dark_knight.jpg", "poster_dr_strange.jpg", "poster_fantastic_beasts.jpg", "poster_mary_poppins.jpg"];
+        function createWall() {
+            const wall = document.getElementById('wall-3d');
+            const col1 = document.createElement('div'); col1.className = 'wall-col scroll-up';
+            const col2 = document.createElement('div'); col2.className = 'wall-col scroll-down';
+            const col3 = document.createElement('div'); col3.className = 'wall-col scroll-fast';
+            const allImages = [...posterFiles, ...posterFiles, ...posterFiles]; 
+            allImages.forEach((src, i) => {
+                const div = document.createElement('div');
+                div.className = 'poster-item';
+                div.style.backgroundImage = `url('${src}'), url('https://via.placeholder.com/200x360/222/555?text=Movie')`;
+                if (i % 3 === 0) col1.appendChild(div); else if (i % 3 === 1) col2.appendChild(div); else col3.appendChild(div);
+            });
+            wall.append(col1, col2, col3);
+        }
+        createWall();
+
+        // --- Azure Speech ---
+        const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const speechRegion = "eastus2";
+        let synthesizer;
+
+        function azureSpeak(text) {
+            if (typeof SpeechSDK === 'undefined') return;
+            if (synthesizer) { try { synthesizer.close(); } catch(e){} synthesizer = undefined; }
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+            speechConfig.speechSynthesisVoiceName = "en-GB-RyanNeural"; 
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+            synthesizer.speakTextAsync(text, r => { synthesizer.close(); synthesizer=undefined; }, e => { synthesizer.close(); synthesizer=undefined; });
+        }
+
+        // --- Interaction Logic ---
+        function showQ1() { document.getElementById('btn-start-q1').style.display='none'; showBox('q1-box'); azureSpeak('Text Type? Narrative, Argumentative, or Expository?'); }
+        function showQ2() { document.getElementById('q1-box').style.display='none'; showBox('q2-box'); azureSpeak('Which word in the title shows it is an expository text?'); }
+        function showQ3() { document.getElementById('q2-box').style.display='none'; showBox('q3-box'); azureSpeak('Who is the target audience?'); }
+        function showQ4() { document.getElementById('q3-box').style.display='none'; showBox('q4-box'); azureSpeak('Choose the best title for a Chengdu food guide.'); }
+        
+        function showBox(id) {
+            const box = document.getElementById(id); box.classList.add('active');
+            anime({ targets: box, translateY: [20, 0], opacity: [0, 1], duration: 800 });
+        }
+
+        function checkAnswer(btn, isCorrect, qId, msg) {
+            if(event.target.classList.contains('opt-play-btn')) return;
+            const container = btn.parentElement;
+            Array.from(container.children).forEach(s => s.classList.remove('correct', 'wrong'));
+            if(isCorrect) {
+                btn.classList.add('correct'); azureSpeak(msg);
+                if(qId === 'q4') document.getElementById('btn-next-page').style.display = 'block'; // 跳转按钮
+                else document.getElementById(`btn-${qId}-next`).style.display = 'block';
+            } else {
+                btn.classList.add('wrong'); azureSpeak("Not quite. Try again.");
+            }
+        }
+
+        function revealQ2() { document.getElementById('q2-expl').style.display='block'; document.getElementById('word-guide').classList.add('active'); azureSpeak('The word is Guide.'); document.getElementById('btn-q2-next').style.display='block'; map.flyTo([51.505, -0.1], 11, {duration: 2}); }
+        function revealQ3() { document.getElementById('q3-expl').style.display='block'; document.getElementById('word-movie-goer').classList.add('active'); azureSpeak('Movie-goers.'); document.getElementById('btn-q3-next').style.display='block'; }
+
+        // --- Map Init ---
+        const map = L.map('map', {zoomControl: false}).setView([51.505, -0.1], 12);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB', maxZoom: 19 }).addTo(map);
+
+    </script>
+</body>
+</html>

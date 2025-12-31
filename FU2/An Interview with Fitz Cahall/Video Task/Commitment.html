@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentence Analysis: Commitment</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&family=Roboto:wght@300;400;700&display=swap');
+
+        :root {
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --primary-color: #2c3e50;
+            
+            /* --- 核心颜色定义 --- */
+            --accent-red: #e74c3c;      /* Subject: Red */
+            --accent-green: #27ae60;    /* Modifier: Green */
+            --accent-blue: #007bff;     /* Verb: Blue */
+            --accent-purple: #8e44ad;   /* Comparison: Purple */
+            --accent-brown: #8B4513;    /* Object/Commitment: Brown */
+
+            --font-sentence: 'Lora', serif;
+            --font-ui: 'Roboto', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background: var(--bg-gradient);
+            font-family: var(--font-ui);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- 句子展示区 --- */
+        #stage-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        .sentence-container {
+            font-family: var(--font-sentence);
+            font-size: 2.2rem;
+            line-height: 3.5;
+            color: #333;
+            max-width: 90%;
+            text-align: center;
+            position: relative;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .word {
+            display: inline-block;
+            position: relative;
+            cursor: default;
+            transition: color 0.4s ease;
+            padding: 0 4px;
+            border-radius: 6px;
+        }
+
+        /* 标签小气泡 */
+        .tag-label {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%) scale(0);
+            background: #333;
+            color: #fff;
+            font-family: var(--font-ui);
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        .show-tag .tag-label {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+            top: -40px;
+        }
+
+        /* 中文翻译 / 备注 / 问号 */
+        .cn-note {
+            font-size: 0.5em;
+            color: #666;
+            font-weight: normal;
+            display: block;
+            text-align: center;
+            position: absolute;
+            width: 200px;
+            left: 50%;
+            margin-left: -100px;
+            bottom: -20px;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .show-cn .cn-note { opacity: 1; bottom: -25px; }
+
+        .qm-style {
+            font-size: 1.5rem !important;
+            font-weight: bold !important;
+            color: var(--accent-red) !important;
+            bottom: -35px !important;
+        }
+
+        /* --- 高亮颜色样式 (CSS Classes) --- */
+        
+        /* Subject: Red */
+        .highlight-red { color: var(--accent-red); font-weight: 700; background: rgba(231, 76, 60, 0.1); }
+        .highlight-red .tag-label { background: var(--accent-red); }
+
+        /* Modifier: Green */
+        .highlight-green { color: var(--accent-green); font-weight: 700; background: rgba(39, 174, 96, 0.1); }
+        .highlight-green .tag-label { background: var(--accent-green); }
+
+        /* Verb: Blue */
+        .highlight-blue { color: var(--accent-blue); font-weight: 700; background: rgba(0, 123, 255, 0.1); }
+        .highlight-blue .tag-label { background: var(--accent-blue); }
+
+        /* Object: Brown */
+        .highlight-brown { color: var(--accent-brown); font-weight: 700; background: rgba(139, 69, 19, 0.1); }
+        .highlight-brown .tag-label { background: var(--accent-brown); }
+
+        /* Comparison: Purple */
+        .highlight-purple { color: var(--accent-purple); font-weight: 700; border-bottom: 3px solid rgba(142, 68, 173, 0.3); }
+        .highlight-purple .tag-label { background: var(--accent-purple); }
+
+        /* --- 动画特效类 --- */
+        .flip-wrapper {
+            display: inline-block;
+            perspective: 1000px;
+        }
+        .flip-content {
+            display: inline-block;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+        }
+        .do-flip {
+            animation: flipAnim 1s forwards;
+        }
+        
+        /* 翻转动画：翻转后变成蓝色 */
+        @keyframes flipAnim {
+            0% { transform: rotateX(0deg); opacity: 1;}
+            50% { transform: rotateX(90deg); opacity: 0; }
+            51% { opacity: 0; color: var(--accent-blue); } 
+            100% { transform: rotateX(0deg); opacity: 1; color: var(--accent-blue); }
+        }
+
+        /* --- 底部控制面板 --- */
+        #control-panel {
+            width: 100%;
+            min-height: 250px;
+            background: #fff;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 40px;
+            z-index: 20;
+            box-sizing: border-box;
+        }
+
+        .content-box {
+            flex: 1;
+            max-width: 900px;
+            margin-right: 30px;
+        }
+
+        .q-text {
+            font-size: 1.4rem;
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideUp 0.5s forwards;
+        }
+
+        .a-text {
+            font-size: 1.1rem;
+            color: #555;
+            line-height: 1.6;
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 5px solid var(--accent-blue);
+            border-radius: 0 8px 8px 0;
+            display: none;
+            margin-top: 10px;
+        }
+        .a-show {
+            display: block;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .example-list li { margin-bottom: 8px; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; }
+
+        .formula {
+            background: #fff5e6;
+            border: 1px dashed var(--accent-brown);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        /* 最终翻译句子的特殊样式 */
+        .final-trans-box {
+            font-size: 1.3rem;
+            font-family: "Microsoft YaHei", sans-serif;
+            line-height: 1.8;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 5px solid #333;
+        }
+        
+        .ft-red { color: var(--accent-red); font-weight: bold; }
+        .ft-green { color: var(--accent-green); font-weight: bold; }
+        .ft-blue { color: var(--accent-blue); font-weight: bold; }
+        .ft-brown { color: var(--accent-brown); font-weight: bold; }
+        .ft-purple { color: var(--accent-purple); font-weight: bold; }
+
+        /* 下一步按钮 */
+        .next-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+            transition: all 0.3s ease;
+            outline: none;
+            white-space: nowrap;
+        }
+        .next-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.6);
+        }
+
+        /* --- SVG 绘图层 --- */
+        #svg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        path { fill: none; stroke-width: 3; stroke-linecap: round; }
+
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <svg id="svg-layer"></svg>
+
+    <div id="stage-area">
+        <div class="sentence-container">
+            My 
+            <span id="w-subject" class="word">
+                struggles
+                <div class="tag-label">Subject</div>
+                <div class="cn-note">奋斗，努力</div>
+            </span> 
+            <span id="w-modifier" class="word">
+                to make my dreams a reality
+                <div class="tag-label">Modifier of the subject</div>
+            </span> 
+            have 
+            <span id="w-verb" class="word flip-wrapper">
+                <div class="tag-label">Action Verb</div>
+                <span class="flip-content">taken</span>
+                <div class="cn-note" id="verb-note"></div>
+            </span> 
+            just 
+            <span id="w-as1" class="word">as</span> 
+            much 
+            <span id="w-commit" class="word">
+                commitment
+                <div class="tag-label">Object</div>
+                <div class="cn-note">承诺, 奉献, 雄心壮志</div>
+            </span> 
+            <span id="w-as2" class="word">as</span> 
+            <span id="w-comp" class="word">
+                paddling into a big wave or climbing a peak in the Karakoram
+                <div class="tag-label">Modifier of the object</div>
+            </span>.
+        </div>
+    </div>
+
+    <div id="control-panel">
+        <div class="content-box" id="msg-box">
+            <div class="q-text">Ready to analyze the sentence structure?</div>
+        </div>
+        <button class="next-btn" onclick="nextStep()" id="btn-action">Start Analysis</button>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        const msgBox = document.getElementById('msg-box');
+        const btn = document.getElementById('btn-action');
+
+        // 数据与流程定义
+        const steps = [
+            {
+                // Step 1: Subject Q
+                type: 'question',
+                text: '1. What is the subject in this sentence?',
+                btnText: 'Show Answer'
+            },
+            {
+                // Step 2: Subject A
+                type: 'answer',
+                action: () => {
+                    const el = document.getElementById('w-subject');
+                    el.classList.add('highlight-red', 'show-tag', 'show-cn');
+                    return `<strong>Answer:</strong> Struggle`;
+                },
+                btnText: 'Next Question'
+            },
+            {
+                // Step 3: Goal Q
+                type: 'question',
+                text: '2. What is the goal of his hard-work (struggle)?',
+                btnText: 'Show Answer'
+            },
+            {
+                // Step 4: Goal A + Arrow
+                type: 'answer',
+                action: () => {
+                    const el = document.getElementById('w-modifier');
+                    el.classList.add('highlight-green', 'show-tag');
+                    drawAnimatedArrow('w-modifier', 'w-subject', '#27ae60', true);
+                    return `<strong>Answer:</strong> The purpose is to make his dream a reality.`;
+                },
+                btnText: 'Next Question'
+            },
+            {
+                // Step 5: Verb Question
+                type: 'question',
+                text: '3. What is the action verb of this sentence?',
+                btnText: 'Show Answer'
+            },
+            {
+                // Step 6: Verb Answer
+                type: 'answer',
+                action: () => {
+                    const el = document.getElementById('w-verb');
+                    el.classList.add('highlight-blue', 'show-tag'); 
+                    const note = document.getElementById('verb-note');
+                    note.innerHTML = "?";
+                    note.classList.add('qm-style'); 
+                    el.classList.add('show-cn');
+                    
+                    return `<strong>Answer:</strong> Take`;
+                },
+                btnText: 'Next Question'
+            },
+            {
+                // Step 7: Meaning Question
+                type: 'question',
+                text: '4. What does the word “take” mean in this sentence?',
+                btnText: 'Show Examples'
+            },
+            {
+                // Step 8: Show Examples
+                type: 'answer',
+                html: `
+                    <div style="margin-bottom:5px"><strong>Think about these sentences:</strong></div>
+                    <ul class="example-list" style="list-style:none; padding:0;">
+                        <li>👉 It <strong>takes</strong> courage to tell the truth.</li>
+                        <li>👉 It <strong>takes</strong> a long time to become a physician.</li>
+                    </ul>
+                `,
+                btnText: 'Reveal Meaning'
+            },
+            {
+                // Step 9: Verb Meaning
+                type: 'answer',
+                html: `
+                    <div style="font-size:1.2rem; color:#007bff; font-weight:bold; text-align:center; padding:10px;">
+                        Take = Need / Require / Demand
+                    </div>
+                `,
+                btnText: 'Substitute Verb'
+            },
+            {
+                // Step 10: Animation Swap
+                type: 'action-only',
+                action: () => {
+                    const note = document.getElementById('verb-note');
+                    note.classList.remove('qm-style');
+                    note.innerHTML = ""; 
+                    const wrapper = document.querySelector('#w-verb .flip-content');
+                    wrapper.parentElement.classList.add('do-flip');
+                    setTimeout(() => {
+                        wrapper.innerHTML = "required";
+                        note.innerHTML = "(需要)";
+                        note.style.color = "#007bff"; 
+                        note.style.fontWeight = "bold";
+                    }, 500);
+                    msgBox.innerHTML = `<div class="q-text">Substituting "taken" with "required"...</div>`;
+                },
+                btnText: 'Next Question'
+            },
+            {
+                // Step 11: Commitment Q
+                type: 'question',
+                text: '5. What do his struggles require?',
+                btnText: 'Show Answer'
+            },
+            {
+                // Step 12: Commitment Definition
+                type: 'answer',
+                action: () => {
+                    const el = document.getElementById('w-commit');
+                    el.classList.add('highlight-brown', 'show-tag'); 
+                    return `
+                        <div class="formula">
+                            Commitment = <br>
+                            Willingness (渴望) + Action & Time (行动与时间)
+                        </div>
+                    `;
+                },
+                btnText: 'Show Chinese'
+            },
+            {
+                // Step 13: Commitment Chinese
+                type: 'answer',
+                action: () => {
+                    document.getElementById('w-commit').classList.add('show-cn');
+                    return `<div style="text-align:center; font-size:1.2rem">Commitment = 承诺、奉献、投入</div>`;
+                },
+                btnText: 'Final Question'
+            },
+            {
+                // Step 14: Comparison Q
+                type: 'question',
+                text: '6. What kind of commitment is it? Let’s find the structure.',
+                btnText: 'Analyze Structure'
+            },
+            {
+                // Step 15: Comparison A + Arrow
+                type: 'answer',
+                action: () => {
+                    document.getElementById('w-comp').classList.add('highlight-purple', 'show-tag');
+                    
+                    document.getElementById('w-as1').style.color = '#8e44ad';
+                    document.getElementById('w-as1').style.fontWeight = 'bold';
+                    document.getElementById('w-as2').style.color = '#8e44ad';
+                    document.getElementById('w-as2').style.fontWeight = 'bold';
+
+                    drawAnimatedArrow('w-comp', 'w-commit', '#8e44ad', false);
+
+                    return `<strong>Structure:</strong> as ... as ... <br>It compares the struggle to "paddling into a big wave" and "climbing a peak in the Karakoram".`;
+                },
+                btnText: 'Translate'
+            },
+            {
+                // Step 16: Chinese Translation Question
+                type: 'question',
+                text: 'What does it mean in Chinese?',
+                btnText: 'Show Translation'
+            },
+            {
+                // Step 17: Color-coded Chinese Answer
+                type: 'answer',
+                html: `
+                    <div class="final-trans-box">
+                        我<span class="ft-green">实现梦想的</span><span class="ft-red">奋斗</span><span class="ft-blue">需要</span><span class="ft-purple">如同在风浪中遨游或攀登喀喇昆仑山脉的高峰的</span><span class="ft-brown">雄心壮志</span>。
+                    </div>
+                `,
+                btnText: 'Finish'
+            }
+        ];
+
+        function nextStep() {
+            if (currentStep >= steps.length) return;
+
+            const s = steps[currentStep];
+            
+            if (s.type === 'question') {
+                msgBox.innerHTML = `<div class="q-text">${s.text}</div>`;
+            } else if (s.type === 'answer' || s.type === 'action-only') {
+                let content = '';
+                if (s.html) content = s.html;
+                if (s.action) {
+                    const res = s.action();
+                    if(res) content = res;
+                }
+                if (content) {
+                     msgBox.innerHTML += `<div class="a-text a-show">${content}</div>`;
+                }
+            }
+
+            if (currentStep === steps.length - 1) {
+                btn.innerText = "Restart";
+                btn.onclick = () => location.reload();
+                btn.style.background = "#95a5a6";
+            } else {
+                btn.innerText = s.btnText;
+            }
+
+            currentStep++;
+        }
+
+        // --- SVG Drawing Logic ---
+        function drawAnimatedArrow(fromId, toId, color, isBottomCurve) {
+            const svg = document.getElementById('svg-layer');
+            const fromEl = document.getElementById(fromId);
+            const toEl = document.getElementById(toId);
+            
+            if(!fromEl || !toEl) return;
+
+            const fromRect = fromEl.getBoundingClientRect();
+            const toRect = toEl.getBoundingClientRect();
+
+            const startX = fromRect.left + fromRect.width / 2;
+            const startY = fromRect.bottom + 5;
+            const endX = toRect.left + toRect.width / 2;
+            const endY = toRect.bottom + 5;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            
+            const dist = Math.abs(endX - startX);
+            const drop = isBottomCurve ? 40 + (dist / 10) : 60 + (dist / 10);
+
+            const d = `M ${startX} ${startY} Q ${(startX + endX)/2} ${Math.max(startY, endY) + drop} ${endX} ${endY}`;
+
+            path.setAttribute("d", d);
+            path.setAttribute("stroke", color);
+            path.setAttribute("marker-end", `url(#arrowhead-${color.replace('#','')})`);
+            
+            ensureMarker(svg, color);
+            svg.appendChild(path);
+
+            const length = path.getTotalLength();
+            path.style.strokeDasharray = length;
+            path.style.strokeDashoffset = length;
+            path.style.transition = "stroke-dashoffset 1s ease-in-out";
+            
+            path.getBoundingClientRect(); 
+            path.style.strokeDashoffset = "0";
+        }
+
+        function ensureMarker(svg, color) {
+            const id = `arrowhead-${color.replace('#','')}`;
+            if(document.getElementById(id)) return;
+
+            let defs = svg.querySelector('defs');
+            if(!defs) {
+                defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+                svg.prepend(defs);
+            }
+
+            const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+            marker.setAttribute("id", id);
+            marker.setAttribute("markerWidth", "10");
+            marker.setAttribute("markerHeight", "7");
+            marker.setAttribute("refX", "9");
+            marker.setAttribute("refY", "3.5");
+            marker.setAttribute("orient", "auto");
+
+            const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+            poly.setAttribute("points", "0 0, 10 3.5, 0 7");
+            poly.setAttribute("fill", color);
+
+            marker.appendChild(poly);
+            defs.appendChild(marker);
+        }
+        
+        window.onresize = () => {
+            document.getElementById('svg-layer').innerHTML = '';
+        };
+
+    </script>
+</body>
+</html>

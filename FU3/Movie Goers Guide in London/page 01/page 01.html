@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>London: The Movie City</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Nunito:wght@400;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #FF6B6B;
+            --secondary-color: #4ECDC4;
+            --accent-color: #FFE66D;
+            --text-color: #2d3436;
+        }
+
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Nunito', sans-serif; overflow: hidden; background-color: #1a1a1a; }
+        #map { width: 100%; height: 100%; z-index: 1; }
+
+        /* --- Teacher Panel --- */
+        .teacher-panel {
+            position: absolute; bottom: 30px; right: 30px; width: 420px; /* 稍微加宽一点以容纳长句 */
+            max-width: 90%;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px);
+            border-radius: 20px; padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 3000;
+            transform: translateY(100px); opacity: 0;
+            animation: slideUp 0.8s forwards 0.5s;
+            border-left: 8px solid var(--primary-color);
+        }
+        @keyframes slideUp { to { transform: translateY(0); opacity: 1; } }
+
+        .teacher-avatar {
+            width: 70px; height: 70px;
+            background: url('https://api.dicebear.com/7.x/avataaars/svg?seed=Felix') center/cover;
+            border-radius: 50%; border: 4px solid var(--primary-color);
+            position: absolute; top: -35px; left: 20px; background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .tts-btn {
+            position: absolute; top: 15px; right: 15px;
+            background: var(--secondary-color); color: #fff;
+            width: 35px; height: 35px; border-radius: 50%;
+            border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: 0.2s;
+        }
+        .tts-btn:hover { background: var(--primary-color); transform: scale(1.1); }
+
+        .dialogue-text { font-size: 1.15rem; color: #333; line-height: 1.5; margin: 20px 0 25px 0; min-height: 50px; padding-right: 20px; }
+        
+        .action-btn {
+            background: linear-gradient(45deg, var(--primary-color), #ff8e53);
+            border: none; padding: 15px 30px; color: white;
+            font-family: 'Fredoka', sans-serif; font-size: 1.3rem;
+            border-radius: 50px; cursor: pointer; width: 100%;
+            transition: transform 0.2s; box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            animation: pulse 2s infinite;
+        }
+        .action-btn:active { transform: scale(0.98); }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(255, 107, 107, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); } }
+
+        /* --- Markers --- */
+        .custom-label-pin {
+            background: var(--secondary-color); color: #fff; 
+            font-size: 26px; font-weight: 900;
+            font-family: 'Fredoka', sans-serif; text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+            padding: 12px 30px; width: max-content; max-width: 400px;
+            border-radius: 50px; border: 5px solid #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            text-align: center; position: relative; 
+            transform: translate(-50%, -110%);
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000;
+        }
+        .custom-label-pin::after {
+            content: ''; position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%);
+            border-width: 12px 12px 0; border-style: solid; border-color: var(--secondary-color) transparent transparent transparent;
+        }
+
+        .movie-poster-pin {
+            width: 160px; height: 240px; 
+            background-size: cover; background-position: center; background-repeat: no-repeat;
+            border-radius: 10px; border: 5px solid #fff; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+            cursor: pointer; transition: transform 0.3s; 
+            animation: float 3s ease-in-out infinite;
+            background-color: #333; z-index: 2000; 
+        }
+        .movie-poster-pin:hover { transform: scale(1.1) translateY(-10px) !important; z-index: 9999 !important; border-color: var(--accent-color); }
+
+        @keyframes popIn { from { transform: translate(-50%, -80%) scale(0); opacity: 0; } to { transform: translate(-50%, -110%) scale(1); opacity: 1; } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        /* --- Video Modal --- */
+        .video-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 5000; justify-content: center; align-items: center; flex-direction: column;
+            background-color: #000; background-size: cover; background-position: center; background-repeat: no-repeat;
+            transition: all 0.5s ease;
+        }
+        .video-modal::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); z-index: -1;
+        }
+        .modal-info-bar { text-align: center; margin-bottom: 20px; animation: slideDown 0.8s; }
+        .info-movie-title { font-family: 'Cinzel', serif; color: var(--accent-color); font-size: 2.5rem; margin: 0; text-shadow: 0 2px 10px rgba(255,230,109,0.4); }
+        .info-location-name { font-family: 'Nunito', sans-serif; color: #fff; font-size: 1.5rem; margin-top: 5px; text-shadow: 0 2px 5px rgba(0,0,0,0.8); }
+        
+        .video-container {
+            width: 80%; max-width: 1000px; background: #000; border-radius: 16px; overflow: hidden;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.9); border: 2px solid rgba(255,255,255,0.3);
+            transform: scale(0.5); opacity: 0;
+        }
+        .video-modal.active .video-container { animation: zoomExpand 0.6s forwards; }
+        video { width: 100%; display: block; outline: none; }
+        .close-btn { position: absolute; top: 30px; right: 40px; color: #fff; font-size: 3rem; cursor: pointer; text-shadow: 0 2px 5px rgba(0,0,0,0.8); }
+        .close-btn:hover { color: var(--primary-color); }
+
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes zoomExpand { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div class="teacher-panel">
+        <div class="teacher-avatar"></div>
+        <button class="tts-btn" onclick="speakCurrentText()" title="Listen to Teacher">
+            <i class="fas fa-volume-up"></i>
+        </button>
+        <div class="dialogue-text" id="teacher-text">
+            It is difficult to name this place just by looking at the map...<br>But here is a hint!
+        </div>
+        <button class="action-btn" id="next-btn" onclick="nextStep()">
+            Where is this?
+        </button>
+    </div>
+
+    <div class="video-modal" id="video-modal">
+        <div class="close-btn" onclick="closeVideo()"><i class="fas fa-times"></i></div>
+        <div class="modal-info-bar">
+            <h1 class="info-movie-title" id="display-movie-name">Movie Title</h1>
+            <div class="info-location-name"><i class="fas fa-map-marker-alt"></i> <span id="display-location-name">Location Name</span></div>
+        </div>
+        <div class="video-container">
+            <video id="movie-player" controls><source src="" type="video/mp4"></video>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // --- Azure Speech Config ---
+        const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const speechRegion = "eastus2";
+        let synthesizer;
+
+        function azureSpeak(text) {
+            if (typeof SpeechSDK === 'undefined') {
+                alert("Azure SDK loading...");
+                return;
+            }
+            if (synthesizer) {
+                try { synthesizer.close(); } catch(e){}
+                synthesizer = undefined;
+            }
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+            speechConfig.speechSynthesisVoiceName = "en-GB-RyanNeural"; 
+
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+
+            synthesizer.speakTextAsync(text,
+                result => { synthesizer.close(); synthesizer = undefined; },
+                err => { console.error(err); synthesizer.close(); synthesizer = undefined; }
+            );
+        }
+
+        function speakCurrentText() {
+            const text = document.getElementById('teacher-text').innerText;
+            azureSpeak(text);
+        }
+
+        // --- Data ---
+        const locations = [
+            { 
+                name: "Tower Bridge", 
+                lat: 51.5055, lng: -0.0754, 
+                poster: "spider-man-far-from-home.jpg", 
+                video: "Spider-Man_Far_From_Home_Scene_At_Tower_Bridge.mp4",
+                movie: "Spider-Man: Far From Home",
+                bgImage: "bg_tower_bridge.jpg"
+            },
+            { 
+                name: "Millennium Bridge", 
+                lat: 51.5101, lng: -0.0984, 
+                poster: "Mission-Impossible_The_Final_Reckoning.jpg", 
+                video: "Mission-Impossible_The_Final_Reckoning_Scene_At_Millennium-Bridge.mp4",
+                movie: "Mission: Impossible 8",
+                bgImage: "bg_millennium_bridge.jpg"
+            },
+            { 
+                name: "King's Cross Station", 
+                lat: 51.5320, lng: -0.1243, 
+                poster: "Harry_Potter_and_the_Philosophers_Stone.jpg", 
+                video: "Harry_Potter_and_the_Philosopher_s_Stone_Scene_At_King_cross_station.mp4",
+                movie: "Harry Potter",
+                bgImage: "bg_kings_cross.jpg"
+            },
+            { 
+                name: "Buckingham Palace", 
+                lat: 51.5014, lng: -0.1419, 
+                poster: "Paddington.jpg", 
+                video: "Paddington_Scene_at_Buckingham_Palace.mp4",
+                movie: "Paddington",
+                bgImage: "bg_buckingham.jpg"
+            },
+            { 
+                name: "The National Gallery", 
+                lat: 51.5089, lng: -0.1283, 
+                poster: "Skyfall_007.jpg", 
+                video: "SKYFALL_007_Scene_at_The_National_gallery.mp4",
+                movie: "Skyfall (007)",
+                bgImage: "bg_national_gallery.jpg"
+            }
+        ];
+
+        // --- Map Init ---
+        const map = L.map('map', {zoomControl: false}).setView([51.505, -0.1], 13);
+        
+        const noLabelLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CartoDB', maxZoom: 19
+        }).addTo(map);
+
+        const labelLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CartoDB', maxZoom: 19
+        });
+
+        let currentStep = 0;
+        const teacherText = document.getElementById('teacher-text');
+        const nextBtn = document.getElementById('next-btn');
+
+        function nextStep() {
+            if (currentStep === 0) { showLocationLabels(); }
+            else if (currentStep === 1) { revealLondon(); }
+            else if (currentStep === 2) { showMoviePosters(); }
+        }
+
+        // Step 1
+        function showLocationLabels() {
+            locations.forEach(loc => {
+                const customIcon = L.divIcon({
+                    className: 'custom-icon-container',
+                    html: `<div class='custom-label-pin'>${loc.name}</div>`,
+                    iconSize: null, iconAnchor: [0, 0]
+                });
+                L.marker([loc.lat, loc.lng], {icon: customIcon, zIndexOffset: 1000}).addTo(map);
+            });
+            const bounds = L.latLngBounds(locations.map(loc => [loc.lat, loc.lng]));
+            map.flyToBounds(bounds.pad(0.2), {duration: 1.5});
+            
+            teacherText.innerHTML = "Here are some famous landmarks...<br><strong>Now do you have an idea about the place?</strong>";
+            nextBtn.innerHTML = "I know! Reveal the City";
+            currentStep = 1;
+        }
+
+        // Step 2
+        function revealLondon() {
+            map.removeLayer(noLabelLayer); map.addLayer(labelLayer);
+            teacherText.innerHTML = "Yes! <strong>This is a map of LONDON!</strong><br>Today, we will discover a unique feature of London that is truly worth exploring.<br>What is that?";
+            nextBtn.innerHTML = "Show the Secret Feature";
+            currentStep = 2;
+        }
+
+        // Step 3 (Updated Text)
+        function showMoviePosters() {
+            const posterMarkers = [];
+            locations.forEach((loc, index) => {
+                const posterIcon = L.divIcon({
+                    className: 'poster-wrap',
+                    html: `<div class='movie-poster-pin' style='background-image: url("${loc.poster}"), url("https://via.placeholder.com/150x200?text=Poster");'></div>`,
+                    iconSize: [160, 240], iconAnchor: [80, 310] 
+                });
+
+                const marker = L.marker([loc.lat, loc.lng], {icon: posterIcon, zIndexOffset: 2000}).addTo(map);
+                marker.on('click', () => playVideo(index));
+                posterMarkers.push(marker);
+            });
+
+            // 核心修改：加上了引导语
+            teacherText.innerHTML = "London appears in movies shown around the world!<br>So, a special feature of visiting London is exploring these famous <strong>movie locations</strong>!<br><strong>Let’s watch some clips! Click the posters.</strong>";
+            
+            nextBtn.style.display = 'none';
+
+            const group = new L.featureGroup(posterMarkers);
+            map.flyToBounds(group.getBounds().pad(0.4)); 
+        }
+
+        // --- Video Logic ---
+        const videoModal = document.getElementById('video-modal');
+        const player = document.getElementById('movie-player');
+        const displayMovie = document.getElementById('display-movie-name');
+        const displayLoc = document.getElementById('display-location-name');
+
+        function playVideo(index) {
+            const loc = locations[index];
+            videoModal.style.backgroundImage = `url('${loc.bgImage}')`;
+            displayMovie.innerText = loc.movie;
+            displayLoc.innerText = loc.name;
+            player.src = loc.video;
+            videoModal.style.display = 'flex';
+            void videoModal.offsetWidth; 
+            videoModal.classList.add('active');
+            player.play();
+        }
+
+        function closeVideo() {
+            player.pause(); player.src = "";
+            videoModal.classList.remove('active');
+            videoModal.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

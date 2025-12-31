@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Study: Realization</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Insight (Purple) & Achievement (Green) & Unapologetic (Pink) */
+            --primary: #6c5ce7;   /* Purple: Mind/Insight */
+            --secondary: #00b894; /* Green: Growth/Achieve */
+            --accent: #e84393;    /* Pink: Bold/Unapologetic */
+            --bg: #2d3436;        /* Dark bg for immersive feel */
+            --card-bg: #ffffff;
+            --text: #2d3436;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 16:9 全屏容器 */
+        #app-container {
+            width: 95vw;
+            height: 53.43vw; /* 16:9 ratio */
+            max-height: 95vh;
+            max-width: 168.88vh;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 场景通用样式 */
+        .scene {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            padding: 40px;
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            overflow-y: auto;
+        }
+        .scene.active { display: flex; opacity: 1; }
+
+        /* ---- Story Layout ---- */
+        .story-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 20px;
+        }
+
+        .img-display-area {
+            flex: 2;
+            background: #000;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .img-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .img-blurred { filter: blur(30px) brightness(0.7); transform: scale(1.1); }
+        
+        .img-sharp {
+            clip-path: inset(0 100% 0 0); /* Initial: Hidden */
+            transition: clip-path 1.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+            z-index: 2;
+        }
+
+        .text-interaction-area {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border-top: 5px solid var(--primary);
+            position: relative;
+        }
+
+        /* Question & Answer Boxes */
+        .question-box {
+            font-size: 1.8rem;
+            color: var(--primary);
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: none;
+            animation: slideUp 0.5s forwards;
+        }
+
+        .answer-box {
+            font-size: 1.4rem;
+            color: #555;
+            line-height: 1.5;
+            display: none;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            animation: fadeIn 0.5s forwards;
+            width: 90%;
+        }
+
+        /* ---- Orthographic Mapping Layout ---- */
+        .mapping-layout {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .sound-container {
+            display: flex;
+            gap: 10px;
+            margin: 40px 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .sound-box-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .sound-input {
+            width: 60px;
+            height: 80px;
+            font-size: 2rem;
+            text-align: center;
+            border: 3px solid #b2bec3;
+            border-radius: 12px;
+            outline: none;
+            transition: 0.3s;
+            text-transform: lowercase;
+            font-family: inherit;
+            color: var(--text);
+        }
+        .sound-input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(108, 92, 231, 0.3); }
+        .sound-input.correct { background: #dff9fb; border-color: var(--secondary); color: var(--secondary); font-weight:bold; }
+        .sound-input.wrong { border-color: var(--accent); background: #fadbd8; }
+
+        .suffix-label {
+            position: absolute;
+            top: -30px;
+            background: var(--accent);
+            color: white;
+            font-size: 0.9rem;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* ---- Definition Layout ---- */
+        .def-layout {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+        }
+        
+        .phrase-title {
+            font-size: 4rem;
+            color: var(--primary);
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+        }
+
+        .def-box-large {
+            background: #fdfefe;
+            border-left: 10px solid var(--secondary);
+            padding: 30px 50px;
+            border-radius: 15px;
+            font-size: 1.8rem;
+            color: #2d3436;
+            width: 85%;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            text-align: left;
+        }
+
+        .example-list {
+            width: 85%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .example-card {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            border-left: 5px solid var(--primary);
+            font-size: 1.4rem;
+            text-align: left;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* ---- Verb & Quiz Layout ---- */
+        .verb-block {
+            width: 80%;
+            margin-bottom: 20px;
+            text-align: left;
+            background: #fff;
+            border: 2px solid #eee;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .verb-def { font-size: 1.5rem; font-weight: bold; color: var(--primary); margin-bottom: 10px; }
+        .verb-ex { font-size: 1.3rem; color: #555; display: block; margin-left: 20px; }
+
+        .quiz-item {
+            width: 80%;
+            background: #f1f2f6;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: left;
+            border-left: 8px solid var(--secondary);
+        }
+        .quiz-q { font-size: 1.5rem; margin-bottom: 15px; font-weight: 500; }
+        .quiz-options { display: flex; gap: 20px; }
+        .quiz-btn {
+            padding: 10px 25px;
+            border: 2px solid #b2bec3;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: 0.2s;
+        }
+        .quiz-btn:hover { background: #dfe6e9; }
+        .quiz-btn.selected-correct { background: var(--secondary); color: white; border-color: var(--secondary); }
+        .quiz-btn.selected-wrong { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Controls */
+        .btn {
+            padding: 12px 35px;
+            font-size: 1.3rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+            margin-top: 15px;
+        }
+        .btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        
+        .btn-reveal { background: var(--secondary); } /* Green/Orange for revealing answers */
+
+        .nav-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            background: transparent;
+            border: 2px solid #b2bec3;
+            color: #7f8c8d;
+            font-size: 1rem;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 50px;
+        }
+        .nav-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .tts { cursor: pointer; margin-left: 10px; color: var(--primary); transition: 0.2s; display: inline-block; vertical-align: middle;}
+        .tts:hover { transform: scale(1.2); }
+
+        /* Animations */
+        @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; overflow-y: scroll; }
+            .scene { padding: 20px 20px 80px 20px; overflow: visible; }
+            .story-container { flex-direction: column; }
+            .img-display-area { flex: none; height: 35vh; }
+            .text-interaction-area { flex: 1; padding: 20px; }
+            .phrase-title { font-size: 2.5rem; }
+            .sound-input { width: 40px; height: 60px; font-size: 1.5rem; }
+            .sound-container { gap: 5px; }
+            .example-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .verb-block, .quiz-item { width: 95%; padding: 15px; }
+            .quiz-options { flex-direction: column; }
+            .nav-btn { bottom: 20px; right: 20px; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <div class="scene active" id="scene-1">
+        <div class="story-container">
+            <div class="img-display-area">
+                <img src="Realization 01.jpg" class="img-layer img-blurred" alt="Blurred">
+                <img src="Realization 01.jpg" class="img-layer img-sharp" id="sharp-img-1" alt="Clear">
+            </div>
+
+            <div class="text-interaction-area">
+                
+                <div id="s1-q1" class="question-box">
+                    Look at Picture 1 (Left). How does he feel? Does he understand?
+                </div>
+                <div id="s1-a1" class="answer-box">
+                    He is confused. He doesn't understand.
+                    <span class="tts" onclick="speak('He is confused. He does not understand.')">🔊</span>
+                </div>
+
+                <div id="s1-q2" class="question-box">
+                    Now look at Picture 2 (Right). What changed? What does the lightbulb mean?
+                </div>
+                <div id="s1-a2" class="answer-box">
+                    The lightbulb turns on! He knows how to work out the puzzle. This moment—when he suddenly understands—is a <b>realization</b>.
+                    <span class="tts" onclick="speak('The lightbulb turns on! He knows how to work out the puzzle. This moment, when he suddenly understands, is a realization.')">🔊</span>
+                </div>
+
+                <button class="btn" id="s1-btn" onclick="story1Next()">Show Picture 1</button>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-1" onclick="nextScene(2)">Next: Spelling →</button>
+    </div>
+
+    <div class="scene" id="scene-2">
+        <div class="mapping-layout">
+            <h2 style="color:var(--primary); font-size:2.5rem;">Orthographic Mapping</h2>
+            <button class="btn" style="margin-bottom:20px;" onclick="speak('Realization')">🔊 Play Word</button>
+
+            <div class="sound-container">
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="r"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="2" data-ans="ea"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="l"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="i"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="z"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="a"></div>
+                <div class="sound-box-wrapper">
+                    <div class="suffix-label">Suffix</div>
+                    <input type="text" class="sound-input" maxlength="4" style="width:100px;" data-ans="tion">
+                </div>
+            </div>
+            
+            <button class="btn" onclick="checkSpelling()">Check Spelling</button>
+            <p id="spelling-feedback" style="height:20px; font-weight:bold; font-size:1.2rem; margin-top:20px;"></p>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-2" onclick="nextScene(3)">Next: Meaning 1 →</button>
+    </div>
+
+    <div class="scene" id="scene-3">
+        <div class="def-layout">
+            <div class="phrase-title">Realization</div>
+            <div class="def-box-large">
+                <b>Meaning 1:</b> The action of understanding something clearly. (领悟/明白)
+                <span class="tts" onclick="speak('The action of understanding something clearly.')">🔊</span>
+            </div>
+            
+            <div class="example-list">
+                <div class="example-card">
+                    <span>"She came to the sudden <b>realization</b> that she had left her keys."</span>
+                    <span class="tts" onclick="speak('She came to the sudden realization that she had left her keys.')">🔊</span>
+                </div>
+                <div class="example-card">
+                    <span>"There is a growing <b>realization</b> that we need to protect nature."</span>
+                    <span class="tts" onclick="speak('There is a growing realization that we need to protect nature.')">🔊</span>
+                </div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="nextScene(4)">Next: Meaning 2 →</button>
+    </div>
+
+    <div class="scene" id="scene-4">
+        <div class="story-container">
+            <div class="img-display-area">
+                <img src="Realization 02.jpg" class="img-layer img-blurred" alt="Dreaming">
+                <img src="Realization 02.jpg" class="img-layer img-sharp" id="sharp-img-2" alt="Achieving">
+            </div>
+
+            <div class="text-interaction-area">
+                
+                <div id="s4-q1" class="question-box">
+                    Look at the thought bubble (Left). What is the little girl dreaming of?
+                </div>
+                <div id="s4-a1" class="answer-box">
+                    As a child, her dream was just in her head. She wanted to be a doctor.
+                    <span class="tts" onclick="speak('As a child, her dream was just in her head. She wanted to be a doctor.')">🔊</span>
+                </div>
+
+                <div id="s4-q2" class="question-box">
+                    Now look at the picture on the right. Where is she now? Did her dream come true?
+                </div>
+                <div id="s4-a2" class="answer-box">
+                    Now, she is a real doctor. This is the <b>realization</b> of her childhood dream. She has made her dream come true!
+                    <span class="tts" onclick="speak('Now, she is a real doctor. This is the realization of her childhood dream. She has made her dream come true!')">🔊</span>
+                </div>
+
+                <button class="btn" id="s4-btn" onclick="story2Next()">Show Picture 1</button>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-4" onclick="nextScene(5)">Next: Definition 2 →</button>
+    </div>
+
+    <div class="scene" id="scene-5">
+        <div class="def-layout">
+            <div class="phrase-title" style="color:var(--secondary);">Realization</div>
+            <div class="def-box-large" style="border-color:var(--secondary);">
+                <b>Meaning 2:</b> The process of achieving a goal or dream. (实现)
+                <span class="tts" onclick="speak('The process of achieving a goal or dream.')">🔊</span>
+            </div>
+            
+            <div class="example-list">
+                <div class="example-card">
+                    <span>"Winning the gold medal was the <b>realization</b> of his hard work."</span>
+                    <span class="tts" onclick="speak('Winning the gold medal was the realization of his hard work.')">🔊</span>
+                </div>
+                <div class="example-card">
+                    <span>"The <b>realization</b> of the project took longer than expected."</span>
+                    <span class="tts" onclick="speak('The realization of the project took longer than expected.')">🔊</span>
+                </div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="nextScene(6)">Next: Verb Forms →</button>
+    </div>
+
+    <div class="scene" id="scene-6">
+        <div class="def-layout">
+            <h1 style="color:var(--primary); font-size:3rem; margin-bottom:30px;">Verb: Realize</h1>
+            
+            <div class="verb-block">
+                <div class="verb-def">1. To achieve something important (实现)</div>
+                <span class="verb-ex">"He finally <b>realized</b> his ambition to become a pilot." <span class="tts" onclick="speak('He finally realized his ambition to become a pilot.')">🔊</span></span>
+                <span class="verb-ex" style="margin-top:10px;">"She <b>realized</b> her potential through hard work." <span class="tts" onclick="speak('She realized her potential through hard work.')">🔊</span></span>
+            </div>
+
+            <div class="verb-block">
+                <div class="verb-def">2. To understand or become aware (意识到)</div>
+                <span class="verb-ex">"I didn't <b>realize</b> how late it was." <span class="tts" onclick="speak('I did not realize how late it was.')">🔊</span></span>
+                <span class="verb-ex" style="margin-top:10px;">"Do you <b>realize</b> the danger you are in?" <span class="tts" onclick="speak('Do you realize the danger you are in?')">🔊</span></span>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="nextScene(7)">Next: Quiz →</button>
+    </div>
+
+    <div class="scene" id="scene-7">
+        <div class="def-layout">
+            <h2 style="color:var(--text); font-size:2.5rem; margin-bottom:30px;">Does it mean <span style="color:var(--primary)">Understand</span> or <span style="color:var(--secondary)">Achieve</span>?</h2>
+
+            <div class="quiz-item">
+                <div class="quiz-q">1. "After the test, he <b>realized</b> he had made a mistake."</div>
+                <div class="quiz-options">
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'A')">A: Understand</button>
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'B')">B: Achieve</button>
+                </div>
+            </div>
+
+            <div class="quiz-item">
+                <div class="quiz-q">2. "The new bridge is the <b>realization</b> of a 10-year plan."</div>
+                <div class="quiz-options">
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'A')">A: Understand</button>
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'B')">B: Achieve</button>
+                </div>
+            </div>
+
+            <div class="quiz-item">
+                <div class="quiz-q">3. "She finally <b>realized</b> her dream of buying a house."</div>
+                <div class="quiz-options">
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'A')">A: Understand</button>
+                    <button class="quiz-btn" onclick="checkQuiz(this, 'B')">B: Achieve</button>
+                </div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="location.reload()">↺ Replay Lesson</button>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration (使用官方 Speech SDK，兼容 iOS)
+       ========================================================== */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function speak(text) {
+        if (!text) return;
+
+        if (synthesizer) {
+            synthesizer.close();
+            synthesizer = undefined;
+        }
+
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        
+        synthesizer.speakTextAsync(
+            text,
+            result => {
+                synthesizer.close();
+                synthesizer = undefined;
+            },
+            err => {
+                console.error(err);
+                synthesizer.close();
+                synthesizer = undefined;
+            }
+        );
+    }
+
+    // --- Global Nav ---
+    function nextScene(id) {
+        document.querySelectorAll('.scene').forEach(s => {
+            s.classList.remove('active');
+            s.style.opacity = 0;
+            setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500);
+        });
+        const next = document.getElementById('scene-' + id);
+        next.style.display = 'flex';
+        void next.offsetWidth; 
+        next.classList.add('active');
+        next.style.opacity = 1;
+    }
+
+    // --- Story 1 Logic (Understanding) ---
+    let s1Step = 0;
+    function story1Next() {
+        s1Step++;
+        const img = document.getElementById('sharp-img-1');
+        const btn = document.getElementById('s1-btn');
+        const nav = document.getElementById('nav-1');
+
+        if (s1Step === 1) { // Show 1/2 + Question
+            img.style.clipPath = 'inset(0 50% 0 0)';
+            document.getElementById('s1-q1').style.display = 'block';
+            btn.innerText = 'Reveal Answer';
+            btn.classList.add('btn-reveal');
+        } else if (s1Step === 2) { // Show Answer 1
+            const ans = document.getElementById('s1-a1');
+            ans.style.display = 'block';
+            updateTTS(ans);
+            btn.innerText = 'Show Picture 2 (All)';
+            btn.classList.remove('btn-reveal');
+        } else if (s1Step === 3) { // Show Full + Question 2
+            img.style.clipPath = 'inset(0 0 0 0)';
+            document.getElementById('s1-q1').style.display = 'none'; // Hide prev
+            document.getElementById('s1-a1').style.display = 'none';
+            document.getElementById('s1-q2').style.display = 'block';
+            btn.innerText = 'Reveal Realization';
+            btn.classList.add('btn-reveal');
+        } else if (s1Step === 4) { // Show Answer 2
+            const ans = document.getElementById('s1-a2');
+            ans.style.display = 'block';
+            updateTTS(ans);
+            btn.style.display = 'none';
+            nav.style.display = 'block';
+        }
+    }
+
+    // --- Story 2 Logic (Achieving) ---
+    let s4Step = 0;
+    function story2Next() {
+        s4Step++;
+        const img = document.getElementById('sharp-img-2');
+        const btn = document.getElementById('s4-btn');
+        const nav = document.getElementById('nav-4');
+
+        if (s4Step === 1) {
+            img.style.clipPath = 'inset(0 50% 0 0)';
+            document.getElementById('s4-q1').style.display = 'block';
+            btn.innerText = 'Reveal Answer';
+            btn.classList.add('btn-reveal');
+        } else if (s4Step === 2) {
+            const ans = document.getElementById('s4-a1');
+            ans.style.display = 'block';
+            updateTTS(ans);
+            btn.innerText = 'Show Picture 2 (All)';
+            btn.classList.remove('btn-reveal');
+        } else if (s4Step === 3) {
+            img.style.clipPath = 'inset(0 0 0 0)';
+            document.getElementById('s4-q1').style.display = 'none';
+            document.getElementById('s4-a1').style.display = 'none';
+            document.getElementById('s4-q2').style.display = 'block';
+            btn.innerText = 'Reveal Realization';
+            btn.classList.add('btn-reveal');
+        } else if (s4Step === 4) {
+            const ans = document.getElementById('s4-a2');
+            ans.style.display = 'block';
+            updateTTS(ans);
+            btn.style.display = 'none';
+            nav.style.display = 'block';
+        }
+    }
+
+    // Helper: Clean TTS
+    function updateTTS(element) {
+        const text = element.innerText.replace('🔊', '').trim();
+        speak(text);
+    }
+
+    // --- Spelling Logic ---
+    const inputs = document.querySelectorAll('.sound-input');
+    inputs.forEach((input, idx) => {
+        input.addEventListener('input', (e) => {
+            if(input.value.length === input.maxLength && idx < inputs.length - 1) {
+                inputs[idx+1].focus();
+            }
+        });
+    });
+
+    function checkSpelling() {
+        let allCorrect = true;
+        inputs.forEach(input => {
+            if(input.value.toLowerCase() === input.dataset.ans) {
+                input.classList.add('correct'); input.classList.remove('wrong');
+            } else {
+                input.classList.add('wrong'); input.classList.remove('correct');
+                allCorrect = false;
+            }
+        });
+        const feedback = document.getElementById('spelling-feedback');
+        if(allCorrect) {
+            feedback.innerText = "Correct! Well done.";
+            feedback.style.color = "var(--secondary)";
+            speak("Realization");
+            document.getElementById('nav-2').style.display = 'block';
+        } else {
+            feedback.innerText = "Try again.";
+            feedback.style.color = "var(--accent)";
+        }
+    }
+
+    // --- Quiz Logic ---
+    function checkQuiz(btn, type) {
+        // Answers: 1->A, 2->B, 3->B
+        const index = Array.from(document.querySelectorAll('.quiz-item')).indexOf(btn.parentNode.parentNode);
+        let correctType = (index === 0) ? 'A' : 'B';
+
+        const btns = btn.parentNode.querySelectorAll('button');
+        btns.forEach(b => { b.classList.remove('selected-correct'); b.classList.remove('selected-wrong'); });
+
+        if(type === correctType) {
+            btn.classList.add('selected-correct');
+            speak("Correct!");
+        } else {
+            btn.classList.add('selected-wrong');
+            speak("Try again.");
+        }
+    }
+
+</script>
+
+</body>
+</html>

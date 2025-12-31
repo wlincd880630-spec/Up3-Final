@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitz Cahall: The Storyteller (Full Interactive)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #f39c12;
+            --secondary: #2980b9;
+            --bg-dark: #000;
+            --text-white: #fff;
+            --glass-bg: rgba(20, 20, 20, 0.85);
+            --correct: #27ae60;
+            --wrong: #c0392b;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background: var(--bg-dark);
+            font-family: 'Open Sans', sans-serif;
+            overflow: hidden;
+        }
+
+        #cinema-container {
+            position: relative;
+            width: 100vw; height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        video {
+            width: 100%; height: 100%;
+            object-fit: contain;
+        }
+
+        /* --- UI Layer --- */
+        .ui-layer {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .interactive { pointer-events: auto; }
+
+        /* --- Navigation --- */
+        .top-nav {
+            padding: 15px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            display: flex; justify-content: center; gap: 15px;
+            transition: opacity 0.3s;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white; padding: 8px 25px;
+            border-radius: 30px; cursor: pointer;
+            font-family: 'Montserrat', sans-serif; font-weight: 600;
+            transition: 0.3s; backdrop-filter: blur(5px);
+        }
+
+        .nav-btn.active {
+            background: var(--primary); border-color: var(--primary);
+            color: black; box-shadow: 0 0 15px rgba(243, 156, 18, 0.5);
+        }
+
+        /* --- Custom Controls (Global) --- */
+        .custom-controls {
+            position: absolute;
+            bottom: 90px; /* Above bottom bar */
+            left: 50%; transform: translateX(-50%);
+            display: flex; align-items: center; gap: 15px;
+            background: rgba(50, 50, 50, 0.7);
+            padding: 8px 25px; border-radius: 50px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            z-index: 100;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        /* Show controls when hovering bottom area or whenever needed */
+        .ui-layer:hover .custom-controls, .custom-controls:hover {
+            opacity: 1;
+        }
+        /* Always show controls on Stage 3 pause */
+        .controls-visible { opacity: 1 !important; }
+
+        .ctrl-btn {
+            background: none; border: none; color: white;
+            font-size: 1.2rem; cursor: pointer; display: flex; align-items: center;
+        }
+        .ctrl-btn:hover { color: var(--primary); }
+
+        .vol-slider {
+            width: 80px; cursor: pointer; accent-color: var(--primary);
+        }
+
+        /* --- Stage 1: Subtitles --- */
+        .subtitle-wrapper {
+            position: absolute;
+            bottom: 25%;
+            width: 100%; text-align: center;
+            pointer-events: none;
+            display: none; transition: opacity 0.1s;
+        }
+
+        .subtitle-text {
+            background: rgba(0, 0, 0, 0.75);
+            color: #f1c40f;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1.6rem;
+            font-family: 'Open Sans', sans-serif;
+            font-weight: 600;
+            text-shadow: 2px 2px 2px #000;
+            display: inline-block;
+            max-width: 90%;
+            line-height: 1.4;
+        }
+
+        /* --- Stage 1: Bottom Bar --- */
+        .stage1-bar {
+            padding: 20px 40px;
+            padding-bottom: 50px;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
+            display: flex; justify-content: center; gap: 30px;
+            display: none;
+        }
+
+        .q-card {
+            background: var(--glass-bg);
+            border-left: 5px solid var(--primary);
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            width: 40%;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .q-card:hover { transform: translateY(-5px); background: rgba(50,50,50,0.9); }
+        
+        .q-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 5px; color: var(--primary); }
+        .q-hint { font-size: 0.8rem; color: #bbb; font-style: italic; }
+        .answer-reveal { display: none; margin-top: 10px; color: white; border-top: 1px solid #555; padding-top: 10px; line-height: 1.4; }
+
+        /* --- Intro Popups --- */
+        .intro-popup {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            border: 2px solid var(--primary);
+            padding: 40px; border-radius: 15px;
+            color: white; width: 60%; text-align: center;
+            display: none; z-index: 100;
+        }
+        .intro-popup.show { display: block; animation: fadeIn 0.5s; }
+
+        /* --- Stage 2: Quiz --- */
+        .quiz-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            display: none; z-index: 50;
+        }
+
+        .quiz-box {
+            background: #2c3e50; padding: 40px; border-radius: 15px;
+            width: 50%; text-align: center; border: 1px solid var(--secondary);
+        }
+        .quiz-q { color: white; font-size: 1.6rem; margin-bottom: 25px; font-weight: 600; }
+        .quiz-opt {
+            display: block; width: 100%; margin: 10px 0; padding: 15px;
+            background: transparent; border: 1px solid rgba(255,255,255,0.3);
+            color: white; border-radius: 8px; cursor: pointer; font-size: 1.1rem;
+            transition: 0.2s;
+        }
+        .quiz-opt:hover { background: rgba(255,255,255,0.1); border-color: white; }
+
+        /* --- Stage 3: Cloze (Transparent Overlay) --- */
+        .cloze-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3); /* Low opacity to see video */
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            display: none; z-index: 60;
+        }
+        .cloze-overlay.active { display: flex; }
+
+        .cloze-box {
+            width: 80%; 
+            background: rgba(0, 0, 0, 0.75); 
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 30px; border-radius: 20px; text-align: center;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            /* Position slightly lower to avoid blocking faces usually in center-top */
+            margin-top: 15%; 
+        }
+
+        .cloze-text {
+            font-family: 'Montserrat', sans-serif; font-size: 1.6rem;
+            color: white; line-height: 2; margin-bottom: 25px;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        .cloze-input {
+            background: rgba(255,255,255,0.15); border: none;
+            border-bottom: 2px solid var(--primary);
+            color: var(--primary); font-size: 1.6rem;
+            width: 160px; text-align: center; font-weight: 800;
+            padding: 0 5px;
+        }
+        .cloze-input:focus { outline: none; background: rgba(255,255,255,0.25); border-color: white; }
+        .cloze-input.correct { color: var(--correct); border-color: var(--correct); }
+        .cloze-input.wrong { color: var(--wrong); border-color: var(--wrong); }
+
+        .btn-row { display: flex; justify-content: center; gap: 20px; }
+        .action-btn {
+            padding: 10px 30px; border-radius: 50px; border: none;
+            font-size: 1rem; font-weight: bold; cursor: pointer; transition: transform 0.2s;
+        }
+        .action-btn:hover { transform: scale(1.05); }
+        .btn-replay { background: white; color: black; }
+        .btn-next { background: var(--correct); color: white; }
+
+        .fs-btn {
+            position: absolute; bottom: 20px; right: 20px;
+            background: rgba(255,255,255,0.2); color: white; border: none;
+            padding: 10px 15px; border-radius: 5px; cursor: pointer; z-index: 200;
+        }
+
+        @keyframes fadeIn { from{opacity:0; transform:translate(-50%,-60%);} to{opacity:1; transform:translate(-50%,-50%);}}
+    </style>
+</head>
+<body>
+
+<div id="cinema-container">
+    <video id="videoPlayer" playsinline>
+        <source src="FC.mp4" type="video/mp4">
+        Your browser does not support HTML5 video.
+    </video>
+
+    <div class="ui-layer">
+        <div class="top-nav interactive">
+            <button class="nav-btn active" onclick="setStage(1)">Stage 1: Gist</button>
+            <button class="nav-btn" onclick="setStage(2)">Stage 2: Details</button>
+            <button class="nav-btn" onclick="setStage(3)">Stage 3: Cloze (Full)</button>
+        </div>
+
+        <div id="customControls" class="custom-controls interactive">
+            <button class="ctrl-btn" id="playPauseBtn" onclick="togglePlayPause()">❚❚</button>
+            <span style="color:white; font-size:1rem;">🔊</span>
+            <input type="range" class="vol-slider" min="0" max="1" step="0.1" value="1" onchange="setVolume(this.value)">
+        </div>
+
+        <div id="subtitle-wrapper" class="subtitle-wrapper">
+            <span id="subtitle-text" class="subtitle-text"></span>
+        </div>
+
+        <div id="popup-1" class="intro-popup interactive">
+            <h2 style="color:var(--primary); margin-bottom:20px;">Pre-watching Question 1</h2>
+            <p style="font-size:1.4rem; line-height:1.6;">What was Fitz Cahall's "Dream Job" and why was it difficult to get?</p>
+            <br>
+            <button class="nav-btn active" onclick="nextPopup()">Next Question</button>
+        </div>
+        <div id="popup-2" class="intro-popup interactive">
+            <h2 style="color:var(--primary); margin-bottom:20px;">Pre-watching Question 2</h2>
+            <p style="font-size:1.4rem; line-height:1.6;">What is the core message about success? Is success only about talent?</p>
+            <br>
+            <button class="nav-btn active" onclick="finishPopups()">Start Watching</button>
+        </div>
+
+        <div id="stage1-bar" class="stage1-bar interactive">
+            <div class="q-card" onclick="toggleReveal(this)">
+                <div class="q-title">Q1: "Dream Job" & Difficulty?</div>
+                <div class="q-hint">Click to check answer</div>
+                <div class="answer-reveal">
+                    <strong>Answer:</strong> Adventure Storyteller.<br>
+                    It was hard because "people don't hire storytellers" – the job description didn't exist.
+                </div>
+            </div>
+            <div class="q-card" onclick="toggleReveal(this)">
+                <div class="q-title">Q2: Success & Core Message?</div>
+                <div class="q-hint">Click to check answer</div>
+                <div class="answer-reveal">
+                    <strong>Answer:</strong> It's not just about talent.<br>
+                    It is about grit, creativity, passion, kindness, and love. You must "create" your own path.
+                </div>
+            </div>
+        </div>
+
+        <div id="stage2-quiz" class="quiz-overlay interactive">
+            <div class="quiz-box">
+                <div id="quiz-q" class="quiz-q">Question</div>
+                <div id="quiz-opts"></div>
+            </div>
+        </div>
+
+        <div id="stage3-cloze" class="cloze-overlay interactive">
+            <div class="cloze-box">
+                <div id="cloze-content" class="cloze-text"></div>
+                <div class="btn-row">
+                    <button class="action-btn btn-replay" onclick="replaySentence()">↺ Replay Segment</button>
+                    <button class="action-btn btn-next" onclick="checkAndNext()">Next ➔</button>
+                </div>
+            </div>
+        </div>
+
+        <button class="fs-btn interactive" onclick="toggleFull()">⛶ Fullscreen</button>
+    </div>
+</div>
+
+<script>
+    const video = document.getElementById('videoPlayer');
+    const playBtn = document.getElementById('playPauseBtn');
+    const controls = document.getElementById('customControls');
+    const subWrapper = document.getElementById('subtitle-wrapper');
+    const subText = document.getElementById('subtitle-text');
+    const s1Bar = document.getElementById('stage1-bar');
+    const s2Quiz = document.getElementById('stage2-quiz');
+    const s3Cloze = document.getElementById('stage3-cloze');
+
+    let currentStage = 1;
+    let quizIdx = 0;
+    let sentenceIdx = 0;
+    let isInteractionPaused = false;
+
+    // ==========================================
+    // DATA SECTION (USER VERIFIED DATA)
+    // ==========================================
+
+    // 1. Subtitles
+    const subtitles = [
+        {s:3.0, e:8.0, t:"There wasn’t really a job description for what I wanted to do."},
+        {s:8.0, e:13.5, t:"You know, people don’t hire storytellers, much less adventure storytellers."},
+        {s:13.6, e:14.3, t:"That was my dream."},
+        {s:14.4, e:19.8, t:"I mean, I was that six-year-old kid you’d see with his face buried in National Geographics."},
+        {s:19.8, e:23.0, t:"I knew there was magic in life on the road."},
+        {s:23.1, e:26.5, t:"I love climbing. I love being outside."},
+        {s:27.0, e:32.0, t:"I would load all this stuff up into my car, leave the city, and I’d spend a couple months out on the road."},
+        {s:32.5, e:36.0, t:"And then I’d come back home, and I’d write it all down."},
+        {s:37.0, e:41.0, t:"But I wound up with all these stories I’d gathered from my time on the road."},
+        {s:42.0, e:44.5, t:"And I just – I couldn’t sell them anywhere."},
+        {s:45.0, e:51.2, t:"I was about to give up when I had this realization that nobody was going to give me this job."},
+        {s:51.2, e:53.0, t:"I had to go create it."},
+        {s:54.0, e:57.0, t:"Once I realized that, it was like the horizon opened up."},
+        {s:57.0, e:60.0, t:"I started a radio show in my closet."},
+        {s:60.1, e:62.5, t:"I went on to make films."},
+        {s:62.6, e:65.0, t:"We found our community."},
+        {s:65.5, e:69.5, t:"It’s seven years later, and I’m still basically doing the same thing."},
+        {s:69.5, e:77.0, t:"I am loading up gears, putting them in the car and hit the road, and I go spend time with the people that inspire me, in places that inspire me."},
+        {s:77.2, e:83.0, t:"That process has come full circle right back to where my dream started."},
+        {s:91.0, e:98.0, t:"When National Geographic asked me to help with Adventurers of the Year, the six-year-old boy in me kind of chuckled."},
+        {s:99.0, e:106.0, t:"We pulled together ten incredible stories, ten incredible feats from people who live life on their own terms."},
+        {s:106.5, e:111.0, t:"I think it would be easy to put these people up on a pedestal and to think of them as heroes or almost superhuman."},
+        {s:111.5, e:117.0, t:"And while talent plays a role in these people’s feats and their successes, it’s not what makes their ideas a reality."},
+        {s:118.0, e:125.0, t:"It’s grit, creativity, passion, kindness, and love. That’s the human spirit."},
+        {s:132.0, e:138.0, t:"I know in my heart I could be an Adventurer of the Year, but that’s not what I want to do."},
+        {s:138.2, e:145.0, t:"I want to tell stories, spend as much as time as I can outside, and pass that love for it along to my son."},
+        {s:145.5, e:152.0, t:"My struggles to make my dreams a reality have taken just as much commitment as paddling into a big wave..."},
+        {s:152.5, e:155.0, t:"...or climbing a peak in the Karakoram."},
+        {s:155.1, e:159.0, t:"There’s a lot of ways to take risks in life. That’s the magic of it."},
+        {s:174.0, e:178.0, t:"I know this. You have to do the thing that makes you tick."},
+        {s:178.5, e:180.5, t:"You have to do it on a daily basis."},
+        {s:180.6, e:183.0, t:"You have to do it unapologetically."},
+        {s:183.1, e:186.0, t:"Do it with love."}
+    ];
+
+    // 2. Quizzes
+    const quizzes = [
+        {t:20, q:"The speaker mentions being a 6-year-old kid reading what magazine?", o:["Time Magazine","National Geographic","Sports Illustrated"], a:1},
+        {t:37, q:"What did he do after coming back home from his trips?", o:["He posted photos online","He wrote it all down","He sold his car"], a:1},
+        {t:45, q:"Why was he unable to sell his stories at the beginning?", o:["They were poorly written","He didn't have a platform or buyers","He lost his notebooks"], a:1},
+        {t:53.5, q:"What was his solution when nobody gave him the job?", o:["He decided to create it himself","He applied for other jobs","He went back to school"], a:0},
+        {t:60, q:"Where did he start his radio show?", o:["In a professional studio","In his bedroom","In his closet"], a:2},
+        {t:99, q:"How did the '6-year-old boy in him' react to the National Geographic offer?", o:["He cried","He chuckled","He was scared"], a:1},
+
+        {t:145.5, q:"What does he want to pass along to his son?", o:["His money","His love for the outdoors","His camera collection"], a:1}
+    ];
+
+    // 3. Sentences (FULL COVERAGE - EVERY LINE)
+    const sentences = [
+        {s:3.0, e:8.0, h:"There wasn’t really a <input class='cloze-input' data-ans='job description'> for what I wanted to do."},
+        {s:8.0, e:13.5, h:"You know, people don’t <input class='cloze-input' data-ans='hire'> storytellers, much less adventure storytellers."},
+        {s:13.6, e:14.5, h:"That was my dream."},
+        {s:14.6, e:19.8, h:"I mean, I was that six-year-old kid you’d see with his face buried in National Geographics."},
+        {s:19.8, e:23.3, h:"I knew there was <input class='cloze-input' data-ans='magic'> in life on the road."},
+        {s:23.3, e:26.5, h:"I love climbing. I love being outside."},
+        {s:27.0, e:31.9, h:"I would load all this stuff up into my car, leave the city, and I’d spend a couple months out on the road."},
+        {s:32.0, e:36.0, h:"And then I’d come back home, and I’d <input class='cloze-input' data-ans='write'> it all down."},
+        {s:37.0, e:41.0, h:"But I <input class='cloze-input' data-ans='wound up with'> all these stories I’d gathered from my time on the road."},
+
+        {s:42.0, e:44.5, h:"And I just – I couldn’t <input class='cloze-input' data-ans='sell'> them anywhere."},
+        {s:45.0, e:51.4, h:"I was about to give up when I had this <input class='cloze-input' data-ans='realization'> that nobody was gonna give me this job."},
+
+        {s:51.4, e:53.0, h:"I had to go <input class='cloze-input' data-ans='create'> it."},
+
+        {s:54.0, e:57.3, h:"Once I realized that, it was like the <input class='cloze-input' data-ans='horizon'> opened up."},
+        {s:57.3, e:59.5, h:"I started a radio show in my closet."},
+
+        {s:60.1, e:61.6, h:"I went on to make films."},
+        {s:61.7, e:64.3, h:"We found our <input class='cloze-input' data-ans='community'>."},
+
+        {s:64.3, e:69.3, h:"It’s seven years later, and I’m still basically doing the same thing."},
+
+        {s:69.5, e:77.3, h:"I am loading gears, putting in the car and hitting the road to go spend time with the people that <input class='cloze-input' data-ans='inspire'> me, and places that inspire me."},
+
+        {s:77.3, e:83.0, h:"That process has <input class='cloze-input' data-ans='come full circle'> right back to where my dream started."},
+
+        {s:91.0, e:99.2, h:"When National Geographic asked me to help with the adventurer of the year, the six-year-old boy in me kind of <input class='cloze-input' data-ans='chuckled'>."},
+
+        {s:99.3, e:105.4, h:"We pulled together ten <input class='cloze-input' data-ans='incredible'> stories, ten incredible <input class='cloze-input' data-ans='feats'> from people who live lives on their on terms."},
+
+        {s:105.5, e:111.0, h:"I think it would be easy to put these people up on a <input class='cloze-input' data-ans='pedestal'>and to think of them as heroes or almost superhuman."},
+
+        {s:111.5, e:117.9, h:"And while talent plays a role in these people's feats and successes, it’s not what makes their ideas a reality."},
+
+
+        {s:118.0, e:125.0, h:"It’s <input class='cloze-input' data-ans='grit'>, creativity, <input class='cloze-input' data-ans='passion'>, kindness, and love. That’s the human spirit."},
+
+        {s:132.0, e:137.8, h:"I know in my heart I could be an Adventurer of the Year, but that’s not what I want to do."},
+
+        {s:137.9, e:145.0, h:"I want to tell stories, spend as much as time as I can outside, and pass that love for it along to my son."},
+
+        {s:145.5, e:154.7, h:"<a href='commitment.html' target='_blank' style='color:var(--primary); text-decoration:none; border-bottom:1px dashed white;'>My struggles to make my dreams a reality have taken just as much commitment as paddling into a big wave or climbing a peak in the Karakoram. (Click for details)</a>"},
+
+           {s:154.8, e:159.0, h:"There’s a lot of ways to take risks in life. That’s the magic of it."},
+
+        {s:174.0, e:179.8, h:"I know this. You have to do the thing that makes you <input class='cloze-input' data-ans='tick'>."},
+      
+  {s:179.9, e:181.9, h:"You have to do it on a <input class='cloze-input' data-ans='daily basis'>."},
+
+        {s:182.0, e:184.2, h:"You have to do it <input class='cloze-input' data-ans='unapologetically'>."},
+
+        {s:184.3, e:187.0, h:"Do it with <input class='cloze-input' data-ans='love'>."}
+    ];
+
+    // ==========================================
+    // LOGIC
+    // ==========================================
+
+    function setStage(n) {
+        currentStage = n;
+        video.pause(); video.currentTime = 0; isInteractionPaused = false;
+        playBtn.innerText = "►";
+        
+        document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active', i===(n-1)));
+        subWrapper.style.display = 'none';
+        s1Bar.style.display = 'none';
+        s2Quiz.style.display = 'none';
+        s3Cloze.classList.remove('active');
+        controls.classList.remove('controls-visible');
+        document.getElementById('popup-1').classList.remove('show');
+        document.getElementById('popup-2').classList.remove('show');
+
+        if(n===1) {
+            document.getElementById('popup-1').classList.add('show');
+            subWrapper.style.display = 'block';
+        } else if(n===2) {
+            quizIdx = 0; 
+            video.play();
+        } else if(n===3) {
+            sentenceIdx = 0; loadSentence();
+        }
+    }
+
+    // --- Media Controls ---
+    function togglePlayPause() {
+        if(video.paused) {
+            video.play();
+            playBtn.innerText = "❚❚";
+        } else {
+            video.pause();
+            playBtn.innerText = "►";
+        }
+    }
+    
+    function setVolume(val) {
+        video.volume = val;
+    }
+
+    // Stage 1
+    function nextPopup() { document.getElementById('popup-1').classList.remove('show'); setTimeout(()=>document.getElementById('popup-2').classList.add('show'), 300); }
+    function finishPopups() { 
+        document.getElementById('popup-2').classList.remove('show'); 
+        setTimeout(()=>{ s1Bar.style.display='flex'; video.play(); playBtn.innerText="❚❚"; }, 300); 
+    }
+    function toggleReveal(el) {
+        const rev = el.querySelector('.answer-reveal');
+        rev.style.display = rev.style.display==='block' ? 'none' : 'block';
+    }
+
+    // Stage 2
+    function showQuiz(q) {
+        video.pause(); isInteractionPaused = true;
+        playBtn.innerText = "►";
+        controls.classList.add('controls-visible');
+        
+        document.getElementById('quiz-q').innerText = q.q;
+        const c = document.getElementById('quiz-opts'); c.innerHTML='';
+        q.o.forEach((opt,i)=>{
+            const btn = document.createElement('button');
+            btn.className = 'quiz-opt'; btn.innerText = opt;
+            btn.onclick = () => {
+                if(i===q.a) {
+                    btn.style.borderColor = 'var(--correct)'; btn.style.color='var(--correct)'; btn.innerText += " ✔";
+                    setTimeout(()=>{ 
+                        s2Quiz.style.display='none'; 
+                        controls.classList.remove('controls-visible');
+                        isInteractionPaused=false; 
+                        quizIdx++; 
+                        video.play(); 
+                        playBtn.innerText = "❚❚";
+                    }, 1000);
+                } else {
+                    btn.style.borderColor = 'var(--wrong)'; btn.style.color='var(--wrong)'; btn.innerText += " ✘";
+                }
+            };
+            c.appendChild(btn);
+        });
+        s2Quiz.style.display = 'flex';
+    }
+
+    // Stage 3
+    function loadSentence() {
+        if(sentenceIdx >= sentences.length) {
+            document.getElementById('cloze-content').innerHTML = "<h2>Lesson Complete.</h2>";
+            s3Cloze.classList.add('active'); return;
+        }
+        
+        // Logic: Just play. The loop will catch the 'end' time.
+        // Only seek if it's the very first one to ensure start point.
+        if(sentenceIdx === 0 && video.currentTime < 1) {
+             video.currentTime = sentences[0].s;
+        }
+        
+        video.play();
+        playBtn.innerText = "❚❚";
+        s3Cloze.classList.remove('active');
+        controls.classList.remove('controls-visible');
+        isInteractionPaused = false;
+    }
+
+    function replaySentence() {
+        const s = sentences[sentenceIdx];
+        video.currentTime = s.s;
+        video.play();
+        playBtn.innerText = "❚❚";
+        s3Cloze.classList.remove('active');
+        controls.classList.remove('controls-visible');
+        isInteractionPaused = false;
+    }
+
+    function checkAndNext() {
+        const inps = document.querySelectorAll('.cloze-input');
+        let allOk = true;
+        inps.forEach(i => {
+            if(i.value.trim().toLowerCase() !== i.dataset.ans.toLowerCase()) {
+                i.classList.add('wrong'); allOk=false;
+            } else {
+                i.classList.remove('wrong'); i.classList.add('correct');
+            }
+        });
+
+        if(allOk || inps.length===0) {
+            sentenceIdx++;
+            loadSentence(); // Continues playing from where it paused
+        }
+    }
+
+    video.ontimeupdate = function() {
+        const t = video.currentTime;
+
+        // Sync Play/Pause Button State
+        if(video.paused && !isInteractionPaused) playBtn.innerText = "►";
+        if(!video.paused) playBtn.innerText = "❚❚";
+
+        // Stage 1: Subtitles
+        if(currentStage===1) {
+            const sub = subtitles.find(s => t >= s.s && t <= s.e);
+            if(sub) {
+                subText.innerText = sub.t;
+                subWrapper.style.opacity = 1;
+            } else {
+                subWrapper.style.opacity = 0;
+            }
+        }
+
+        // Stage 2: Quiz
+        if(currentStage===2 && !isInteractionPaused && quizIdx < quizzes.length) {
+            const q = quizzes[quizIdx];
+            // Ensure we don't skip if frame rate is low
+            if(t >= q.t && t < q.t+2.0) showQuiz(q);
+        }
+
+        // Stage 3: Pause
+        if(currentStage===3 && !isInteractionPaused && sentenceIdx < sentences.length) {
+            const s = sentences[sentenceIdx];
+            if(t >= s.e) {
+                video.pause();
+                isInteractionPaused = true;
+                
+                // Show Cloze Overlay
+                const html = s.h;
+                document.getElementById('cloze-content').innerHTML = html;
+                s3Cloze.classList.add('active');
+                controls.classList.add('controls-visible');
+                playBtn.innerText = "►";
+            }
+        }
+    };
+
+    function toggleFull() {
+        const c = document.getElementById('cinema-container');
+        if(!document.fullscreenElement) c.requestFullscreen(); else document.exitFullscreen();
+    }
+
+    setStage(1);
+</script>
+</body>
+</html>

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Study: Describe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* --- 配色方案 --- */
+            --primary: #4758b8;       
+            --secondary: #10ac84;     
+            --accent: #ff6b6b;        
+            --bg-body: #f0f2f5;       
+            --text-main: #2d3436;
+            --text-sub: #636e72;
+            --shadow-card: 0 10px 20px rgba(0,0,0,0.08);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-body);
+            background-image: linear-gradient(135deg, #f0f2f5 0%, #e2e6ea 100%);
+            font-family: 'Nunito', sans-serif;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%;
+            max-width: 1100px;
+            min-height: 600px; 
+            height: auto; 
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: var(--shadow-card);
+            position: relative;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            margin: 20px 0;
+        }
+
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px 30px 10px 30px;
+            background: #fff;
+            z-index: 10;
+        }
+        
+        .part-speech-tag {
+            background: #eef1ff;
+            color: var(--primary);
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .scene {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            padding: 10px 30px 30px 30px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            overflow-y: auto; 
+        }
+        .scene.active { display: flex; opacity: 1; }
+
+        .big-tts-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, #5d6dce 100%);
+            color: white;
+            font-size: 1.1rem;
+            padding: 12px 35px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(71, 88, 184, 0.3);
+            margin: 0 auto 25px auto;
+            width: fit-content;
+            transition: transform 0.2s;
+        }
+        .big-tts-btn:hover { transform: translateY(-2px); }
+        .big-tts-btn:active { transform: scale(0.96); }
+
+        .tts-icon {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 30px; height: 30px;
+            background: #f1f2f6;
+            border-radius: 50%;
+            cursor: pointer;
+            color: var(--primary);
+            transition: 0.2s;
+            margin-left: 8px;
+            vertical-align: middle;
+            font-size: 0.9rem;
+        }
+        .tts-icon:hover { background: var(--primary); color: white; transform: scale(1.1); }
+
+        .letter-container {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap; 
+        }
+        .letter-card {
+            width: 55px; height: 75px;
+            background: white;
+            border: 2px solid #eef1ff;
+            color: var(--primary);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            font-weight: 800;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .letter-card.revealed { opacity: 1; transform: translateY(0); border-color: var(--primary); background: #f8f9ff; }
+
+        .content-split {
+            display: flex;
+            gap: 30px;
+            opacity: 0;
+            transition: 0.5s;
+            flex: 1;
+            margin-bottom: 20px;
+        }
+        .content-split.visible { opacity: 1; }
+
+        .text-side {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 300px;
+        }
+        
+        .def-card {
+            background: #e3fcf7;
+            border-left: 5px solid var(--secondary);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            color: #006266;
+            line-height: 1.5;
+        }
+        .def-label { font-size: 0.75rem; font-weight: 800; letter-spacing: 1px; color: var(--secondary); margin-bottom: 4px; display: block; }
+        .def-text { font-size: 1.2rem; font-weight: 600; }
+
+        .ex-card {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            transition: 0.2s;
+        }
+        .ex-card:hover { border-color: var(--primary); transform: translateX(5px); }
+
+        .image-side {
+            flex: 1;
+            background: #fff8f0;
+            border-radius: 20px;
+            padding: 20px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            border: 1px solid #ffeaa7;
+            animation: fadeIn 0.5s ease;
+        }
+        .scenario-img {
+            width: 100%;
+            height: auto;
+            max-height: 280px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .qa-box { text-align: center; width: 100%; }
+        .question { color: var(--accent); font-weight: bold; margin-bottom: 8px; font-size: 1.1rem; }
+        .answer { color: var(--text-main); font-weight: bold; font-size: 1.1rem; opacity: 0; transition: 0.5s; }
+
+        /* Scene 2 */
+        .puzzle-title { text-align: center; font-size: 3rem; color: var(--primary); margin: 10px 0; font-weight: 800; }
+        .gap-line { display: inline-block; width: 40px; border-bottom: 4px solid var(--accent); color: transparent; }
+        .gap-line.filled { color: var(--accent); border: none; animation: popUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        .spelling-box { display: flex; justify-content: center; gap: 8px; margin: 30px 0; flex-wrap: wrap; }
+        .char-tile {
+            width: 45px; height: 60px;
+            background: white; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; color: var(--text-sub); font-weight: 700;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+        }
+        .input-wrapper { background: #fff; border: 2px solid var(--accent); box-shadow: 0 0 10px rgba(255, 107, 107, 0.2); }
+        .magic-input { width: 100%; height: 100%; border: none; background: transparent; text-align: center; font-size: 1.8rem; font-weight: bold; color: var(--accent); outline: none; }
+
+        .control-bar {
+            margin-top: auto;
+            padding-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+        }
+        .btn-action {
+            padding: 12px 30px; font-size: 1rem; border: none; border-radius: 50px; cursor: pointer; font-weight: bold;
+            background: var(--text-main); color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .btn-nav { background: #dfe6e9; color: var(--text-sub); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popUp { 0% { transform: scale(0.5); } 100% { transform: scale(1.2); } }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; margin: 0; border-radius: 0; box-shadow: none; overflow-y: scroll; }
+            .scene { padding: 15px 20px 80px 20px; overflow: visible; min-height: auto; }
+            .content-split { flex-direction: column; gap: 25px; }
+            .text-side { min-width: 0; }
+            .image-side { width: 100%; box-sizing: border-box; }
+            .puzzle-title { font-size: 2.2rem; }
+            .letter-card { width: 40px; height: 55px; font-size: 1.6rem; }
+            .spelling-box { gap: 4px; }
+            .char-tile { width: 36px; height: 50px; font-size: 1.4rem; }
+            .control-bar { padding-bottom: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <div class="scene active" id="scene-1">
+        <div class="header-area">
+            <div class="part-speech-tag">Verb</div>
+            <button class="btn-action btn-nav" style="padding: 6px 15px; font-size: 0.8rem;" onclick="location.reload()">↺ 重置</button>
+        </div>
+
+        <button class="big-tts-btn" onclick="playAzureAudio('Describe')">
+            <span style="font-size:1.3rem">🔊</span> Listen
+        </button>
+
+        <div class="letter-container" id="letter-row"></div>
+
+        <div class="content-split" id="split-view">
+            <div class="text-side">
+                <div class="def-card">
+                    <span class="def-label">DEFINITION</span>
+                    <span class="def-text">To say or write what someone or something is like.</span>
+                    <div class="tts-icon" onclick="playAzureAudio('To say or write what someone or something is like.')">🔊</div>
+                </div>
+                <div class="ex-card">
+                    <div>"Can you <b>describe</b> the man?"</div>
+                    <div class="tts-icon" onclick="playAzureAudio('Can you describe the man you saw?')">🔊</div>
+                </div>
+                <div class="ex-card">
+                    <div>"She <b>described</b> the picture."</div>
+                    <div class="tts-icon" onclick="playAzureAudio('She described the picture to us.')">🔊</div>
+                </div>
+            </div>
+
+            <div class="image-side" id="img-panel">
+                <img src="describe 01.jpg" class="scenario-img" alt="Job Interview" onerror="this.src='https://placehold.co/600x400/ffeaa7/2d3436?text=Image+Loading...'">
+                <div class="qa-box">
+                    <div class="question">
+                        Teacher: Can you describe the picture?
+                        <div class="tts-icon" onclick="playAzureAudio('Can you describe the picture?')">🔊</div>
+                    </div>
+                    <div class="answer" id="answer-text">
+                        Student: They are having a job interview.
+                        <div class="tts-icon" onclick="playAzureAudio('They are having a job interview.')">🔊</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-bar">
+            <button class="btn-action" id="action-btn" style="background:var(--primary)" onclick="handleScene1Action()">Reveal Letter (1/8)</button>
+            <button class="btn-action btn-nav" id="next-btn" style="display:none;" onclick="nextScene(2)">Next: Noun →</button>
+        </div>
+    </div>
+
+    <div class="scene" id="scene-2">
+        <div class="header-area">
+            <div class="part-speech-tag">Noun</div>
+        </div>
+
+        <div style="text-align: center;">
+            <div class="puzzle-title">
+                Descri<span id="title-p" class="gap-line"></span>tion
+                <div class="tts-icon" style="background:transparent; font-size:1.5rem;" onclick="playAzureAudio('Description')">🔊</div>
+            </div>
+            <p style="color:var(--text-sub);">Fill in the missing sound (Hint: It's 'P', not 'B'!)</p>
+        </div>
+
+        <div class="spelling-box">
+            <div class="char-tile">D</div>
+            <div class="char-tile">e</div>
+            <div class="char-tile">s</div>
+            <div class="char-tile">c</div>
+            <div class="char-tile">r</div>
+            <div class="char-tile">i</div>
+            <div class="char-tile input-wrapper" id="p-box">
+                <input type="text" class="magic-input" maxlength="1" id="p-input" autocomplete="off">
+            </div>
+            <div class="char-tile">t</div>
+            <div class="char-tile">i</div>
+            <div class="char-tile">o</div>
+            <div class="char-tile">n</div>
+        </div>
+
+        <div id="feedback" style="text-align:center; height:30px; font-weight:bold; font-size:1.1rem; margin-bottom:10px;"></div>
+
+        <div id="desc-info" style="opacity:0; transition:0.5s; display:flex; flex-direction:column; gap:15px;">
+            <div class="def-card">
+                <span class="def-label">DEFINITION</span>
+                <span class="def-text">A statement that tells you what something or someone is like.</span>
+                <div class="tts-icon" onclick="playAzureAudio('A statement that tells you what something or someone is like.')">🔊</div>
+            </div>
+            <div class="ex-card">
+                <div>"Write a short <b>description</b> of your house."</div>
+                <div class="tts-icon" onclick="playAzureAudio('Write a short description of your house.')">🔊</div>
+            </div>
+        </div>
+
+        <div class="control-bar">
+            <button class="btn-action btn-nav" onclick="nextScene(3)" id="btn-scene3" style="display:none;">Next: Phrase →</button>
+        </div>
+    </div>
+
+    <div class="scene" id="scene-3">
+        <div class="header-area">
+            <div class="part-speech-tag">Phrase</div>
+        </div>
+
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <div style="font-size:5rem; margin-bottom:10px;">💼</div>
+            <h1 style="font-size:3rem; color:var(--primary); margin:0; text-align:center;">
+                Job Description
+                <div class="tts-icon" style="background:transparent; font-size:1.5rem;" onclick="playAzureAudio('Job Description')">🔊</div>
+            </h1>
+            
+            <div class="def-card" style="text-align:center; border-left:none; border-bottom:5px solid var(--secondary); background:#fff;">
+                <span class="def-text">A list of the responsibilities and requirements of a specific job.</span>
+                <br>
+                <span style="font-size:0.9rem; color:#999; margin-top:5px; display:block;">(职位描述)</span>
+            </div>
+
+            <div class="ex-card" style="width:100%; max-width:500px; margin-top:20px;">
+                <div>"Please read the <b>job description</b> carefully."</div>
+                <div class="tts-icon" onclick="playAzureAudio('Please read the job description carefully.')">🔊</div>
+            </div>
+        </div>
+
+        <div class="control-bar">
+            <button class="btn-action" onclick="location.reload()">↺ Finish Lesson</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration (使用官方 Speech SDK，兼容 iOS)
+       ========================================================== */
+    // 使用 page 03.html 中的 Key (包含后缀的版本)
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+
+        // 如果已有合成器在运行，先关闭
+        if (synthesizer) {
+            synthesizer.close();
+            synthesizer = undefined;
+        }
+
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        // 保持之前的语音偏好，或者你可以改为 "en-GB-RyanNeural"
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        
+        synthesizer.speakTextAsync(
+            text,
+            result => {
+                synthesizer.close();
+                synthesizer = undefined;
+            },
+            err => {
+                console.error(err);
+                synthesizer.close();
+                synthesizer = undefined;
+            }
+        );
+    }
+
+    /* ==========================================================
+       Logic: Scene 1 (保持流程)
+       ========================================================== */
+    const letters = ['D', 'e', 's', 'c', 'r', 'i', 'b', 'e'];
+    let letterIndex = 0;
+    let s1Stage = 0; 
+
+    window.onload = () => {
+        const container = document.getElementById('letter-row');
+        letters.forEach(l => {
+            const div = document.createElement('div');
+            div.className = 'letter-card';
+            div.innerText = l;
+            container.appendChild(div);
+        });
+    };
+
+    function handleScene1Action() {
+        const btn = document.getElementById('action-btn');
+        const cards = document.querySelectorAll('.letter-card');
+
+        if (s1Stage === 0) {
+            if (letterIndex < letters.length) {
+                cards[letterIndex].classList.add('revealed');
+                letterIndex++;
+                if (letterIndex < letters.length) {
+                    btn.innerText = `Reveal (${letterIndex}/8)`;
+                } else {
+                    btn.innerText = "Show Meaning";
+                    btn.style.background = "var(--secondary)"; 
+                    playAzureAudio("Describe");
+                    s1Stage = 1;
+                }
+            }
+        } else if (s1Stage === 1) {
+            document.getElementById('split-view').classList.add('visible');
+            btn.innerText = "Show Picture";
+            btn.style.background = "var(--accent)"; 
+            s1Stage = 2;
+        } else if (s1Stage === 2) {
+            document.getElementById('img-panel').style.display = 'flex';
+            btn.innerText = "Show Answer";
+            btn.style.background = "#2d3436"; 
+            s1Stage = 3;
+        } else if (s1Stage === 3) {
+            document.getElementById('answer-text').style.opacity = '1';
+            playAzureAudio("They are having a job interview.");
+            btn.style.display = 'none';
+            document.getElementById('next-btn').style.display = 'inline-block';
+        }
+    }
+
+    /* ==========================================================
+       Logic: Scene 2 (保持流程)
+       ========================================================== */
+    const pInput = document.getElementById('p-input');
+    const titleP = document.getElementById('title-p');
+    const feedback = document.getElementById('feedback');
+    
+    pInput.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase();
+        if (val === 'p') {
+            document.getElementById('p-box').style.borderColor = 'var(--secondary)';
+            document.getElementById('p-box').style.background = '#e3fcf7';
+            pInput.disabled = true;
+            
+            titleP.innerText = 'p'; 
+            titleP.classList.add('filled');
+            
+            feedback.innerHTML = "<span style='color:var(--secondary)'>Correct! It's Description!</span>";
+            playAzureAudio("Description");
+            
+            document.getElementById('desc-info').style.opacity = '1';
+            document.getElementById('btn-scene3').style.display = 'inline-block';
+        } else if (val.length > 0) {
+            feedback.innerHTML = "<span style='color:var(--accent)'>Try again!</span>";
+        }
+    });
+
+    function nextScene(id) {
+        document.querySelectorAll('.scene').forEach(s => {
+            s.classList.remove('active');
+            setTimeout(() => {
+                 if(!s.classList.contains('active')) s.style.display = 'none';
+            }, 500);
+        });
+        
+        const next = document.getElementById('scene-' + id);
+        next.style.display = 'flex';
+        void next.offsetWidth;
+        next.classList.add('active');
+        
+        if(id === 2) {
+           setTimeout(() => document.getElementById('p-input').focus(), 500); 
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Phrase Study: Wind up with</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* 主题色：结果/情境 (深蓝 & 活力橙) */
+            --primary: #2980b9;
+            --secondary: #e67e22;
+            --bg-body: #ecf0f1;
+            --text-main: #2c3e50;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(#bdc3c7 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%;
+            max-width: 1200px;
+            min-height: 650px;
+            height: 85vh; 
+            background: #ffffff;
+            border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(44, 62, 80, 0.15);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scene {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            padding: 30px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            overflow-y: auto;
+        }
+        .scene.active { display: flex; opacity: 1; }
+
+        /* ---- Scene 1: 故事场景 ---- */
+        .story-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 20px;
+        }
+
+        .img-display-area {
+            flex: 1.8; 
+            background: #2c3e50; 
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .img-blurred { 
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(25px) brightness(0.6); 
+            transform: scale(1.1);
+            z-index: 0;
+        }
+        
+        .img-sharp {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            clip-path: inset(0 100% 0 0);
+            transition: clip-path 1.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+            z-index: 2;
+        }
+
+        .text-interaction-area {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 20px 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border-top: 5px solid var(--primary);
+        }
+
+        .question-box {
+            font-size: 1.5rem;
+            color: var(--primary);
+            font-weight: 800;
+            margin-bottom: 15px;
+            display: none;
+            animation: slideUp 0.5s forwards;
+        }
+
+        .answer-box {
+            font-size: 1.2rem;
+            color: var(--text-main);
+            line-height: 1.6;
+            display: none;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            animation: fadeIn 0.5s forwards;
+            width: 90%;
+            border-left: 4px solid var(--secondary);
+            text-align: left;
+        }
+
+        /* ---- Scene 2: 定义 ---- */
+        .def-layout {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .phrase-title {
+            font-size: 3.5rem;
+            color: var(--primary);
+            font-weight: 900;
+            margin-bottom: 30px;
+            display: flex; align-items: center; gap: 15px;
+        }
+
+        .def-box-large {
+            background: #fff3e0;
+            border-left: 8px solid var(--secondary);
+            padding: 30px;
+            border-radius: 16px;
+            font-size: 1.4rem;
+            color: #d35400;
+            width: 100%;
+            margin-bottom: 30px;
+            text-align: left;
+            line-height: 1.5;
+        }
+
+        .example-list { width: 100%; display: flex; flex-direction: column; gap: 15px; }
+        .example-card {
+            background: white; padding: 15px 25px; border-radius: 12px;
+            border: 1px solid #eee; font-size: 1.1rem; text-align: left;
+            display: flex; justify-content: space-between; align-items: center;
+            transition: 0.2s;
+        }
+        .example-card:hover { border-color: var(--primary); transform: translateX(5px); }
+
+        /* ---- Scene 3: 练习 ---- */
+        .split-layout { display: flex; height: 100%; gap: 30px; }
+        .split-left {
+            flex: 1; background: #ecf0f1; border-radius: 16px; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .split-right { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 10px; }
+
+        .exercise-img { width: 100%; height: 100%; object-fit: contain; }
+
+        .q-item {
+            font-size: 1.2rem; margin-bottom: 12px; padding: 12px;
+            background: white; border-radius: 10px; border-left: 4px solid #bdc3c7;
+            display: none; animation: slideLeft 0.5s forwards; color: var(--text-main); font-weight: 600;
+        }
+
+        .fill-blank-area {
+            margin-top: 20px; background: #fff; padding: 25px;
+            border-radius: 16px; font-size: 1.3rem; display: none;
+            border: 2px solid #5dade2; line-height: 2;
+        }
+
+        input.blank-input {
+            border: none; border-bottom: 3px solid #bdc3c7; background: transparent;
+            font-size: 1.3rem; width: 140px; text-align: center; color: var(--primary);
+            font-weight: bold; outline: none; transition: 0.3s;
+        }
+        input.blank-input:focus { border-color: var(--secondary); }
+        input.blank-input.correct { border-color: #27ae60; color: #27ae60; background: rgba(39, 174, 96, 0.1); }
+        input.blank-input.wrong { border-color: #c0392b; background: #fadbd8; }
+
+        /* Controls */
+        .btn {
+            padding: 12px 30px; font-size: 1.1rem; border: none; border-radius: 50px;
+            cursor: pointer; font-weight: 700; background: var(--primary); color: white;
+            box-shadow: 0 5px 15px rgba(41, 128, 185, 0.3); transition: all 0.2s;
+            margin-top: 15px; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-reveal { background: var(--secondary); box-shadow: 0 5px 15px rgba(230, 126, 34, 0.3); } 
+        .btn-check { background: var(--secondary); width: 100%; justify-content: center;}
+
+        .nav-btn {
+            position: absolute; bottom: 30px; right: 30px; background: white;
+            border: 2px solid #bdc3c7; color: #7f8c8d; font-size: 1rem;
+            padding: 10px 20px; cursor: pointer; border-radius: 50px;
+        }
+        .nav-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .tts-icon {
+            width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.05);
+            display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+            font-size: 1rem; color: var(--primary); transition: 0.2s; flex-shrink: 0; margin-left: 8px; vertical-align: middle;
+        }
+        .tts-icon:hover { transform: scale(1.15); background: var(--primary); color: white; }
+        .highlight-phrase { color: #e74c3c; font-weight: 900; }
+
+        @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+        @keyframes slideLeft { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .scene { padding: 20px 20px 80px 20px; }
+            .story-container { flex-direction: column; }
+            .img-display-area { flex: none; height: 30vh; min-height: 220px; }
+            .text-interaction-area { flex: 1; padding: 20px; }
+            .phrase-title { font-size: 2.5rem; }
+            .split-layout { flex-direction: column; gap: 20px; }
+            .split-left { flex: none; height: 250px; }
+            input.blank-input { width: 100px; }
+            .nav-btn { bottom: 20px; right: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <div class="scene active" id="scene-1">
+        <div class="story-container">
+            <div class="img-display-area">
+                <img src="wind up with01.jpg" class="img-blurred" alt="Blurred Background">
+                <img src="wind up with01.jpg" class="img-sharp" id="sharp-img" alt="Clear Scene" onerror="this.src='https://placehold.co/1024x559/2c3e50/ffffff?text=Image+Loading...'">
+            </div>
+
+            <div class="text-interaction-area">
+                <div id="q-box-1" class="question-box">
+                    Can you describe the picture? What is the boy thinking about?
+                    <div class="tts-icon" onclick="playAzureAudio('Can you describe the picture? What is the boy thinking about?')">🔊</div>
+                </div>
+                <div id="a-box-1" class="answer-box">
+                    The boy is smiling and dreaming about a huge, delicious chocolate cake. That is exactly what he wants to buy.
+                    <div class="tts-icon" onclick="playAzureAudio('The boy is smiling and dreaming about a huge, delicious chocolate cake. That is exactly what he wants to buy.')">🔊</div>
+                </div>
+
+                <div id="q-box-2" class="question-box">
+                    Where is he? What is he doing? What happens in the bakery?
+                    <div class="tts-icon" onclick="playAzureAudio('Where is he? What is he doing? What happens in the bakery?')">🔊</div>
+                </div>
+                <div id="a-box-2" class="answer-box">
+                    He goes to the bakery, but the baker has bad news. The sign says 'Sold Out.' There are no chocolate cakes left, only fruit cakes. The boy looks disappointed.
+                    <div class="tts-icon" onclick="playAzureAudio('He goes to the bakery, but the baker has bad news. The sign says Sold Out. There are no chocolate cakes left, only fruit cakes. The boy looks disappointed.')">🔊</div>
+                </div>
+
+                <div id="q-box-3" class="question-box">
+                    What did he buy? How does he feel? Did he get what he wanted?
+                    <div class="tts-icon" onclick="playAzureAudio('What did he buy? How does he feel? Did he get what he wanted?')">🔊</div>
+                </div>
+                <div id="a-box-3" class="answer-box">
+                    He didn't want a fruit cake, but he had no choice. He looks unhappy as he walks away. He <span class="highlight-phrase">wound up with</span> a fruit tart.
+                    <div class="tts-icon" onclick="playAzureAudio('He did not want a fruit cake, but he had no choice. He looks unhappy as he walks away. He wound up with a fruit tart.')">🔊</div>
+                </div>
+
+                <button class="btn" id="ctrl-btn" onclick="nextStoryStep()">👁️ Show Part 1 (1/3)</button>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-1" onclick="nextScene(2)">Next: Meaning →</button>
+    </div>
+
+    <div class="scene" id="scene-2">
+        <div class="def-layout">
+            <div class="phrase-title">
+                Wind up with
+                <div class="tts-icon" style="width:40px; height:40px; font-size:1.2rem;" onclick="playAzureAudio('Wind up with')">🔊</div>
+            </div>
+
+            <div class="def-box-large">
+                <b style="color:var(--text-main); display:block; margin-bottom:10px; font-size:1rem;">DEFINITION</b>
+                To end up with an unexpected and usually unpleasant situation/result.
+                <div class="tts-icon" onclick="playAzureAudio('To end up with an unexpected and usually unpleasant situation or result.')">🔊</div>
+            </div>
+
+            <div class="example-list">
+                <div class="example-card">
+                    <span>1. "He tried to fix the car himself but <b>wound up with</b> a bigger problem."</span>
+                    <div class="tts-icon" onclick="playAzureAudio('He tried to fix the car himself but wound up with a bigger problem.')">🔊</div>
+                </div>
+                <div class="example-card">
+                    <span>2. "We wanted a sunny beach holiday but <b>wound up with</b> rain all week."</span>
+                    <div class="tts-icon" onclick="playAzureAudio('We wanted a sunny beach holiday but wound up with rain all week.')">🔊</div>
+                </div>
+                <div class="example-card">
+                    <span>3. "If you don't plan carefully, you might <b>wind up with</b> nothing."</span>
+                    <div class="tts-icon" onclick="playAzureAudio('If you do not plan carefully, you might wind up with nothing.')">🔊</div>
+                </div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="nextScene(3)">Next: Practice →</button>
+    </div>
+
+    <div class="scene" id="scene-3">
+        <div class="split-layout">
+            <div class="split-left">
+                <img src="wind up with02.jpg" class="exercise-img" alt="Exam Result Scene" onerror="this.src='https://placehold.co/600x800/ecf0f1/2c3e50?text=Exam+Scene'">
+            </div>
+            <div class="split-right">
+                <h2 style="color:var(--primary); font-size:1.8rem; margin-bottom: 20px;">What happened to him?</h2>
+                
+                <div id="q-list">
+                    <div class="q-item" id="pq-1">
+                        1. How do you describe this picture?
+                        <div class="tts-icon" style="float:right" onclick="playAzureAudio('How do you describe this picture?')">🔊</div>
+                    </div>
+                    <div class="q-item" id="pq-2">
+                        2. What did he do for his exam?
+                        <div class="tts-icon" style="float:right" onclick="playAzureAudio('What did he do for his exam?')">🔊</div>
+                    </div>
+                    <div class="q-item" id="pq-3">
+                        3. What was the result?
+                        <div class="tts-icon" style="float:right" onclick="playAzureAudio('What was the result?')">🔊</div>
+                    </div>
+                    <div class="q-item" id="pq-4">
+                        4. Did he want the result?
+                        <div class="tts-icon" style="float:right" onclick="playAzureAudio('Did he want the result?')">🔊</div>
+                    </div>
+                </div>
+
+                <div class="fill-blank-area" id="fill-blank">
+                    He tried 
+                    <input type="text" id="ans-1" class="blank-input" autocomplete="off" placeholder="?"> 
+                    but he 
+                    <input type="text" id="ans-2" class="blank-input" style="width:160px;" autocomplete="off" placeholder="?"> 
+                    a failure.
+                    <br><br>
+                    <button class="btn btn-check" onclick="checkFillIn()">Check Answer</button>
+                    <div id="feedback" style="margin-top:10px; font-weight:bold; min-height:24px; text-align:center;"></div>
+                </div>
+
+                <button class="btn" id="practice-btn" onclick="nextPracticeStep()">Show Question 1</button>
+            </div>
+        </div>
+        <button class="btn nav-btn" id="nav-3" style="display:none;" onclick="location.reload()">↺ Review Lesson</button>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration (使用官方 Speech SDK，兼容 iOS)
+       ========================================================== */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+
+        if (synthesizer) {
+            synthesizer.close();
+            synthesizer = undefined;
+        }
+
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        
+        synthesizer.speakTextAsync(
+            text,
+            result => {
+                synthesizer.close();
+                synthesizer = undefined;
+            },
+            err => {
+                console.error(err);
+                synthesizer.close();
+                synthesizer = undefined;
+            }
+        );
+    }
+
+    // --- Global Nav ---
+    function nextScene(id) {
+        document.querySelectorAll('.scene').forEach(s => {
+            s.classList.remove('active');
+            s.style.opacity = 0;
+            setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500);
+        });
+        const next = document.getElementById('scene-' + id);
+        next.style.display = 'flex';
+        void next.offsetWidth; // Force reflow
+        next.classList.add('active');
+        next.style.opacity = 1;
+    }
+
+    // --- Scene 1: Story Logic ---
+    let storyStep = 0;
+    const img = document.getElementById('sharp-img');
+    const btn = document.getElementById('ctrl-btn');
+    const nav1 = document.getElementById('nav-1');
+    const q1 = document.getElementById('q-box-1'), a1 = document.getElementById('a-box-1');
+    const q2 = document.getElementById('q-box-2'), a2 = document.getElementById('a-box-2');
+    const q3 = document.getElementById('q-box-3'), a3 = document.getElementById('a-box-3');
+
+    function nextStoryStep() {
+        storyStep++;
+        if (storyStep === 1) { // 1/3
+            img.style.clipPath = 'inset(0 66% 0 0)'; 
+            q1.style.display = 'block';
+            playAzureAudio("Can you describe the picture?");
+            btn.innerText = 'Reveal Description';
+            btn.classList.add('btn-reveal');
+        } else if (storyStep === 2) {
+            a1.style.display = 'block';
+            playAzureAudio("The boy is smiling and dreaming about a huge, delicious chocolate cake.");
+            btn.innerText = 'Show Part 2 (2/3)';
+            btn.classList.remove('btn-reveal');
+        } else if (storyStep === 3) { // 2/3
+            img.style.clipPath = 'inset(0 33% 0 0)';
+            q1.style.display = 'none'; a1.style.display = 'none'; 
+            q2.style.display = 'block';
+            playAzureAudio("Where is he? What happens in the bakery?");
+            btn.innerText = 'Reveal Description';
+            btn.classList.add('btn-reveal');
+        } else if (storyStep === 4) {
+            a2.style.display = 'block';
+            playAzureAudio("The sign says Sold Out. There are no chocolate cakes left.");
+            btn.innerText = 'Show Ending (All)';
+            btn.classList.remove('btn-reveal');
+        } else if (storyStep === 5) { // All
+            img.style.clipPath = 'inset(0 0 0 0)';
+            q2.style.display = 'none'; a2.style.display = 'none';
+            q3.style.display = 'block';
+            playAzureAudio("What did he buy? How does he feel?");
+            btn.innerText = 'Reveal Outcome';
+            btn.classList.add('btn-reveal');
+        } else if (storyStep === 6) {
+            a3.style.display = 'block';
+            playAzureAudio("He wound up with a fruit tart.");
+            btn.style.display = 'none';
+            nav1.style.display = 'block';
+        }
+    }
+
+    // --- Scene 3: Practice Logic ---
+    let practiceStep = 0;
+    const pBtn = document.getElementById('practice-btn');
+
+    function nextPracticeStep() {
+        practiceStep++;
+        if (practiceStep <= 4) {
+            document.getElementById('pq-' + practiceStep).style.display = 'block';
+            pBtn.innerText = 'Show Question ' + (practiceStep + 1);
+        }
+        if (practiceStep === 4) pBtn.innerText = 'Show Fill-in-Blank';
+        if (practiceStep === 5) {
+            document.getElementById('fill-blank').style.display = 'block';
+            pBtn.style.display = 'none';
+            document.getElementById('fill-blank').scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    function checkFillIn() {
+        const i1 = document.getElementById('ans-1');
+        const i2 = document.getElementById('ans-2');
+        const fb = document.getElementById('feedback');
+        
+        let correct = true;
+        if (i1.value.trim().toLowerCase() === 'so hard') { i1.classList.add('correct'); i1.classList.remove('wrong'); }
+        else { i1.classList.add('wrong'); i1.classList.remove('correct'); correct = false; }
+
+        if (i2.value.trim().toLowerCase() === 'wound up with') { i2.classList.add('correct'); i2.classList.remove('wrong'); }
+        else { i2.classList.add('wrong'); i2.classList.remove('correct'); correct = false; }
+
+        if (correct) {
+            fb.innerText = "Correct! Well done!";
+            fb.style.color = "#27ae60";
+            playAzureAudio("He tried so hard but he wound up with a failure.");
+            document.getElementById('nav-3').style.display = 'block';
+        } else {
+            fb.innerText = "Try again.";
+            fb.style.color = "#c0392b";
+            playAzureAudio("Try again.");
+        }
+    }
+</script>
+
+</body>
+</html>

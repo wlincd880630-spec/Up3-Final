@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Phrase Study: Open up Horizons</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Sunrise & Growth */
+            --primary: #e67e22;   /* Sunrise Orange */
+            --primary-light: #f39c12;
+            --secondary: #2980b9; /* Sky Blue */
+            --accent: #f1c40f;    /* Sun Yellow */
+            --bg-body: #2c3e50;   /* Dark Horizon Background */
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0; padding: 0; background-color: var(--bg-body);
+            background-image: linear-gradient(to top, #2c3e50 0%, #4ca1af 100%);
+            font-family: 'Nunito', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%; max-width: 1200px; min-height: 650px; height: 85vh;
+            background: var(--card-bg); border-radius: var(--radius);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3); position: relative; overflow: hidden;
+            display: flex; flex-direction: column; transition: all 0.3s ease;
+        }
+
+        .scene { flex: 1; display: none; flex-direction: column; padding: 30px; opacity: 0; transition: opacity 0.5s ease; overflow-y: auto; }
+        .scene.active { display: flex; opacity: 1; }
+
+        /* Scene 1: Mapping */
+        .mapping-layout { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; background: linear-gradient(135deg, #fff 0%, #fffbf0 100%); }
+        .sound-container { display: flex; gap: 8px; margin: 40px 0; justify-content: center; flex-wrap: wrap; }
+        .sound-input { width: 55px; height: 75px; font-size: 2rem; text-align: center; border: 3px solid #dfe6e9; border-radius: 12px; outline: none; transition: 0.3s; color: var(--text-main); font-weight: bold; background: white; }
+        .sound-input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(230, 126, 34, 0.2); transform: translateY(-3px); }
+        .sound-input.correct { background: #fff3e0; border-color: var(--primary); color: var(--primary); }
+        .sound-input.wrong { border-color: #c0392b; background: #fadbd8; }
+
+        /* Scene 2: Literal */
+        .literal-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
+        .literal-img { width: 100%; max-width: 600px; height: auto; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .def-box { background: #fdfefe; border-left: 8px solid var(--secondary); padding: 25px 40px; border-radius: 12px; font-size: 1.4rem; box-shadow: 0 8px 20px rgba(0,0,0,0.05); max-width: 800px; width: 90%; line-height: 1.6; }
+
+        /* Scene 3: Story */
+        .story-container { display: flex; flex-direction: column; height: 100%; gap: 20px; }
+        .img-display-area { flex: 1.5; background: #34495e; border-radius: 16px; position: relative; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; justify-content: center; align-items: center; }
+        .img-layer { width: 100%; height: 100%; object-fit: contain; position: absolute; opacity: 0; transition: opacity 0.8s ease, transform 0.8s ease; transform: scale(1.05); }
+        .img-layer.visible { opacity: 1; transform: scale(1); }
+        .text-interaction-area { flex: 1; background: #fffbf0; border-radius: 16px; padding: 20px 30px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border-top: 5px solid var(--primary); }
+        .question-box { font-size: 1.5rem; color: var(--primary); font-weight: 800; margin-bottom: 15px; display: none; animation: slideUp 0.5s forwards; }
+        .answer-box { font-size: 1.2rem; color: var(--text-main); line-height: 1.6; display: none; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); animation: fadeIn 0.5s forwards; width: 90%; text-align: left; border-left: 4px solid var(--secondary); }
+
+        /* Scene 4 & 5 */
+        .concept-layout { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; }
+        .logic-card { background: white; border-left: 8px solid var(--secondary); padding: 25px 30px; border-radius: 12px; margin-bottom: 20px; width: 80%; max-width: 700px; text-align: left; font-size: 1.3rem; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
+        .context-list { display: flex; flex-direction: column; gap: 15px; width: 90%; max-width: 800px; margin: 0 auto; }
+        .context-item { display: flex; align-items: center; background: white; padding: 20px; border-radius: 16px; border: 1px solid #eee; font-size: 1.2rem; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .icon-lg { font-size: 2.5rem; margin-right: 20px; min-width: 50px; text-align: center; }
+        .highlight { color: var(--primary); font-weight: bold; }
+
+        /* Scene 6 */
+        .practice-layout { display: flex; height: 100%; gap: 30px; }
+        .practice-left { flex: 1; background: #34495e; border-radius: 16px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .practice-right { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 10px; }
+        .fill-blank-area { background: #fff; padding: 30px; border-radius: 16px; font-size: 1.5rem; border: 2px solid #eee; line-height: 2.2; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        input.blank-input { border: none; border-bottom: 3px solid #bdc3c7; background: transparent; font-size: 1.5rem; width: 140px; text-align: center; color: var(--primary); font-weight: bold; outline: none; transition: 0.3s; }
+        
+        /* Controls */
+        .btn { padding: 12px 35px; font-size: 1.1rem; border: none; border-radius: 50px; cursor: pointer; font-weight: 700; background: var(--primary); color: white; box-shadow: 0 5px 15px rgba(230, 126, 34, 0.4); transition: all 0.2s; margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(230, 126, 34, 0.5); }
+        .btn-reveal { background: var(--secondary); box-shadow: 0 5px 15px rgba(41, 128, 185, 0.4); }
+        .nav-btn { position: absolute; bottom: 30px; right: 30px; background: white; border: 2px solid #bdc3c7; color: #7f8c8d; font-size: 1rem; padding: 10px 20px; cursor: pointer; border-radius: 50px; transition: 0.2s; }
+        .nav-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .tts-icon { width: 34px; height: 34px; border-radius: 50%; background: rgba(0,0,0,0.05); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; color: var(--primary); transition: 0.2s; margin-left: 8px; vertical-align: middle; }
+        .tts-icon:hover { transform: scale(1.15); background: var(--primary); color: white; }
+
+        @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .scene { padding: 20px; }
+            .sound-input { width: 40px; height: 60px; font-size: 1.5rem; }
+            .literal-img { max-height: 200px; }
+            .story-container { flex-direction: column; }
+            .img-display-area { flex: none; height: 30vh; }
+            .logic-card, .context-list { width: 95%; }
+            .practice-layout { flex-direction: column; }
+            .practice-left { flex: none; height: 200px; }
+            .nav-btn { bottom: 20px; right: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div class="scene active" id="scene-1">
+        <div class="mapping-layout">
+            <h2 style="color:var(--primary); font-size:2.5rem; margin-bottom: 10px; text-align:center;">Step 1: Listen & Spell</h2>
+            <button class="btn" onclick="playAzureAudio('Horizon')">🔊 Listen to the word</button>
+            <div class="sound-container">
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="h"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="o"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="r"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="i"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="z"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="o"></div>
+                <div class="sound-box-wrapper"><input type="text" class="sound-input" maxlength="1" data-ans="n"></div>
+            </div>
+            <button class="btn" onclick="checkSpelling()">Check Spelling</button>
+            <p id="spelling-feedback" style="height:20px; font-weight:bold; font-size:1.2rem; margin-top:20px; color:var(--secondary); text-align:center;"></p>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-1" onclick="nextScene(2)">Next: Literal Meaning →</button>
+    </div>
+
+    <div class="scene" id="scene-2">
+        <div class="literal-container">
+            <h2 style="color:var(--secondary); font-size:2.5rem; margin-bottom:20px; text-align:center;">What is a Horizon?</h2>
+            <img src="horizon.jpg" class="literal-img" alt="Horizon Line" onerror="this.src='https://placehold.co/600x300/e67e22/ffffff?text=Horizon+Image'">
+            <div class="def-box">
+                <b style="color:var(--secondary); display:block; margin-bottom:5px;">Horizon (noun):</b>
+                The line where the earth (or sea) meets the sky. It is the limit of what you can see.
+                <div class="tts-icon" onclick="playAzureAudio('The line where the earth meets the sky. It is the limit of what you can see.')">🔊</div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="nextScene(3)">Next: The Metaphor →</button>
+    </div>
+
+    <div class="scene" id="scene-3">
+        <div class="story-container">
+            <div class="img-display-area">
+                <img src="Horizon_Limit.jpg" class="img-layer visible" id="img-limit" alt="Limited View" onerror="this.src='https://placehold.co/800x600/34495e/ffffff?text=Limited+View'">
+                <img src="Horizon_Open.jpg" class="img-layer" id="img-open" alt="Open View" onerror="this.src='https://placehold.co/800x600/2980b9/ffffff?text=Open+Horizon'">
+            </div>
+            <div class="text-interaction-area">
+                <div id="s3-q1" class="question-box" style="display:block;">Look at this person. Can he see far? Why? <div class="tts-icon" onclick="playAzureAudio('Look at this person. Can he see far? Why?')">🔊</div></div>
+                <div id="s3-a1" class="answer-box">No. He is surrounded by walls. His world is small and his view is limited. <div class="tts-icon" onclick="playAzureAudio('No. He is surrounded by walls. His world is small and his view is limited.')">🔊</div></div>
+                <div id="s3-q2" class="question-box">Now look! He climbed to the top. What does he see now? <div class="tts-icon" onclick="playAzureAudio('Now look! He climbed to the top. What does he see now?')">🔊</div></div>
+                <div id="s3-a2" class="answer-box">He sees the ocean and the city. He has <b>opened up his horizons</b>! <div class="tts-icon" onclick="playAzureAudio('He sees the ocean and the city. He has opened up his horizons!')">🔊</div></div>
+                <button class="btn btn-reveal" id="s3-btn" onclick="storyNext()">👁️ Reveal Answer</button>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-3" onclick="nextScene(4)">Next: Concept →</button>
+    </div>
+
+    <div class="scene" id="scene-4">
+        <div class="concept-layout">
+            <h2 style="color:var(--primary); font-size:2.5rem; margin-bottom:30px; text-align:center;">Concept Breakdown</h2>
+            <div class="logic-card" style="animation: slideUp 0.5s forwards;">
+                <b style="color:var(--secondary)">1. Horizon (Metaphor):</b><br>
+                Your knowledge, experience, or what you know.
+                <div class="tts-icon" onclick="playAzureAudio('Your knowledge, experience, or what you know.')">🔊</div>
+            </div>
+            <div class="logic-card" style="animation: slideUp 0.5s forwards 0.2s;">
+                <b style="color:var(--primary)">2. Open up horizon:</b><br>
+                To push the view or limit further. To see new things and possibilites.
+                <div class="tts-icon" onclick="playAzureAudio('To push the view or limit further. To see new things and possibilites.')">🔊</div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="nextScene(5)">Next: Contexts →</button>
+    </div>
+
+    <div class="scene" id="scene-5">
+        <div class="concept-layout">
+            <h2 style="color:var(--secondary); font-size:2.5rem; margin-bottom:30px; text-align:center;">When to use it?</h2>
+            <div class="context-list">
+                <div class="context-item">
+                    <span class="icon-lg">✈️</span>
+                    <div>
+                        <b style="color:var(--primary)">Traveling:</b><br> 
+                        "Traveling to Japan <span class="highlight">opened up new horizons</span> for me."
+                        <div class="tts-icon" onclick="playAzureAudio('Traveling to Japan opened up new horizons for me.')">🔊</div>
+                    </div>
+                </div>
+                <div class="context-item">
+                    <span class="icon-lg">🗣️</span>
+                    <div>
+                        <b style="color:var(--secondary)">Learning:</b><br>
+                        "English <span class="highlight">opens up new horizons</span> for your career."
+                        <div class="tts-icon" onclick="playAzureAudio('English opens up new horizons for your career.')">🔊</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="nextScene(6)">Next: Practice →</button>
+    </div>
+
+    <div class="scene" id="scene-6">
+        <div class="practice-layout">
+            <div class="practice-left">
+                <img src="Horizon_Open.jpg" style="width:100%; height:100%; object-fit:contain;" alt="Success Scene" onerror="this.src='https://placehold.co/600x800/2980b9/ffffff?text=Success+Scene'">
+            </div>
+            <div class="practice-right">
+                <h2 style="color:var(--primary); font-size:2rem; margin-bottom: 20px;">Complete the sentence</h2>
+                <div class="fill-blank-area">
+                    Learning a new language helps me <br>
+                    <input type="text" id="ans-1" class="blank-input" placeholder="(verb)" autocomplete="off"> 
+                    new 
+                    <input type="text" id="ans-2" class="blank-input" placeholder="(noun)" autocomplete="off">.
+                    <br><br>
+                    <button class="btn btn-reveal" onclick="checkFillIn()">Check Answer</button>
+                    <div id="feedback" style="margin-top:10px; font-weight:bold; min-height:30px;"></div>
+                </div>
+            </div>
+        </div>
+        <button class="btn nav-btn" id="nav-6" style="display:none;" onclick="location.reload()">↺ Replay Lesson</button>
+    </div>
+</div>
+
+<script>
+    /* Azure TTS (Official SDK for iOS Compatibility) */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+        if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        synthesizer.speakTextAsync(text, result => { synthesizer.close(); synthesizer = undefined; }, err => { console.error(err); synthesizer.close(); synthesizer = undefined; });
+    }
+
+    /* Navigation */
+    function nextScene(id) {
+        document.querySelectorAll('.scene').forEach(s => { s.classList.remove('active'); s.style.opacity = 0; setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500); });
+        const next = document.getElementById('scene-' + id);
+        next.style.display = 'flex'; void next.offsetWidth; next.classList.add('active'); next.style.opacity = 1;
+    }
+
+    /* Logic */
+    const inputs = document.querySelectorAll('.sound-input');
+    inputs.forEach((input, idx) => { input.addEventListener('input', () => { if(input.value.length === input.maxLength && idx < inputs.length - 1) inputs[idx+1].focus(); }); });
+    function checkSpelling() {
+        let allCorrect = true;
+        inputs.forEach(input => { if(input.value.toLowerCase() === input.dataset.ans) { input.classList.add('correct'); input.classList.remove('wrong'); } else { input.classList.add('wrong'); allCorrect = false; } });
+        if(allCorrect) { document.getElementById('spelling-feedback').innerText = "Excellent! H-O-R-I-Z-O-N."; playAzureAudio("Horizon."); document.getElementById('nav-1').style.display = 'block'; }
+        else { document.getElementById('spelling-feedback').innerText = "Try again."; document.getElementById('spelling-feedback').style.color = "#c0392b"; playAzureAudio("Try again."); }
+    }
+
+    let s3Step = 0;
+    function storyNext() {
+        s3Step++;
+        const btn = document.getElementById('s3-btn');
+        if (s3Step === 1) { document.getElementById('s3-a1').style.display = 'block'; playAzureAudio("No. He is surrounded by walls. His world is small and his view is limited."); btn.innerText = 'Show Next Scene'; btn.style.background = 'var(--primary)'; }
+        else if (s3Step === 2) { document.getElementById('img-limit').classList.remove('visible'); document.getElementById('img-open').classList.add('visible'); document.getElementById('s3-q1').style.display = 'none'; document.getElementById('s3-a1').style.display = 'none'; document.getElementById('s3-q2').style.display = 'block'; playAzureAudio("Now look! He climbed to the top. What does he see now?"); btn.innerText = 'Reveal Outcome'; btn.style.background = 'var(--secondary)'; }
+        else if (s3Step === 3) { document.getElementById('s3-a2').style.display = 'block'; playAzureAudio("He sees the ocean and the city. He has opened up his horizons!"); btn.style.display = 'none'; document.getElementById('nav-3').style.display = 'block'; }
+    }
+
+    function checkFillIn() {
+        const i1 = document.getElementById('ans-1');
+        const i2 = document.getElementById('ans-2');
+        let correct = true;
+        if (i1.value.toLowerCase().includes('open')) { i1.classList.add('correct'); i1.classList.remove('wrong'); } else { i1.classList.add('wrong'); correct = false; }
+        if (i2.value.toLowerCase().includes('horizon')) { i2.classList.add('correct'); i2.classList.remove('wrong'); } else { i2.classList.add('wrong'); correct = false; }
+        if (correct) { document.getElementById('feedback').innerText = "Correct! Open up new horizons."; document.getElementById('feedback').style.color = "#27ae60"; playAzureAudio("Learning a new language helps me open up new horizons."); document.getElementById('nav-6').style.display = 'block'; }
+        else { document.getElementById('feedback').innerText = "Try again."; document.getElementById('feedback').style.color = "#c0392b"; playAzureAudio("Try again."); }
+    }
+</script>
+</body>
+</html>

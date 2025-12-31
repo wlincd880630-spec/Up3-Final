@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Page 8: Achievement & Spirit</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Gold & Glory */
+            --primary: #2c3e50;
+            --secondary: #f1c40f; 
+            --accent: #e67e22;    
+            --bg-body: #ecf0f1;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #2d3436;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(#bdc3c7 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%; max-width: 1200px; min-height: 650px; height: 85vh;
+            background: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop') no-repeat center center;
+            background-size: cover;
+            border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(44, 62, 80, 0.85); z-index: 0;
+        }
+
+        /* --- 导航栏 --- */
+        .nav-bar {
+            position: relative; z-index: 10;
+            height: 60px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px;
+        }
+        .lesson-title { font-weight: 900; color: white; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
+        .page-num { font-weight: bold; color: rgba(255,255,255,0.6); font-size: 0.9rem; }
+
+        /* --- 舞台系统 --- */
+        .stage {
+            position: absolute; top: 60px; left: 0; bottom: 80px; width: 100%;
+            display: none; flex-direction: column; align-items: center; 
+            justify-content: center; padding: 20px; box-sizing: border-box;
+            z-index: 10; opacity: 0; transition: opacity 0.8s ease;
+        }
+        .stage.active { display: flex; opacity: 1; }
+
+        /* --- 核心修复：防止内容重叠的滚动布局 --- */
+        .story-layout {
+            display: flex; width: 95%; max-width: 1100px; height: 100%;
+            background: var(--card-bg); border-radius: 20px; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+
+        .story-img-col { flex: 1.5; background: black; position: relative; overflow: hidden; }
+        .story-img { width: 100%; height: 100%; object-fit: cover; transition: transform 10s ease; }
+        .stage.active .story-img { transform: scale(1.05); }
+
+        /* 修复：内容超出时自动滚动，不再遮挡按钮 */
+        .story-content-col {
+            flex: 1; padding: 30px; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            border-left: 6px solid var(--accent); background: #fff;
+            overflow-y: auto; 
+        }
+
+        .narrative-text { font-size: 1.3rem; color: var(--primary); line-height: 1.5; font-weight: 600; margin-bottom: 20px; }
+
+        /* Fill-in-Blank */
+        .fill-blank-container {
+            background: #f8f9fa; padding: 20px; border-radius: 15px; border: 2px dashed #bdc3c7;
+            width: 90%; margin-bottom: 20px; font-size: 1.4rem; color: var(--primary); font-weight: 800;
+        }
+        input.blank-input {
+            border: none; border-bottom: 3px solid var(--accent); background: white;
+            font-size: 1.4rem; width: 120px; text-align: center; color: var(--accent);
+            font-weight: bold; outline: none; transition: 0.3s;
+        }
+        input.blank-input.correct { border-color: var(--secondary); color: var(--accent); }
+
+        /* --- SPIRIT GRID --- */
+        .spirit-card {
+            background: var(--card-bg); padding: 30px 40px; border-radius: 25px;
+            text-align: center; box-shadow: 0 25px 70px rgba(0,0,0,0.7);
+            width: 90%; max-width: 900px; display: flex; flex-direction: column; 
+            align-items: center; max-height: 90%; overflow-y: auto;
+        }
+
+        .q-title { font-size: 2rem; color: var(--primary); margin-bottom: 10px; font-weight: 900; }
+        .spirit-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin: 25px 0; width: 100%; }
+        .spirit-option {
+            background: white; border: 3px solid var(--primary); color: var(--primary);
+            padding: 10px 25px; font-size: 1.3rem; border-radius: 50px; cursor: pointer;
+            font-weight: bold; transition: 0.2s;
+        }
+        .spirit-option.selected { background: var(--secondary); border-color: var(--secondary); color: var(--primary); }
+
+        /* Listen Box */
+        .listen-box {
+            font-size: 1.3rem; font-weight: 800; color: var(--primary); margin: 15px 0;
+            background: #f1f2f6; padding: 15px; border-radius: 12px; width: 100%;
+            display: none; animation: fadeIn 0.5s forwards;
+        }
+        .listen-box.visible { display: block; }
+
+        /* --- 按钮组件 --- */
+        .control-bar {
+            position: relative; z-index: 10; height: 80px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px;
+        }
+        .btn {
+            padding: 12px 35px; font-size: 1.1rem; border: none; border-radius: 50px;
+            cursor: pointer; background: var(--secondary); color: var(--primary);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-weight: bold; transition: 0.2s;
+        }
+        .btn:hover { transform: translateY(-3px); filter: brightness(1.1); }
+        .btn-check { background: var(--accent); color: white; }
+        .btn-nav {
+            background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.8); font-size: 1rem; padding: 10px 25px;
+            cursor: pointer; border-radius: 50px; transition: 0.2s;
+        }
+        .btn-nav:hover { background: white; color: var(--primary); }
+
+        .tts-icon {
+            cursor: pointer; width: 34px; height: 34px; border-radius: 50%;
+            background: rgba(0,0,0,0.05); display: inline-flex;
+            align-items: center; justify-content: center;
+            font-size: 1.1rem; color: var(--primary); transition: 0.2s;
+            margin-left: 10px; vertical-align: middle;
+        }
+        .tts-icon:hover { background: var(--primary); color: white; transform: scale(1.1); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; }
+            .story-layout { flex-direction: column; height: auto; max-height: 90%; }
+            .story-img-col { height: 180px; flex: none; }
+            .q-title { font-size: 1.5rem; }
+            .spirit-option { font-size: 1rem; padding: 8px 15px; }
+            .btn { padding: 10px 20px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body onload="playIntro()">
+
+<div id="app-container">
+    <div class="overlay"></div>
+    
+    <div class="nav-bar">
+        <div class="lesson-title">Achievement & Spirit</div>
+        <div class="page-num">8 / 8</div>
+    </div>
+
+    <div class="stage active" id="stage-1">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_15.jpg" class="story-img" alt="Success" onerror="this.src='https://placehold.co/800x600/2c3e50/ffffff?text=Success+Scene'">
+            </div>
+            <div class="story-content-col">
+                <button class="btn" style="background:white; color:var(--accent); border:2px solid var(--accent); margin-bottom:20px;" onclick="playAzureAudio('National Geographic asked him to choose the Adventurers of the Year. In his dream, the six-year-old boy inside him smiled.')">
+                    🔊 Listen to Story
+                </button>
+                <div class="narrative-text">
+                    "National Geographic asked him to choose the Adventurers of the Year. In his dream, the six-year-old boy inside him smiled."
+                </div>
+                <button class="btn" onclick="nextStage(2)">Next Scene ➡️</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-2">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_16.jpg" class="story-img" alt="Feat" onerror="this.src='https://placehold.co/800x600/e67e22/ffffff?text=Achievement+Scene'">
+            </div>
+            <div class="story-content-col">
+                <div class="narrative-text">
+                    "He chose 10 stories. In every story, there is an achievement by one of the adventurers."
+                </div>
+                <div class="fill-blank-container">
+                    What is the synonym for "achievement"?<br><br>
+                    Answer: <input type="text" id="ans-feat" class="blank-input" placeholder="f..." autocomplete="off">
+                </div>
+                <button class="btn btn-check" id="check-feat" onclick="checkFeat()">Check Answer</button>
+                <button class="btn" style="background:#7f8c8d; display:none; margin-top:15px;" id="next-s2" onclick="nextStage(3)">Next Scene ➡️</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-3">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_17.jpg" class="story-img" alt="Spirit" onerror="this.src='https://placehold.co/800x600/9b59b6/ffffff?text=Heroes+Scene'">
+            </div>
+            <div class="story-content-col">
+                <div class="narrative-text">"It would be easy to put these people on a pedestal."</div>
+                <button class="btn" style="background:white; color:var(--primary); border:1px solid #eee; margin-bottom:20px;" onclick="playAzureAudio('They are heroes because of the spirit in their stories.')">
+                    🔊 Listen to Sentence
+                </button>
+                <div class="listen-box" id="reveal-text">
+                    "They are <span style="color:var(--accent)">heroes</span> because of the <span style="color:var(--accent)">spirit</span> in their stories."
+                </div>
+                <button class="btn" id="btn-show-spirit" onclick="revealSpirit()">Show Text</button>
+                <button class="btn" style="background:var(--primary); color:white; display:none;" id="btn-to-s4" onclick="nextStage(4)">Final Task ➡️</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-4">
+        <div class="spirit-card">
+            <div class="q-title">
+                What spirit do those adventurers have?
+                <div class="tts-icon" onclick="playAzureAudio('What spirit do those adventurers have? Select the traits reflecting their spirit.')">🔊</div>
+            </div>
+            <p style="color:#7f8c8d; font-weight:bold;">(Select all that apply)</p>
+            <div class="spirit-grid">
+                <div class="spirit-option" onclick="toggleSpirit(this)">Grit</div>
+                <div class="spirit-option" onclick="toggleSpirit(this)">Passion</div>
+                <div class="spirit-option" onclick="toggleSpirit(this)">Love</div>
+                <div class="spirit-option" onclick="toggleSpirit(this)">Kindness</div>
+                <div class="spirit-option" onclick="toggleSpirit(this)">Creativity</div>
+            </div>
+            <button class="btn btn-check" onclick="finishLesson()">Confirm & Finish 🎉</button>
+        </div>
+    </div>
+
+    <div class="control-bar">
+        <button class="btn-nav" onclick="location.href='7.html'">⬅️ Prev</button>
+        <button class="btn-nav" onclick="location.href='index.html'">🏠 Home</button>
+    </div>
+
+</div>
+
+<script>
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+        if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        synthesizer.speakTextAsync(text, result => { synthesizer.close(); synthesizer = undefined; });
+    }
+
+    function playIntro() { setTimeout(() => playAzureAudio("National Geographic asked him to choose the Adventurers of the Year. The boy inside him smiled."), 1000); }
+
+    function nextStage(id) {
+        document.querySelectorAll('.stage').forEach(s => { s.classList.remove('active'); s.style.opacity = 0; setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500); });
+        const next = document.getElementById('stage-' + id);
+        next.style.display = 'flex'; setTimeout(() => { next.classList.add('active'); next.style.opacity = 1; }, 50);
+    }
+
+    function checkFeat() {
+        const input = document.getElementById('ans-feat');
+        if (input.value.trim().toLowerCase() === 'feat') {
+            input.classList.add('correct');
+            playAzureAudio("Correct! A feat is a synonym for achievement.");
+            document.getElementById('check-feat').style.display = 'none';
+            document.getElementById('next-s2').style.display = 'inline-block';
+        } else {
+            input.classList.add('wrong');
+            playAzureAudio("Try again.");
+        }
+    }
+
+    function revealSpirit() {
+        document.getElementById('reveal-text').classList.add('visible');
+        document.getElementById('btn-show-spirit').style.display = 'none';
+        document.getElementById('btn-to-s4').style.display = 'inline-flex';
+        playAzureAudio("They are heroes because of the spirit in their stories.");
+    }
+
+    function toggleSpirit(btn) {
+        btn.classList.toggle('selected');
+        if(btn.classList.contains('selected')) playAzureAudio(btn.innerText);
+    }
+
+    function finishLesson() {
+        const selected = document.querySelectorAll('.spirit-option.selected');
+        if(selected.length === 0) {
+            playAzureAudio("Please select the qualities first.");
+        } else {
+            playAzureAudio("Excellent! You have finished the story of Fitz Cahall. See you next time!");
+            alert("Congratulations! Lesson Completed! 🎉");
+        }
+    }
+</script>
+</body>
+</html>

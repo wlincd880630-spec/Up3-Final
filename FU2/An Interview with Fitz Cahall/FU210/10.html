@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Study: Apology</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Sincere (Purple), Healing (Teal), Bold (Pink) */
+            --primary: #6c5ce7;   /* Sincere Purple */
+            --secondary: #00b894; /* Healing Teal */
+            --accent: #e84393;    /* Bold Pink */
+            --bg-body: #dfe6e9;
+            --card-bg: #ffffff;
+            --text-main: #2d3436;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-body);
+            background-image: linear-gradient(135deg, #dfe6e9 0%, #b2bec3 100%);
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- 主容器 --- */
+        #app-container {
+            width: 95%;
+            max-width: 1200px;
+            min-height: 650px;
+            height: 85vh;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        /* 场景通用样式 */
+        .scene {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            padding: 30px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            overflow-y: auto;
+        }
+        .scene.active { display: flex; opacity: 1; }
+
+        /* ---- SCENE 1: APOLOGY (Spelling) ---- */
+        .spelling-layout {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            background: linear-gradient(135deg, #fdfbfd 0%, #f1f2f6 100%);
+        }
+
+        .tts-btn-large {
+            background: white;
+            border: 3px solid var(--primary);
+            color: var(--primary);
+            font-size: 1.4rem;
+            padding: 12px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 800;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(108, 92, 231, 0.2);
+        }
+        .tts-btn-large:hover { transform: translateY(-3px); background: var(--primary); color: white; }
+
+        .letter-container {
+            display: flex;
+            gap: 8px;
+            height: 80px;
+            margin-bottom: 30px;
+            flex-wrap: wrap; 
+            justify-content: center;
+        }
+
+        .letter-box {
+            width: 60px;
+            height: 80px;
+            background: #a29bfe;
+            color: white;
+            border-radius: 12px;
+            font-size: 2.5rem;
+            font-weight: 800;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 5px 0 #6c5ce7;
+        }
+        .letter-box.show { opacity: 1; transform: translateY(0); }
+
+        .def-area {
+            width: 90%;
+            max-width: 700px;
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            display: none;
+            animation: slideUp 0.5s forwards;
+            text-align: left;
+            border-left: 6px solid var(--primary);
+        }
+
+        .def-title { color: var(--primary); font-size: 1.6rem; margin-bottom: 10px; font-weight: 900; }
+        
+        .example-line { 
+            margin: 12px 0; font-size: 1.2rem; color: #555; 
+            border-bottom: 1px dashed #eee; padding-bottom: 8px; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        /* ---- SCENE 2: PHRASE & VIDEO ---- */
+        .media-layout {
+            display: flex;
+            height: 100%;
+            gap: 30px;
+        }
+        .media-left {
+            flex: 1.5;
+            background: #000;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        
+        .video-player {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: black;
+        }
+
+        .media-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 20px;
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .phrase-box {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--secondary); /* Teal */
+            margin-bottom: 10px;
+            line-height: 1.2;
+        }
+
+        .linking-box {
+            background: #e0f2f1;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            display: none; 
+            animation: fadeIn 0.5s forwards;
+            border: 2px solid var(--secondary);
+        }
+        .link-mark { color: #d63031; font-weight: bold; }
+
+        /* ---- SCENE 3: UNAPOLOGETICALLY ---- */
+        .word-layout {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            background: #fff0f6; /* Pink Tint */
+        }
+
+        .big-word {
+            font-size: 3rem;
+            color: var(--accent);
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.05);
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        .definition-card {
+            background: white;
+            padding: 25px 40px;
+            border-radius: 16px;
+            border-left: 8px solid var(--accent);
+            font-size: 1.3rem;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(232, 67, 147, 0.1);
+            text-align: center;
+            max-width: 800px;
+        }
+
+        .sentence-card {
+            width: 90%;
+            max-width: 700px;
+            background: white;
+            margin-bottom: 15px;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            text-align: left;
+            transition: 0.2s;
+            border: 1px solid #ffeef0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .sentence-card:hover { transform: translateX(5px); border-color: var(--accent); }
+        .cn-trans { color: #999; font-size: 0.9rem; margin-top: 5px; display: block; font-weight: normal; }
+
+        /* Controls */
+        .btn {
+            padding: 12px 35px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 700;
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);
+            transition: all 0.2s;
+            margin-top: 20px;
+            display: inline-flex;
+            align-items: center; gap: 8px;
+        }
+        .btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        .btn-secondary { background: var(--secondary); box-shadow: 0 5px 15px rgba(0, 184, 148, 0.3); }
+        
+        .btn-video {
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            background: transparent;
+            border: 1px solid white;
+            color: white;
+            cursor: pointer;
+            border-radius: 20px;
+            transition: 0.2s;
+        }
+        .btn-video:hover { background: white; color: black; }
+
+        .nav-btn {
+            position: absolute; bottom: 30px; right: 30px;
+            background: transparent; border: 2px solid #b2bec3;
+            color: #636e72; font-size: 1rem; padding: 10px 20px;
+            cursor: pointer; border-radius: 50px; transition: 0.2s;
+        }
+        .nav-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .tts-icon { 
+            cursor: pointer; width: 32px; height: 32px; background: rgba(0,0,0,0.05);
+            border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+            font-size: 1rem; color: var(--primary); transition: 0.2s; margin-left: 10px;
+            flex-shrink: 0;
+        }
+        .tts-icon:hover { transform: scale(1.1); background: var(--primary); color: white; }
+
+        @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .scene { padding: 20px 20px 80px 20px; }
+            .letter-box { width: 45px; height: 65px; font-size: 2rem; }
+            .def-area { width: 95%; padding: 15px; }
+            .example-line { flex-wrap: wrap; }
+            .media-layout { flex-direction: column; gap: 15px; }
+            .media-left { flex: none; height: 35vh; min-height: 250px; }
+            .phrase-box { font-size: 1.8rem; }
+            .linking-box { font-size: 1.2rem; }
+            .big-word { font-size: 2.2rem; }
+            .definition-card { padding: 15px; font-size: 1.1rem; }
+            .sentence-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .sentence-card .tts-icon { align-self: flex-end; margin-top: -30px; } 
+            .nav-btn { bottom: 20px; right: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <div class="scene active" id="scene-1">
+        <div class="spelling-layout">
+            <button class="tts-btn-large" onclick="playAzureAudio('Apology')">
+                <span style="font-size:1.5rem">🔊</span> Listen
+            </button>
+
+            <div class="letter-container" id="letter-row"></div>
+
+            <button class="btn" id="reveal-btn" onclick="revealLetter()">Reveal Letter (1/7)</button>
+
+            <div class="def-area" id="def-area">
+                <div class="def-title">Apology (n.) <span style="font-size:1rem; font-weight:normal; opacity:0.7;">(道歉)</span></div>
+                <div style="margin-bottom:15px; font-size:1.1rem; color:#555;">A statement saying that you are sorry for having done something wrong.</div>
+                
+                <div class="example-line">
+                    <span>"I owe you an <b>apology</b>."</span>
+                    <div class="tts-icon" onclick="playAzureAudio('I owe you an apology.')">🔊</div>
+                </div>
+                <div class="example-line">
+                    <span>"Please accept my sincere <b>apologies</b>."</span>
+                    <div class="tts-icon" onclick="playAzureAudio('Please accept my sincere apologies.')">🔊</div>
+                </div>
+                <div class="example-line">
+                    <span>"He made a public <b>apology</b>."</span>
+                    <div class="tts-icon" onclick="playAzureAudio('He made a public apology.')">🔊</div>
+                </div>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-1" onclick="nextScene(2)">Next: Phrase →</button>
+    </div>
+
+    <div class="scene" id="scene-2">
+        <div class="media-layout">
+            <div class="media-left">
+                <video id="video-player" class="video-player" src="owe you an apology/1.mp4" playsinline poster="https://placehold.co/800x450/000000/FFFFFF?text=Video+Loading..."></video>
+                
+                <div class="video-controls">
+                    <button class="btn-video" onclick="playVideo()">▶ / ⏸</button>
+                    <button class="btn-video" id="next-clip-btn" onclick="nextClip()">Next (1/12) ⏭</button>
+                </div>
+                
+                <div style="position:absolute; top:10px; left:15px; color:rgba(255,255,255,0.6); font-size:0.9rem;">
+                    Playing: <span id="clip-name">1.mp4</span>
+                </div>
+            </div>
+
+            <div class="media-right">
+                <div class="phrase-box">
+                    "I owe you an apology."
+                    <div class="tts-icon" style="color:var(--secondary); width:40px; height:40px;" onclick="playAzureAudio('I owe you an apology.')">🔊</div>
+                </div>
+                <div style="font-size:1.2rem; color:#636e72; margin-bottom:20px;">
+                    Meaning: I need to say sorry to you. <br>(我欠你一个道歉)
+                </div>
+
+                <button class="btn btn-secondary" onclick="showLinking()">Show Pronunciation Tip</button>
+
+                <div class="linking-box" id="linking-area">
+                    owe you <span class="link-mark">an ‿ apology</span>
+                    <div style="font-size:1rem; color:#666; margin-top:10px; font-family:'Nunito', sans-serif;">
+                        Link the <b>'n'</b> to the <b>'a'</b>.
+                        <br>(Sounds like: na-pology)
+                    </div>
+                    <button class="btn btn-secondary" style="margin-top:10px; padding:8px 20px; font-size:1rem;" onclick="playAzureAudio('an apology')">🔊 Listen</button>
+                </div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="nextScene(3)">Next: Unapologetically →</button>
+    </div>
+
+    <div class="scene" id="scene-3">
+        <div class="word-layout">
+            <div class="big-word">
+                Unapologetically
+                <div class="tts-icon" style="color:var(--accent); width:50px; height:50px; font-size:1.5rem;" onclick="playAzureAudio('Unapologetically')">🔊</div>
+            </div>
+
+            <div class="definition-card">
+                <b>Definition:</b> Not feeling or showing regret or shame.
+                <br><span style="color:#888; font-size:1rem; display:block; margin-top:5px;">(理直气壮地；毫不抱歉地；真实做自己地)</span>
+            </div>
+
+            <div class="sentence-card">
+                <div>
+                    <div>"She lives her life <b>unapologetically</b>."</div>
+                    <span class="cn-trans">她毫无顾忌地过着自己的生活。(活出真我)</span>
+                </div>
+                <div class="tts-icon" style="color:var(--accent)" onclick="playAzureAudio('She lives her life unapologetically.')">🔊</div>
+            </div>
+
+            <div class="sentence-card" style="border-left: 5px solid var(--accent);">
+                <div>
+                    <div>"You should <b>do it unapologetically</b>."</div>
+                    <span class="cn-trans">你应该理直气壮地去做这件事。</span>
+                </div>
+                <div class="tts-icon" style="color:var(--accent)" onclick="playAzureAudio('You should do it unapologetically.')">🔊</div>
+            </div>
+
+            <div class="sentence-card" style="border-left: 5px solid var(--accent);">
+                <div>
+                    <div>"Be <b>unapologetically yourself</b>."</div>
+                    <span class="cn-trans">勇敢地做真实的自己。</span>
+                </div>
+                <div class="tts-icon" style="color:var(--accent)" onclick="playAzureAudio('Be unapologetically yourself.')">🔊</div>
+            </div>
+        </div>
+        <button class="btn nav-btn" onclick="location.reload()">↺ Replay Lesson</button>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration (使用官方 Speech SDK，兼容 iOS)
+       ========================================================== */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+
+        // 如果已有合成器在运行，先关闭
+        if (synthesizer) {
+            synthesizer.close();
+            synthesizer = undefined;
+        }
+
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        
+        synthesizer.speakTextAsync(
+            text,
+            result => {
+                synthesizer.close();
+                synthesizer = undefined;
+            },
+            err => {
+                console.error(err);
+                synthesizer.close();
+                synthesizer = undefined;
+            }
+        );
+    }
+
+    // --- Global Nav ---
+    function nextScene(id) {
+        document.querySelectorAll('.scene').forEach(s => {
+            s.classList.remove('active');
+            s.style.opacity = 0;
+            setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500);
+        });
+        const next = document.getElementById('scene-' + id);
+        next.style.display = 'flex';
+        // Auto play video if scene 2
+        setTimeout(() => {
+            next.classList.add('active');
+            next.style.opacity = 1;
+            if(id === 2) {
+                const p = document.getElementById('video-player');
+                p.play().catch(e => console.log("Auto-play blocked"));
+            }
+        }, 50);
+    }
+
+    // --- Scene 1: Spelling Logic ---
+    const letters = ['a', 'p', 'o', 'l', 'o', 'g', 'y'];
+    let letterIndex = 0;
+
+    window.onload = () => {
+        const container = document.getElementById('letter-row');
+        letters.forEach(l => {
+            const div = document.createElement('div');
+            div.className = 'letter-box';
+            div.innerText = l;
+            container.appendChild(div);
+        });
+        
+        // Auto-play next clip logic binding
+        const player = document.getElementById('video-player');
+        player.onended = function() {
+            nextClip(); 
+        };
+        player.onerror = function() {
+            console.log("Video file not found. Please ensure files are in 'owe you an apology/' folder.");
+        };
+    };
+
+    function revealLetter() {
+        const boxes = document.querySelectorAll('.letter-box');
+        const btn = document.getElementById('reveal-btn');
+        const defArea = document.getElementById('def-area');
+        const nav = document.getElementById('nav-1');
+
+        if (letterIndex < letters.length) {
+            boxes[letterIndex].classList.add('show');
+            // playAzureAudio(letters[letterIndex]); // Optional
+            letterIndex++;
+            
+            if (letterIndex < letters.length) {
+                btn.innerText = `Reveal Letter (${letterIndex + 1}/7)`;
+            } else {
+                btn.innerText = "Show Definition & Examples";
+                btn.style.background = "var(--secondary)";
+            }
+        } else {
+            defArea.style.display = 'block';
+            playAzureAudio('Apology. A statement saying that you are sorry.');
+            btn.style.display = 'none';
+            nav.style.display = 'block';
+            defArea.scrollIntoView({behavior: "smooth"});
+        }
+    }
+
+    // --- Scene 2: Video Player Logic ---
+    let currentClip = 1;
+    const player = document.getElementById('video-player');
+    const clipNameLabel = document.getElementById('clip-name');
+    const nextBtn = document.getElementById('next-clip-btn');
+
+    function playVideo() {
+        if (player.paused) {
+            player.play().catch(e => alert("Please interact with the page first or check video files."));
+        } else {
+            player.pause();
+        }
+    }
+
+    function nextClip() {
+        currentClip++;
+        if (currentClip > 12) currentClip = 1; 
+        
+        const filename = currentClip + '.mp4';
+        player.src = `owe you an apology/${filename}`;
+        clipNameLabel.innerText = filename;
+        nextBtn.innerText = `Next (${currentClip}/12) ⏭`;
+        
+        player.play().catch(e => console.log("Play error:", e));
+    }
+
+    function showLinking() {
+        document.getElementById('linking-area').style.display = 'block';
+        playAzureAudio("An apology. Notice the linking sound.");
+    }
+
+</script>
+
+</body>
+</html>

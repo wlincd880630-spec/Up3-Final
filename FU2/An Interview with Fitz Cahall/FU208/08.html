@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vocabulary: Feat, Terms, Grit, Daily</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme Colors */
+            --feat-color: #2c3e50;   /* Navy */
+            --feat-accent: #f1c40f;  /* Gold */
+            --terms-color: #8e44ad;  /* Purple */
+            --grit-color: #c0392b;   /* Red */
+            --daily-color: #27ae60;  /* Green */
+            
+            --bg-body: #ecf0f1;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0; padding: 0; background-color: var(--bg-body);
+            background-image: radial-gradient(#bdc3c7 1px, transparent 1px); background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%; max-width: 1100px; min-height: 650px; height: 85vh;
+            background: var(--card-bg); border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1); position: relative; overflow: hidden;
+            display: flex; flex-direction: column; transition: all 0.3s ease;
+        }
+
+        .scene {
+            flex: 1; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 40px;
+            opacity: 0; transition: opacity 0.5s ease; overflow-y: auto;
+        }
+        .scene.active { display: flex; opacity: 1; }
+
+        .word-title { font-size: 4rem; font-weight: 900; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; text-align: center; line-height: 1.1; }
+        .equation-box { font-size: 2rem; margin-bottom: 30px; color: #7f8c8d; display: flex; align-items: center; justify-content: center; gap: 15px; background: #f8f9fa; padding: 15px 40px; border-radius: 50px; border: 2px solid #bdc3c7; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; flex-wrap: wrap; }
+        
+        .content-area { width: 90%; max-width: 800px; text-align: left; opacity: 0; transform: translateY(20px); transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .content-area.visible { opacity: 1; transform: translateY(0); }
+
+        .definition-box { background: #fff; border-left: 8px solid #ccc; padding: 25px; border-radius: 12px; margin-bottom: 20px; font-size: 1.4rem; line-height: 1.5; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .example-list { display: flex; flex-direction: column; gap: 12px; }
+        .example-item { background: #f8f9fa; padding: 15px 20px; border-radius: 10px; border: 1px solid #eee; font-size: 1.2rem; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .example-item:hover { transform: translateX(5px); background: white; border-color: #ccc; }
+
+        /* Themes */
+        .theme-feat .word-title { color: var(--feat-color); text-shadow: 2px 2px 0 var(--feat-accent); }
+        .theme-feat .definition-box { border-color: var(--feat-accent); background: #fffcf0; }
+        .theme-terms .word-title { color: var(--terms-color); }
+        .theme-terms .definition-box { border-color: var(--terms-color); background: #fbf5fc; }
+        .theme-grit .word-title { color: var(--grit-color); }
+        .theme-grit .definition-box { border-color: var(--grit-color); background: #fff5f5; }
+        .theme-daily .word-title { color: var(--daily-color); }
+        .theme-daily .definition-box { border-color: var(--daily-color); background: #f0f9f4; }
+
+        /* Quiz */
+        .quiz-header { width: 90%; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .quiz-container { width: 95%; max-width: 900px; flex: 1; overflow-y: auto; padding: 10px; margin-bottom: 50px; }
+        .quiz-row { margin-bottom: 15px; background: #fff; padding: 15px 20px; border-radius: 12px; border-left: 5px solid #bdc3c7; font-size: 1.2rem; box-shadow: 0 3px 8px rgba(0,0,0,0.03); line-height: 1.8; }
+        .quiz-select { padding: 5px 10px; font-size: 1.1rem; border-radius: 8px; border: 2px solid #bdc3c7; background: white; color: var(--text-main); font-weight: bold; margin: 0 5px; cursor: pointer; outline: none; }
+        .quiz-select.correct { border-color: var(--daily-color); background: #e8f5e9; color: var(--daily-color); }
+        .quiz-select.wrong { border-color: var(--grit-color); background: #ffebee; color: var(--grit-color); }
+
+        .btn { padding: 12px 35px; font-size: 1.2rem; border: none; border-radius: 50px; cursor: pointer; font-weight: 800; background: #333; color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: all 0.2s; margin-top: 20px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+        .btn-reveal { background: #fff; border: 2px solid #eee; color: #333; }
+        .btn-check { background: var(--feat-color); color:white; }
+        
+        .nav-btn { position: absolute; bottom: 25px; right: 30px; background: white; border: 2px solid #bdc3c7; color: #7f8c8d; font-size: 1rem; padding: 8px 20px; cursor: pointer; border-radius: 50px; transition: 0.2s; }
+        .nav-btn:hover { background: var(--feat-color); color: white; border-color: var(--feat-color); }
+        
+        .tts-icon { width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.05); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; color: #555; transition: 0.2s; margin-left: 8px; vertical-align: middle; }
+        .tts-icon:hover { transform: scale(1.15); background: #333; color: white; }
+
+        /* Animation specific */
+        .synonym-container { display: inline-block; font-weight: bold; color: var(--feat-accent); }
+        .letter-span { opacity: 0; display: inline-block; transform: translateY(10px); transition: 0.3s; color: var(--feat-accent); text-shadow: 1px 1px 0 #d35400; }
+        .letter-span.show { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .scene { padding: 20px; justify-content: flex-start; }
+            .word-title { font-size: 2.8rem; margin-top: 40px; }
+            .equation-box { font-size: 1.4rem; padding: 15px; width: 90%; }
+            .content-area { width: 100%; }
+            .quiz-header h2 { font-size: 1.8rem; }
+            .quiz-container { width: 100%; padding: 5px; }
+            .quiz-row { font-size: 1.1rem; padding: 15px; }
+            .quiz-select { font-size: 1rem; width: 100%; margin-top: 5px; display: block; }
+            .nav-btn { bottom: 20px; right: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <div class="scene active theme-feat" id="scene-1">
+        <div class="word-title">Feat 🏆 <div class="tts-icon" onclick="playAzureAudio('Feat')">🔊</div></div>
+        <div class="equation-box">Feat = <span class="synonym-container" id="feat-synonym"></span></div>
+        <button class="btn btn-reveal" id="reveal-feat" onclick="revealFeat()">👁️ Reveal Meaning</button>
+        <div class="content-area" id="content-1">
+            <div class="definition-box"><b>Definition:</b> Something that needs skill, strength, or courage to achieve. <div class="tts-icon" onclick="playAzureAudio('Something that needs skill, strength, or courage to achieve.')">🔊</div></div>
+            <div class="example-list">
+                <div class="example-item"><span>"The Eiffel Tower is a remarkable engineering <b>feat</b>."</span> <div class="tts-icon" onclick="playAzureAudio('The Eiffel Tower is a remarkable engineering feat.')">🔊</div></div>
+                <div class="example-item"><span>"It is no easy <b>feat</b> to run a marathon in under 3 hours."</span> <div class="tts-icon" onclick="playAzureAudio('It is no easy feat to run a marathon in under 3 hours.')">🔊</div></div>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-1" onclick="nextScene(2)">Next: Term 2 →</button>
+    </div>
+
+    <div class="scene theme-terms" id="scene-2">
+        <div class="word-title" style="font-size: 3rem;">On my own terms 👤 <div class="tts-icon" onclick="playAzureAudio('On my own terms')">🔊</div></div>
+        <div class="equation-box" style="border-color:var(--terms-color); color:var(--terms-color);">= In my own way <div class="tts-icon" onclick="playAzureAudio('In my own way')">🔊</div></div>
+        <button class="btn btn-reveal" id="btn-2" onclick="revealContent(2)" style="color:var(--terms-color);">👁️ Reveal Meaning</button>
+        <div class="content-area" id="content-2">
+            <div class="definition-box"><b>Definition:</b> To do something according to your own wishes and conditions, not someone else's. <div class="tts-icon" onclick="playAzureAudio('To do something according to your own wishes and conditions.')">🔊</div></div>
+            <div class="example-list">
+                <div class="example-item"><span>"I decided to live life <b>on my own terms</b>."</span> <div class="tts-icon" onclick="playAzureAudio('I decided to live life on my own terms.')">🔊</div></div>
+                <div class="example-item"><span>"She will sign the contract, but only <b>on her own terms</b>."</span> <div class="tts-icon" onclick="playAzureAudio('She will sign the contract, but only on her own terms.')">🔊</div></div>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-2" onclick="nextScene(3)">Next: Term 3 →</button>
+    </div>
+
+    <div class="scene theme-grit" id="scene-3">
+        <div class="word-title">Grit 🔥 <div class="tts-icon" onclick="playAzureAudio('Grit')">🔊</div></div>
+        <div class="equation-box" style="color:var(--grit-color); border-color:var(--grit-color);">Passion (热情) + Perseverance (坚持) <div class="tts-icon" onclick="playAzureAudio('Passion plus Perseverance')">🔊</div></div>
+        <button class="btn btn-reveal" id="btn-3" onclick="revealContent(3)" style="color:var(--grit-color);">👁️ Reveal Meaning</button>
+        <div class="content-area" id="content-3">
+            <div class="definition-box"><b>Definition:</b> Courage and resolve; strength of character. To keep working hard even when it is difficult. <div class="tts-icon" onclick="playAzureAudio('Courage and resolve. To keep working hard even when it is difficult.')">🔊</div></div>
+            <div class="example-list">
+                <div class="example-item"><span>"It takes true <b>grit</b> to start a business from nothing."</span> <div class="tts-icon" onclick="playAzureAudio('It takes true grit to start a business from nothing.')">🔊</div></div>
+                <div class="example-item"><span>"Through pure <b>grit</b> and determination, he won the race."</span> <div class="tts-icon" onclick="playAzureAudio('Through pure grit and determination, he won the race.')">🔊</div></div>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-3" onclick="nextScene(4)">Next: Term 4 →</button>
+    </div>
+
+    <div class="scene theme-daily" id="scene-4">
+        <div class="word-title" style="font-size: 3rem;">On a daily basis 📅 <div class="tts-icon" onclick="playAzureAudio('On a daily basis')">🔊</div></div>
+        <div class="equation-box" style="color:var(--daily-color); border-color:var(--daily-color);">= Every day <div class="tts-icon" onclick="playAzureAudio('Every day')">🔊</div></div>
+        <button class="btn btn-reveal" id="btn-4" onclick="revealContent(4)" style="color:var(--daily-color);">👁️ Reveal Meaning</button>
+        <div class="content-area" id="content-4">
+            <div class="definition-box"><b>Definition:</b> Happening or done every day. <div class="tts-icon" onclick="playAzureAudio('Happening or done every day.')">🔊</div></div>
+            <div class="example-list">
+                <div class="example-item"><span>"Doctors deal with life and death <b>on a daily basis</b>."</span> <div class="tts-icon" onclick="playAzureAudio('Doctors deal with life and death on a daily basis.')">🔊</div></div>
+                <div class="example-item"><span>"We use smartphones <b>on a daily basis</b> to communicate."</span> <div class="tts-icon" onclick="playAzureAudio('We use smartphones on a daily basis to communicate.')">🔊</div></div>
+            </div>
+        </div>
+        <button class="btn nav-btn" style="display:none;" id="nav-4" onclick="nextScene(5)">Next: Quiz →</button>
+    </div>
+
+    <div class="scene" id="scene-5">
+        <div class="quiz-header">
+            <h2 style="color:var(--feat-color); margin:0;">Review Quiz 📝</h2>
+            <button class="btn btn-check" style="margin:0;" onclick="checkQuiz()">Check Answers</button>
+        </div>
+        <div class="quiz-container">
+            <div class="quiz-row">1. Building the Pyramids was an amazing architectural <select class="quiz-select" data-ans="feat"><option value="">...</option><option value="feat">feat</option><option value="grit">grit</option><option value="terms">on my own terms</option><option value="daily">on a daily basis</option></select>.</div>
+            <div class="quiz-row">2. You need to practice English <select class="quiz-select" data-ans="daily"><option value="">...</option><option value="feat">feat</option><option value="grit">grit</option><option value="terms">on my own terms</option><option value="daily">on a daily basis</option></select> to improve.</div>
+            <div class="quiz-row">3. She didn't give up. She showed great <select class="quiz-select" data-ans="grit"><option value="">...</option><option value="feat">feat</option><option value="grit">grit</option><option value="terms">on my own terms</option><option value="daily">on a daily basis</option></select> to finish the difficult project.</div>
+            <div class="quiz-row">4. I don't want a boss. I want to work <select class="quiz-select" data-ans="terms"><option value="">...</option><option value="feat">feat</option><option value="grit">grit</option><option value="terms">on my own terms</option><option value="daily">on a daily basis</option></select>.</div>
+            <div class="quiz-row">5. We communicate with customers <select class="quiz-select" data-ans="daily"><option value="">...</option><option value="feat">feat</option><option value="grit">grit</option><option value="terms">on my own terms</option><option value="daily">on a daily basis</option></select>.</div>
+            <div class="quiz-row">6. Climbing Mt. Everest without oxygen is an incredible <select class="quiz-select" data-ans="feat"><option value="">...</option><option value="feat">feat</option><option value="grit">grit</option><option value="terms">on my own terms</option><option value="daily">on a daily basis</option></select>.</div>
+            <div class="quiz-row">7. He retired early so he could enjoy life <select class="quiz-select" data-ans="terms"><option value="">...</option><option value="feat">feat</option><option value="grit">grit</option><option value="terms">on my own terms</option><option value="daily">on a daily basis</option></select>.</div>
+            <div id="quiz-feedback" style="margin-top:20px; font-weight:bold; height:40px; font-size:1.2rem; text-align:center;"></div>
+        </div>
+        <button class="nav-btn" style="bottom:10px;" onclick="location.reload()">↺ Restart</button>
+    </div>
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration (Official SDK)
+       ========================================================== */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+        if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        synthesizer.speakTextAsync(text, result => { synthesizer.close(); synthesizer = undefined; }, err => { console.error(err); synthesizer.close(); synthesizer = undefined; });
+    }
+
+    // Navigation
+    function nextScene(id) {
+        document.querySelectorAll('.scene').forEach(s => { s.classList.remove('active'); s.style.opacity = 0; setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500); });
+        const next = document.getElementById('scene-' + id);
+        next.style.display = 'flex'; void next.offsetWidth; next.classList.add('active'); next.style.opacity = 1;
+    }
+
+    // Logic
+    function revealContent(id) {
+        document.getElementById(`content-${id}`).classList.add('visible');
+        document.getElementById(`btn-${id}`).style.display = 'none';
+        document.getElementById(`nav-${id}`).style.display = 'block';
+    }
+
+    function revealFeat() {
+        const container = document.getElementById('feat-synonym');
+        const btn = document.getElementById('reveal-feat');
+        const content = document.getElementById('content-1');
+        const nav = document.getElementById('nav-1');
+        const word = "Achievement";
+        btn.style.display = 'none';
+        word.split('').forEach((letter, index) => {
+            const span = document.createElement('span'); span.innerText = letter; span.className = 'letter-span'; container.appendChild(span);
+            setTimeout(() => { span.classList.add('show'); }, index * 100);
+        });
+        setTimeout(() => { playAzureAudio("Feat means achievement."); content.classList.add('visible'); nav.style.display = 'block'; }, word.length * 100 + 300);
+    }
+
+    function checkQuiz() {
+        const selects = document.querySelectorAll('.quiz-select');
+        let score = 0;
+        selects.forEach(select => {
+            if(select.value === select.dataset.ans) { select.classList.add('correct'); select.classList.remove('wrong'); score++; }
+            else { select.classList.add('wrong'); select.classList.remove('correct'); }
+        });
+        const feedback = document.getElementById('quiz-feedback');
+        if(score === 7) { feedback.innerHTML = "<span style='color:#27ae60'>🎉 Perfect Score! Excellent work!</span>"; playAzureAudio("Excellent work! You got everything correct."); }
+        else { feedback.innerHTML = `<span style='color:#c0392b'>You got ${score}/7 correct. Keep trying!</span>`; playAzureAudio("Keep trying."); }
+    }
+</script>
+</body>
+</html>

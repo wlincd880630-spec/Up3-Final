@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Idiom Master Class</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Professional & Engaging */
+            --primary: #2c3e50;   /* Dark Navy */
+            --accent: #e67e22;    /* Pumpkin Orange */
+            --highlight: #27ae60; /* Success Green */
+            --error: #c0392b;     /* Error Red */
+            --card-glass: rgba(255, 255, 255, 0.95);
+            --radius: 24px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a252f;
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--primary);
+        }
+
+        /* --- 核心容器 --- */
+        #app-container {
+            width: 100%;
+            max-width: 1200px;
+            /* 电脑端固定高度，移动端自适应 */
+            height: 85vh; 
+            min-height: 650px;
+            background: #fff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 场景通用 --- */
+        .scene {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+            z-index: 10;
+        }
+        .scene.active { display: flex; opacity: 1; z-index: 20; }
+
+        /* --- 视频背景层 --- */
+        .video-wrapper {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            background: #000; /* Fallback */
+        }
+        .video-bg {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            opacity: 0.6; /* 稍微变暗，突出文字 */
+        }
+        
+        /* 视频加载失败时的备用背景 */
+        .video-fallback-1 { background: linear-gradient(135deg, #2980b9, #2c3e50); }
+        .video-fallback-2 { background: linear-gradient(135deg, #27ae60, #16a085); }
+        .video-fallback-5 { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .video-fallback-7 { background: linear-gradient(135deg, #8e44ad, #2980b9); }
+
+        /* --- 交互遮罩层 (内容区) --- */
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto; /* 允许内容过多时滚动 */
+        }
+
+        /* --- 控件：静音按钮 --- */
+        .mute-btn {
+            position: absolute;
+            top: 20px; right: 20px; z-index: 100;
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255,255,255,0.8);
+            color: white; font-size: 1.5rem;
+            cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            transition: 0.3s;
+            backdrop-filter: blur(5px);
+        }
+        .mute-btn:hover { background: var(--accent); transform: scale(1.1); border-color:white; }
+
+        /* --- 气泡对话框 --- */
+        .bubble {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 40px;
+            border-radius: 40px;
+            margin: 15px 0;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transform: translateY(30px) scale(0.9);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-width: 90%;
+            text-align: center;
+            display: none;
+            border-left: 8px solid transparent;
+        }
+        .bubble.visible { display: block; opacity: 1; transform: translateY(0) scale(1); }
+        .bubble.highlight-red { border-left-color: #e74c3c; }
+        .bubble.highlight-green { border-left-color: #27ae60; }
+
+        /* --- 上下文卡片 (Context Slide) --- */
+        .context-slide {
+            background: white;
+            width: 90%; max-width: 900px;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            display: flex; flex-direction: column;
+            text-align: center;
+            position: relative;
+        }
+        
+        .context-title { font-size: 2.8rem; color: var(--accent); margin-bottom: 5px; font-weight: 900; }
+        .context-meaning { font-size: 1.5rem; color: #7f8c8d; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px dashed #eee; }
+        
+        .scenario-box {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            text-align: left;
+            border-left: 6px solid var(--accent);
+            display: none;
+            animation: slideIn 0.5s forwards;
+        }
+        
+        .scenario-label { font-size: 1.2rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; display: block; text-transform: uppercase; letter-spacing: 1px; }
+        .dialogue-line { font-size: 1.3rem; margin-bottom: 8px; color: #555; line-height: 1.5; }
+        .speaker { font-weight: 800; color: #2c3e50; margin-right: 8px; }
+
+        /* --- 游戏与复习 (Game & Review) --- */
+        .game-card { 
+            background: white; width: 90%; max-width: 1000px; 
+            padding: 40px; border-radius: 24px; text-align: center; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .game-dialogue { 
+            font-size: 1.6rem; margin-bottom: 30px; color: #34495e; 
+            background: #ecf0f1; padding: 25px; border-radius: 16px; 
+            position: relative;
+        }
+        
+        .option-grid { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; width: 100%;
+        }
+        
+        .option-btn { 
+            padding: 20px; font-size: 1.2rem; border: 2px solid #dfe6e9; 
+            background: white; border-radius: 16px; cursor: pointer; 
+            font-weight: bold; color: var(--primary); transition: 0.2s;
+        }
+        .option-btn:hover { border-color: var(--accent); transform: translateY(-3px); }
+        .option-btn.correct { background: var(--highlight); color: white; border-color: var(--highlight); }
+        .option-btn.wrong { background: var(--error); color: white; border-color: var(--error); }
+
+        .review-row { 
+            font-size: 1.3rem; margin-bottom: 15px; text-align: left; 
+            background: #fdfdfd; padding: 20px; border-radius: 12px; 
+            border: 1px solid #eee; display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 10px;
+        }
+        .review-select { 
+            font-size: 1.2rem; padding: 8px; border-radius: 8px; 
+            border: 2px solid #bdc3c7; color: var(--primary); font-weight: bold; 
+            background: white; cursor: pointer;
+        }
+
+        /* --- 按钮组件 --- */
+        .btn {
+            padding: 14px 40px; font-size: 1.2rem; border: none; border-radius: 50px;
+            cursor: pointer; font-weight: 800; background: var(--accent); color: white;
+            box-shadow: 0 8px 20px rgba(230, 126, 34, 0.4); transition: all 0.2s;
+            margin-top: 20px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(230, 126, 34, 0.5); filter: brightness(1.1); }
+        
+        .btn-nav { 
+            position: absolute; bottom: 30px; right: 30px; 
+            background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); 
+            backdrop-filter: blur(10px); color: white; font-size: 1rem; padding: 10px 20px;
+            z-index: 100;
+        }
+        .btn-nav.dark { background: rgba(0,0,0,0.1); border-color: rgba(0,0,0,0.2); color: var(--primary); }
+        .btn-nav:hover { background: white; color: var(--accent); }
+
+        .tts-icon { 
+            cursor: pointer; display: inline-flex; width: 36px; height: 36px; 
+            background: rgba(0,0,0,0.1); border-radius: 50%; align-items: center; justify-content: center;
+            margin-left: 10px; transition: 0.2s; vertical-align: middle; font-size: 1rem;
+        }
+        .tts-icon:hover { background: var(--accent); color: white; transform: scale(1.1); }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* =========================================
+           移动端自适应 (Mobile Responsive)
+           ========================================= */
+        @media (max-width: 768px) {
+            #app-container {
+                width: 100%; height: 100vh; border-radius: 0; margin: 0;
+            }
+            .bubble { font-size: 1.3rem; padding: 15px 25px; width: 90%; }
+            .context-slide { padding: 20px; width: 95%; height: auto; min-height: 60vh;}
+            .context-title { font-size: 2rem; }
+            .context-meaning { font-size: 1.2rem; }
+            .scenario-box { padding: 15px; }
+            .dialogue-line { font-size: 1.1rem; }
+            
+            .game-card { width: 95%; padding: 20px; }
+            .game-dialogue { font-size: 1.3rem; padding: 15px; }
+            .option-grid { grid-template-columns: 1fr; } /* 单列堆叠 */
+            
+            .review-row { font-size: 1.1rem; flex-direction: column; align-items: flex-start; }
+            .review-select { width: 100%; margin-top: 5px; }
+
+            .btn-nav { bottom: 20px; right: 20px; padding: 8px 15px; font-size: 0.9rem; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <div class="scene active" id="s1">
+        <div class="video-wrapper video-fallback-1">
+            <video class="video-bg" src="clock.mp4" autoplay loop muted playsinline></video>
+        </div>
+        <button class="mute-btn" onclick="toggleSound(this)">🔇</button>
+        
+        <div class="overlay">
+            <div id="s1-t1" class="bubble">What is the clock doing? <div class="tts-icon" onclick="playAzureAudio('What is the clock doing?')">🔊</div></div>
+            <div id="s1-t2" class="bubble">The clock is ticking. <div class="tts-icon" onclick="playAzureAudio('The clock is ticking.')">🔊</div></div>
+            <div id="s1-t3" class="bubble">What makes the clock tick? <div class="tts-icon" onclick="playAzureAudio('What makes the clock tick?')">🔊</div></div>
+            <div id="s1-t4" class="bubble">The battery! The gears! Power! <div class="tts-icon" onclick="playAzureAudio('The battery! The gears! Power!')">🔊</div></div>
+            
+            <div id="s1-t5" class="bubble highlight-red">
+                So, what makes <b>YOU</b> tick?
+                <div class="tts-icon" onclick="playAzureAudio('So, what makes YOU tick?')">🔊</div>
+                <div style="font-size: 1rem; color: #666; margin-top:10px; font-weight:normal;">
+                    (What motivates you? / What drives you?)
+                </div>
+            </div>
+            <button class="btn" onclick="stepScene1()">Next Step ➡️</button>
+        </div>
+        <button class="btn-nav" onclick="toScene('s2')">Next Scene</button>
+    </div>
+
+    <div class="scene" id="s2">
+        <div class="video-wrapper video-fallback-2">
+            <video class="video-bg" src="fitness.mp4" autoplay loop muted playsinline></video>
+        </div>
+        <button class="mute-btn" onclick="toggleSound(this)">🔇</button>
+
+        <div class="overlay">
+            <div id="s2-t1" class="bubble">What does he do every day? <div class="tts-icon" onclick="playAzureAudio('What does he do every day?')">🔊</div></div>
+            <div id="s2-t2" class="bubble">How does he feel after exercise? <div class="tts-icon" onclick="playAzureAudio('How does he feel after physical exercise every day?')">🔊</div></div>
+            <div id="s2-t3" class="bubble highlight-green">
+                What makes him tick?
+                <div class="tts-icon" onclick="playAzureAudio('What makes him tick?')">🔊</div>
+            </div>
+            
+            <button class="btn" onclick="stepScene2()">Next Step ➡️</button>
+        </div>
+        <button class="btn-nav" onclick="toScene('s3')">Next Scene</button>
+    </div>
+
+    <div class="scene" id="s3">
+        <div class="overlay" style="background: #2c3e50;">
+            <h1 style="color:white; font-size:3rem; margin-bottom:40px; text-align:center;">Ask Yourself...</h1>
+            <div class="bubble visible" style="cursor: pointer;" onclick="playAzureAudio('Does money make you tick?')">💰 Does money make you tick? 🔊</div>
+            <div class="bubble visible" style="cursor: pointer;" onclick="playAzureAudio('Does family make you tick?')">👨‍👩‍👧 Does family make you tick? 🔊</div>
+            <div class="bubble visible" style="cursor: pointer;" onclick="playAzureAudio('Does curiosity make you tick?')">🔍 Does curiosity make you tick? 🔊</div>
+        </div>
+        <button class="btn-nav" onclick="toScene('s4')">Contexts</button>
+    </div>
+
+    <div class="scene" id="s4">
+        <div class="overlay" style="background: #eceff1;">
+            <div class="context-slide">
+                <div class="context-title">Make (someone) tick</div>
+                <div class="context-meaning">Meaning: Internal Drive / Motivation</div>
+                
+                <div class="scenario-box" id="s4-c1">
+                    <span class="scenario-label">👔 Job Interview</span>
+                    <div class="dialogue-line"><span class="speaker">Interviewer:</span> "You have skills. But tell me..."</div>
+                    <div class="dialogue-line"><span class="speaker">Interviewer:</span> "<b>What makes you tick?</b>"</div>
+                    <div class="tts-icon" onclick="playAzureAudio('You have skills. But tell me, what makes you tick?')">🔊</div>
+                </div>
+
+                <div class="scenario-box" id="s4-c2">
+                    <span class="scenario-label">❤️ Talking about a Friend</span>
+                    <div class="dialogue-line"><span class="speaker">A:</span> "Why does Tom run every morning?"</div>
+                    <div class="dialogue-line"><span class="speaker">B:</span> "I don't know. I'm trying to figure out <b>what makes him tick</b>."</div>
+                    <div class="tts-icon" onclick="playAzureAudio('Why does Tom run every morning? I do not know. I am trying to figure out what makes him tick.')">🔊</div>
+                </div>
+
+                <div class="scenario-box" id="s4-c3">
+                    <span class="scenario-label">🧠 Self-Reflection</span>
+                    <div class="dialogue-line"><span class="speaker">B:</span> "Helping people is <b>what makes me tick</b>."</div>
+                    <div class="tts-icon" onclick="playAzureAudio('Helping people is what makes me tick.')">🔊</div>
+                </div>
+
+                <button class="btn" onclick="stepContext('s4')">Show Next Context ➡️</button>
+            </div>
+        </div>
+        <button class="btn-nav dark" onclick="toScene('s5')">Next Idiom</button>
+    </div>
+
+    <div class="scene" id="s5">
+        <div class="video-wrapper video-fallback-5">
+            <video class="video-bg" src="car.mp4" autoplay loop muted playsinline></video>
+        </div>
+        <button class="mute-btn" onclick="toggleSound(this)">🔇</button>
+
+        <div class="overlay">
+            <div id="s5-t1" class="bubble">They <span style="color:#c0392b">hit the road</span>. <div class="tts-icon" onclick="playAzureAudio('They hit the road.')">🔊</div></div>
+            <div id="s5-t2" class="bubble" style="font-size:1.5rem;">
+                They set off on a journey.
+                <div class="tts-icon" onclick="playAzureAudio('They set off on a journey.')">🔊</div>
+            </div>
+            <div id="s5-t3" class="bubble highlight-green">
+                <b>Definition:</b> To start driving or traveling.<br>
+                <i>"It's late. Let's hit the road."</i>
+                <div class="tts-icon" onclick="playAzureAudio('To start driving or traveling. It is late. Let us hit the road.')">🔊</div>
+            </div>
+            <button class="btn" onclick="stepScene5()">Next Step ➡️</button>
+        </div>
+        <button class="btn-nav" onclick="toScene('s6')">Contexts</button>
+    </div>
+
+    <div class="scene" id="s6">
+        <div class="overlay" style="background: #eceff1;">
+            <div class="context-slide">
+                <div class="context-title" style="color:#c0392b;">Hit the road 🚗</div>
+                <div class="context-meaning">Meaning: To start driving / Leave</div>
+                
+                <div class="scenario-box" id="s6-c1">
+                    <span class="scenario-label">🏖️ Vacation</span>
+                    <div class="dialogue-line"><span class="speaker">A:</span> "Are the bags packed?"</div>
+                    <div class="dialogue-line"><span class="speaker">B:</span> "Yes! Let's <b>hit the road</b> before traffic gets bad."</div>
+                    <div class="tts-icon" onclick="playAzureAudio('Are the bags packed? Yes! Let us hit the road before traffic gets bad.')">🔊</div>
+                </div>
+
+                <div class="scenario-box" id="s6-c2">
+                    <span class="scenario-label">👋 Leaving a Party</span>
+                    <div class="dialogue-line"><span class="speaker">B:</span> "I'm tired. I think I'm going to <b>hit the road</b>."</div>
+                    <div class="tts-icon" onclick="playAzureAudio('I am tired. I think I am going to hit the road.')">🔊</div>
+                </div>
+
+                <div class="scenario-box" id="s6-c3">
+                    <span class="scenario-label">⏰ Schedule</span>
+                    <div class="dialogue-line"><span class="speaker">Driver:</span> "We need to <b>hit the road</b> by 8:00 sharp."</div>
+                    <div class="tts-icon" onclick="playAzureAudio('We need to hit the road by 8 sharp.')">🔊</div>
+                </div>
+
+                <button class="btn" onclick="stepContext('s6')">Show Next Context ➡️</button>
+            </div>
+        </div>
+        <button class="btn-nav dark" onclick="toScene('s7')">Next Idiom</button>
+    </div>
+
+    <div class="scene" id="s7">
+        <div class="video-wrapper video-fallback-7">
+            <video class="video-bg" src="circle.mp4" autoplay loop muted playsinline></video>
+        </div>
+        <button class="mute-btn" onclick="toggleSound(this)">🔇</button>
+
+        <div class="overlay">
+            <div class="bubble visible">
+                Come full circle
+                <div class="tts-icon" onclick="playAzureAudio('Come full circle')">🔊</div>
+            </div>
+            
+            <div id="s7-def" class="bubble" style="font-size: 1.5rem; display:none;">
+                <b>Meaning:</b> Returning to the start or a similar situation.
+                <br><br>
+                <i>"He started as a cleaner and is now the owner. He has come full circle."</i>
+                <div class="tts-icon" onclick="playAzureAudio('Returning to the start. He started as a cleaner and is now the owner. He has come full circle.')">🔊</div>
+            </div>
+
+            <button class="btn" onclick="document.getElementById('s7-def').style.display='block'; setTimeout(()=>document.getElementById('s7-def').classList.add('visible'),10); this.style.display='none'">Show Meaning ➡️</button>
+        </div>
+        <button class="btn-nav" onclick="toScene('s8')">Contexts</button>
+    </div>
+
+    <div class="scene" id="s8">
+        <div class="overlay" style="background: #eceff1;">
+            <div class="context-slide">
+                <div class="context-title" style="color:#8e44ad;">Come full circle ⭕</div>
+                <div class="context-meaning">Meaning: Return to the beginning</div>
+                
+                <div class="scenario-box" id="s8-c1">
+                    <span class="scenario-label">📚 Career</span>
+                    <div class="dialogue-line"><span class="speaker">A:</span> "Didn't you start as an intern?"</div>
+                    <div class="dialogue-line"><span class="speaker">B:</span> "Yes, now I'm CEO. My career has <b>come full circle</b>."</div>
+                    <div class="tts-icon" onclick="playAzureAudio('Did not you start as an intern? Yes, now I am CEO. My career has come full circle.')">🔊</div>
+                </div>
+
+                <div class="scenario-box" id="s8-c2">
+                    <span class="scenario-label">👗 Fashion</span>
+                    <div class="dialogue-line"><span class="speaker">B:</span> "Fashion always seems to <b>come full circle</b> eventually."</div>
+                    <div class="tts-icon" onclick="playAzureAudio('Fashion always seems to come full circle eventually.')">🔊</div>
+                </div>
+
+                <div class="scenario-box" id="s8-c3">
+                    <span class="scenario-label">🔄 Life</span>
+                    <div class="dialogue-line"><span class="speaker">B:</span> "They cared for us, now we care for them. Life has <b>come full circle</b>."</div>
+                    <div class="tts-icon" onclick="playAzureAudio('They cared for us, now we care for them. Life has come full circle.')">🔊</div>
+                </div>
+
+                <button class="btn" onclick="stepContext('s8')">Show Next Context ➡️</button>
+            </div>
+        </div>
+        <button class="btn-nav dark" onclick="toScene('s9')">Idiom Intro</button>
+    </div>
+
+    <div class="scene" id="s9">
+        <div class="overlay" style="background: #3498db;">
+            <div class="bubble visible" style="font-size:2.5rem;">What is an Idiom? 🤔</div>
+            
+            <div class="bubble" id="s9-t2">
+                "Horse horse tiger tiger" (Ma Ma Hu Hu)
+                <br>Does it mean a real zoo?
+            </div>
+            
+            <div class="bubble" id="s9-t3" style="color:#e74c3c;">
+                No! It means "nothing special" or "so-so".
+            </div>
+
+            <button class="btn" onclick="stepScene9()">Explain ➡️</button>
+        </div>
+        <button class="btn-nav" onclick="toScene('s10')">Guessing Game</button>
+    </div>
+
+    <div class="scene" id="s10">
+        <div class="overlay" style="background: #f1c40f;">
+            <div class="game-card">
+                <h1 style="color:#d35400; margin-bottom:30px; font-size:2.5rem;">Guess the Meaning! 🎲</h1>
+                
+                <div id="game-1" class="game-content">
+                    <div class="game-dialogue">
+                        "The dentist will hurt, but I have to go."<br>
+                        "I know. Just <b>Bite the bullet</b>."
+                        <div class="tts-icon" onclick="playAzureAudio('The dentist will hurt. I know. Just bite the bullet.')">🔊</div>
+                    </div>
+                    <div class="option-grid">
+                        <div class="option-btn" onclick="checkGame(this, false)">Play with a bullet</div>
+                        <div class="option-btn" onclick="checkGame(this, true, 2, 'Endure pain bravely')">Endure pain bravely</div>
+                        <div class="option-btn" onclick="checkGame(this, false)">Eat something hard</div>
+                    </div>
+                </div>
+
+                <div id="game-2" class="game-content" style="display:none;">
+                    <div class="game-dialogue">
+                        "I dropped my ice cream!"<br>
+                        "Don't <b>cry over spilt milk</b>."
+                        <div class="tts-icon" onclick="playAzureAudio('I dropped my ice cream! Do not cry over spilt milk.')">🔊</div>
+                    </div>
+                    <div class="option-grid">
+                        <div class="option-btn" onclick="checkGame(this, false)">Don't drink milk</div>
+                        <div class="option-btn" onclick="checkGame(this, false)">Milk is expensive</div>
+                        <div class="option-btn" onclick="checkGame(this, true, 3, 'Don\'t regret past things')">Don't regret the past</div>
+                    </div>
+                </div>
+
+                <div id="game-3" class="game-content" style="display:none;">
+                    <div class="game-dialogue">
+                        "I work 7 days a week. I'm <b>burning the candle at both ends</b>."
+                        <div class="tts-icon" onclick="playAzureAudio('I work 7 days a week. I am burning the candle at both ends.')">🔊</div>
+                    </div>
+                    <div class="option-grid">
+                        <div class="option-btn" onclick="checkGame(this, true, 'end', 'Work too hard without rest')">Work too hard</div>
+                        <div class="option-btn" onclick="checkGame(this, false)">Romantic dinner</div>
+                        <div class="option-btn" onclick="checkGame(this, false)">Save electricity</div>
+                    </div>
+                </div>
+
+                <div id="game-def" style="margin-top:20px; font-size:1.5rem; color:#2c3e50; font-weight:bold; height: 30px;"></div>
+            </div>
+        </div>
+        <button class="btn-nav dark" onclick="toScene('s11')">Final Review</button>
+    </div>
+
+    <div class="scene" id="s11">
+        <div class="overlay" style="background: white; padding-top: 40px; justify-content: flex-start;">
+            <h1 style="color:var(--primary); font-size:2.5rem; margin-bottom:20px;">Final Review 📝</h1>
+            
+            <div style="width: 90%; max-width:800px;">
+                
+                <div class="review-row">
+                    <span>A: "Ready for the trip?" <br> B: "Yes! Let's..."</span>
+                    <select class="review-select" id="q1"><option>...</option><option value="correct">hit the road</option><option>bite the bullet</option></select>
+                </div>
+
+                <div class="review-row">
+                    <span>A: "Why do you love painting?" <br> B: "Creativity is what..."</span>
+                    <select class="review-select" id="q2"><option>...</option><option>hits the road</option><option value="correct">makes me tick</option></select>
+                </div>
+
+                <div class="review-row">
+                    <span>A: "He left years ago, now he is back." <br> B: "His journey has..."</span>
+                    <select class="review-select" id="q3"><option>...</option><option value="correct">come full circle</option><option>make him tick</option></select>
+                </div>
+
+                <div class="review-row">
+                    <span>A: "I hate injections." <br> B: "Just..."</span>
+                    <select class="review-select" id="q4"><option>...</option><option>spill milk</option><option value="correct">bite the bullet</option></select>
+                </div>
+
+                <button class="btn" style="width:100%; margin-top:20px;" onclick="checkFinal()">Check Answers</button>
+                <div id="final-result" style="font-size:1.8rem; font-weight:bold; margin-top:20px; text-align:center;"></div>
+
+            </div>
+        </div>
+        <button class="btn-nav dark" onclick="location.reload()">↺ Restart</button>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration (Using Official SDK for iOS Compatibility)
+       ========================================================== */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+
+        // 如果已有合成器在运行，先关闭
+        if (synthesizer) {
+            synthesizer.close();
+            synthesizer = undefined;
+        }
+
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        
+        synthesizer.speakTextAsync(
+            text,
+            result => {
+                synthesizer.close();
+                synthesizer = undefined;
+            },
+            err => {
+                console.error(err);
+                synthesizer.close();
+                synthesizer = undefined;
+            }
+        );
+    }
+
+    // --- Scene Navigation & Video Logic ---
+    function toScene(id) {
+        document.querySelectorAll('.scene').forEach(s => {
+            s.classList.remove('active');
+            let vid = s.querySelector('video');
+            if(vid) vid.pause();
+        });
+
+        let nextScene = document.getElementById(id);
+        nextScene.classList.add('active');
+
+        // Handle Video
+        let video = nextScene.querySelector('video');
+        let muteBtn = nextScene.querySelector('.mute-btn');
+        
+        if (video) {
+            video.currentTime = 0;
+            video.muted = true; // Always start muted
+            if(muteBtn) muteBtn.innerText = '🔇';
+            
+            // Try autoplay
+            let playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log("Auto-play blocked");
+                });
+            }
+        }
+    }
+
+    // Toggle Sound
+    function toggleSound(btn) {
+        const scene = document.querySelector('.scene.active');
+        const video = scene.querySelector('video');
+        if (video) {
+            video.muted = !video.muted;
+            btn.innerText = video.muted ? '🔇' : '🔊';
+        }
+    }
+
+    // --- Scene Steps Logic ---
+    let s1Step = 0;
+    function stepScene1() {
+        s1Step++;
+        if (s1Step <= 5) document.getElementById(`s1-t${s1Step}`).classList.add('visible');
+    }
+
+    let s2Step = 0;
+    function stepScene2() {
+        s2Step++;
+        if (s2Step <= 3) document.getElementById(`s2-t${s2Step}`).classList.add('visible');
+    }
+
+    let ctxSteps = { s4: 0, s6: 0, s8: 0 };
+    function stepContext(sceneId) {
+        ctxSteps[sceneId]++;
+        let currentStep = ctxSteps[sceneId];
+        if (currentStep > 1) document.getElementById(`${sceneId}-c${currentStep-1}`).style.display = 'none';
+        
+        if (currentStep <= 3) {
+            document.getElementById(`${sceneId}-c${currentStep}`).style.display = 'block';
+        } else {
+            ctxSteps[sceneId] = 1;
+            document.getElementById(`${sceneId}-c3`).style.display = 'none';
+            document.getElementById(`${sceneId}-c1`).style.display = 'block';
+        }
+    }
+
+    let s5Step = 0;
+    function stepScene5() {
+        s5Step++;
+        if (s5Step <= 3) document.getElementById(`s5-t${s5Step}`).classList.add('visible');
+    }
+
+    let s9Step = 0;
+    function stepScene9() {
+        s9Step++;
+        if (s9Step === 1) document.getElementById('s9-t2').classList.add('visible');
+        if (s9Step === 2) document.getElementById('s9-t3').classList.add('visible');
+    }
+
+    // --- Game Logic ---
+    function checkGame(btn, isCorrect, nextStage, defText) {
+        let parent = btn.parentElement;
+        let btns = parent.getElementsByClassName('option-btn');
+        for(let b of btns) b.disabled = true;
+
+        if (isCorrect) {
+            btn.classList.add('correct');
+            document.getElementById('game-def').innerHTML = `<span style='color:#27ae60'>Correct!</span> ${defText}`;
+            playAzureAudio("Correct! " + defText);
+            
+            setTimeout(() => {
+                document.getElementById('game-def').innerHTML = "";
+                if (nextStage === 'end') {
+                    toScene('s11');
+                } else {
+                    document.getElementById(`game-${nextStage-1}`).style.display = 'none';
+                    document.getElementById(`game-${nextStage}`).style.display = 'block';
+                }
+            }, 3000);
+        } else {
+            btn.classList.add('wrong');
+            playAzureAudio("Try again");
+            setTimeout(() => { for(let b of btns) b.disabled = false; btn.classList.remove('wrong'); }, 1000);
+        }
+    }
+
+    // --- Final Review ---
+    function checkFinal() {
+        let q1 = document.getElementById('q1').value;
+        let q2 = document.getElementById('q2').value;
+        let q3 = document.getElementById('q3').value;
+        let q4 = document.getElementById('q4').value;
+        let res = document.getElementById('final-result');
+
+        if (q1 === 'correct' && q2 === 'correct' && q3 === 'correct' && q4 === 'correct') {
+            res.innerHTML = "<span style='color:#27ae60'>🎉 Perfect Score! All Correct!</span>";
+            playAzureAudio("Perfect score! Well done!");
+        } else {
+            res.innerHTML = "<span style='color:#c0392b'>Not quite. Check your answers!</span>";
+            playAzureAudio("Check your answers and try again.");
+        }
+    }
+
+</script>
+
+</body>
+</html>

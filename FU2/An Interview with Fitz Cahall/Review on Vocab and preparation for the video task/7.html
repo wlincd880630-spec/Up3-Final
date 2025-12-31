@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Page 7: Come Full Circle</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <style>
+        :root {
+            /* Theme: Success & Return (Consistent with Series) */
+            --primary: #2c3e50;
+            --secondary: #e67e22; /* Orange */
+            --accent: #27ae60;    /* Success Green */
+            --bg-body: #ecf0f1;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #2d3436;
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(#bdc3c7 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 95%; max-width: 1200px; min-height: 650px; height: 85vh;
+            background: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop') no-repeat center center;
+            background-size: cover;
+            border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(44, 62, 80, 0.85); z-index: 0;
+        }
+
+        /* --- 导航栏 --- */
+        .nav-bar {
+            position: relative; z-index: 10;
+            height: 60px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px;
+        }
+        .lesson-title { font-weight: 900; color: white; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
+        .page-num { font-weight: bold; color: rgba(255,255,255,0.6); font-size: 0.9rem; }
+
+        /* --- 舞台系统 --- */
+        .stage {
+            position: absolute; top: 60px; left: 0; bottom: 80px; width: 100%;
+            display: none; flex-direction: column; align-items: center; 
+            overflow-y: auto; padding: 20px; box-sizing: border-box;
+            z-index: 10; opacity: 0; transition: opacity 0.8s ease;
+        }
+        .stage.active { display: flex; opacity: 1; }
+
+        /* --- STORY LAYOUT --- */
+        .story-layout {
+            display: flex; width: 95%; max-width: 1000px; height: 70%;
+            background: var(--card-bg); border-radius: 20px; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6); margin-top: 10px; flex-shrink: 0;
+        }
+        .story-img-col { flex: 1.3; background: black; position: relative; overflow: hidden; }
+        .story-img { width: 100%; height: 100%; object-fit: cover; transition: transform 10s ease; }
+        .stage.active .story-img { transform: scale(1.1); }
+        
+        .story-content-col {
+            flex: 1; padding: 30px; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            border-left: 6px solid var(--secondary); background: #fff;
+        }
+
+        .context-text { font-size: 1.2rem; color: #7f8c8d; margin-bottom: 15px; text-align: left; width: 100%; line-height: 1.4; }
+        .fill-blank-container { font-size: 1.4rem; color: var(--primary); line-height: 1.6; font-weight: 800; text-align: left; width: 100%; }
+
+        input.blank-input {
+            border: none; border-bottom: 3px solid var(--secondary); background: #f8f9fa;
+            font-size: 1.4rem; width: 160px; text-align: center; color: var(--secondary);
+            font-weight: bold; outline: none; transition: 0.3s;
+        }
+        input.blank-input:focus { border-color: var(--accent); }
+        input.blank-input.correct { border-color: var(--accent); color: var(--accent); }
+        input.blank-input.wrong { border-color: #c0392b; background: #fadbd8; }
+
+        /* --- CIRCLE JOURNEY MAP --- */
+        .journey-wrapper {
+            width: 95%; height: 500px; position: relative;
+            background: rgba(255,255,255,0.9); border-radius: 20px;
+            margin: 20px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.2); flex-shrink: 0;
+        }
+        
+        .center-circle {
+            position: absolute; top: 50%; left: 50%; width: 300px; height: 300px;
+            transform: translate(-50%, -50%); border: 4px dashed var(--accent);
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            text-align: center; opacity: 0.6; z-index: 1;
+        }
+        .center-text { color: var(--accent); font-size: 1.5rem; font-weight: 900; text-transform: uppercase; background: white; padding: 10px; }
+
+        .journey-item {
+            position: absolute; width: 220px; background: white; padding: 10px;
+            border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            z-index: 2; text-align: left; font-size: 0.85rem; line-height: 1.3;
+            border: 2px solid var(--primary); transition: transform 0.3s;
+        }
+        .journey-item:hover { transform: scale(1.05); z-index: 10; }
+        .journey-item img { width: 100%; height: 100px; object-fit: cover; border-radius: 6px; margin-bottom: 5px; }
+
+        /* Positions */
+        .pos-1  { top: 5%; right: 10%; border-color: #3498db; }
+        .pos-4  { bottom: 5%; right: 10%; border-color: #e74c3c; }
+        .pos-8  { bottom: 5%; left: 10%; border-color: #f1c40f; }
+        .pos-11 { top: 5%; left: 10%; border-color: #2ecc71; }
+
+        /* --- GAME AREA --- */
+        .game-area {
+            background: rgba(255,255,255,0.98); padding: 30px; border-radius: 20px;
+            width: 95%; max-width: 900px; text-align: center; display: flex;
+            flex-direction: column; align-items: center; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            margin-bottom: 40px; flex-shrink: 0;
+        }
+        .drop-zone {
+            border: 3px dashed #bdc3c7; background: #f8f9fa; border-radius: 15px;
+            padding: 15px; min-height: 80px; width: 100%;
+            display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; margin-bottom: 20px;
+        }
+        .word-bank { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; width: 100%; }
+        .word-chip {
+            background: var(--primary); color: white; padding: 10px 20px;
+            border-radius: 30px; cursor: pointer; font-size: 1.1rem;
+            font-weight: bold; transition: 0.2s; box-shadow: 0 5px 10px rgba(0,0,0,0.1); user-select: none;
+        }
+        .word-chip:hover { transform: translateY(-3px); background: #34495e; }
+
+        /* Controls */
+        .control-bar {
+            position: relative; z-index: 10; height: 80px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px;
+        }
+        .btn {
+            padding: 12px 35px; font-size: 1.1rem; border: none; border-radius: 50px;
+            cursor: pointer; background: var(--secondary); color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-weight: bold; transition: 0.2s;
+        }
+        .btn:hover { transform: translateY(-3px); filter: brightness(1.1); }
+        .btn-check { background: var(--accent); }
+        
+        .btn-nav {
+            background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.8); font-size: 1rem; padding: 10px 25px;
+            cursor: pointer; border-radius: 50px; transition: 0.2s;
+        }
+        .btn-nav:hover { background: white; color: var(--primary); }
+
+        .tts-icon {
+            cursor: pointer; width: 34px; height: 34px; border-radius: 50%;
+            background: rgba(0,0,0,0.05); display: inline-flex;
+            align-items: center; justify-content: center;
+            font-size: 1.1rem; color: var(--primary); transition: 0.2s;
+            margin-left: 10px; vertical-align: middle;
+        }
+        .tts-icon:hover { background: var(--primary); color: white; transform: scale(1.1); }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100%; height: 100vh; border-radius: 0; margin: 0; }
+            .story-layout { flex-direction: column; height: auto; }
+            .story-img-col { height: 200px; flex: none; }
+            .journey-wrapper { height: 750px; }
+            .journey-item { width: 160px; position: static; margin: 10px auto; }
+            .center-circle { display: none; }
+            .btn { padding: 10px 20px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body onload="playIntro()">
+
+<div id="app-container">
+    <div class="overlay"></div>
+    
+    <div class="nav-bar">
+        <div class="lesson-title">Come Full Circle</div>
+        <div class="page-num">7 / 8</div>
+    </div>
+
+    <div class="stage active" id="stage-1">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_14a.jpg" class="story-img" alt="Work in Studio" onerror="this.src='https://placehold.co/800x600/2c3e50/ffffff?text=Studio+Scene'">
+            </div>
+            <div class="story-content-col">
+                <button class="btn" style="background:white; color:var(--secondary); border:2px solid var(--secondary); margin-bottom:20px;" onclick="playAzureAudio('He loved the people and felt inspired by their stories.')">
+                    🔊 Listen to Story
+                </button>
+                
+                <div class="context-text">
+                    "After years of hard work in his studio, he knew a lot of explorers and adventurers."
+                </div>
+                
+                <div class="fill-blank-container">
+                    He loved the people and felt <input type="text" id="ans-1" class="blank-input" placeholder="?" autocomplete="off"> by their stories.
+                </div>
+                
+                <button class="btn btn-check" id="check-1" onclick="checkAnswer(1, 'inspired')">Check Answer</button>
+                <button class="btn" style="background:#7f8c8d; display:none; margin-top:15px;" id="next-s1" onclick="nextStage(2)">Next Scene ➡️</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-2">
+        <div class="story-layout">
+            <div class="story-img-col">
+                <img src="image_14b.jpg" class="story-img" alt="Hit the road" onerror="this.src='https://placehold.co/800x600/e67e22/ffffff?text=Travel+Scene'">
+            </div>
+            <div class="story-content-col">
+                <button class="btn" style="background:white; color:var(--secondary); border:2px solid var(--secondary); margin-bottom:20px;" onclick="playAzureAudio('He decided to hit the road to write more stories and meet more people in his community.')">
+                    🔊 Listen to Story
+                </button>
+
+                <div class="fill-blank-container">
+                    "He decided to <input type="text" id="ans-2" class="blank-input" style="width:200px;" placeholder="?" autocomplete="off"> to write more stories and meet more people in his community."
+                </div>
+                
+                <button class="btn btn-check" id="check-2" onclick="checkAnswer(2, 'hit the road')">Check Answer</button>
+                <button class="btn" style="background:#7f8c8d; display:none; margin-top:15px;" id="next-s2" onclick="nextStage(3)">Next Task ➡️</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage" id="stage-3">
+        <h2 style="color:white; text-shadow:0 2px 4px black; margin-bottom:10px; text-align:center;">His Journey: Coming Full Circle</h2>
+        
+        <div class="journey-wrapper">
+            <div class="center-circle">
+                <div class="center-text">Come Full<br>Circle</div>
+            </div>
+
+            <div class="journey-item pos-1">
+                <img src="image_06.jpg" alt="Dream" onerror="this.src='https://placehold.co/200x120/3498db/ffffff?text=Dream'">
+                <div><b>Dream:</b> He dreamed of enjoying the magical world of outdoor activities.</div>
+            </div>
+
+            <div class="journey-item pos-4">
+                <img src="image_10.jpg" alt="Failure" onerror="this.src='https://placehold.co/200x120/e74c3c/ffffff?text=Failure'">
+                <div><b>Struggle:</b> He tried to find a job related to his interests, but he wound up failing.</div>
+            </div>
+
+            <div class="journey-item pos-8">
+                <img src="image_13.jpg" alt="Community" onerror="this.src='https://placehold.co/200x120/f1c40f/ffffff?text=Community'">
+                <div><b>Growth:</b> He created his own studio, found his community, and was inspired!</div>
+            </div>
+
+            <div class="journey-item pos-11">
+                <img src="image_14b.jpg" alt="Return" onerror="this.src='https://placehold.co/200x120/2ecc71/ffffff?text=Return'">
+                <div><b>Success:</b> He stepped out of his studio to explore nature with them again.</div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <h3 style="color:var(--primary); margin-bottom:15px;">Unscramble the Sentence</h3>
+            
+            <button class="btn" style="background:white; color:var(--primary); border:1px solid #eee; margin-bottom:20px; font-size:1rem;" onclick="playAzureAudio('The process has come full circle right back to where his dream started.')">
+                🔊 Listen for Help
+            </button>
+            
+            <div class="drop-zone" id="zone-1"></div>
+            <div class="word-bank" id="bank-1"></div>
+            
+            <button class="btn btn-check" id="check-3" onclick="checkSentence()">Check Order</button>
+        </div>
+    </div>
+
+    <div class="control-bar">
+        <button class="btn-nav" onclick="location.href='6.html'">⬅️ Prev</button>
+        <button class="btn-nav" id="nav-next-page" style="display:none; background:var(--secondary); color:white; border:none;" onclick="location.href='8.html'">Next Page ➡️</button>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================
+       Azure TTS Integration (完整密钥 + 官方 SDK)
+       ========================================================== */
+    const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const speechRegion = "eastus2";
+    let synthesizer;
+
+    function playAzureAudio(text) {
+        if (!text) return;
+        if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+        
+        synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        
+        synthesizer.speakTextAsync(
+            text,
+            result => { synthesizer.close(); synthesizer = undefined; },
+            err => { console.error("TTS Error:", err); synthesizer.close(); synthesizer = undefined; }
+        );
+    }
+
+    function playIntro() {
+        setTimeout(() => {
+            playAzureAudio("After years of hard work in his studio, he knew a lot of explorers. Listen carefully and fill in the blanks.");
+        }, 1000);
+    }
+
+    /* ==========================================================
+       Interaction Logic
+       ========================================================== */
+
+    function nextStage(id) {
+        document.querySelectorAll('.stage').forEach(s => {
+            s.classList.remove('active');
+            s.style.opacity = 0;
+            setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 500);
+        });
+
+        const next = document.getElementById('stage-' + id);
+        next.style.display = 'flex';
+        setTimeout(() => {
+            next.classList.add('active');
+            next.style.opacity = 1;
+        }, 50);
+
+        if(id === 3) initGame();
+    }
+
+    function checkAnswer(id, correct) {
+        const input = document.getElementById('ans-' + id);
+        const val = input.value.trim().toLowerCase();
+
+        if (val === correct.toLowerCase()) {
+            input.classList.add('correct');
+            input.classList.remove('wrong');
+            playAzureAudio("Correct!");
+            document.getElementById('check-' + id).style.display = 'none';
+            document.getElementById('next-s' + id).style.display = 'inline-block';
+        } else {
+            input.classList.add('wrong');
+            playAzureAudio("Try again.");
+        }
+    }
+
+    // --- Unscramble Logic ---
+    const correctSentence = "The process has come full circle right back to where his dream started.";
+    const words = ["The", "process", "has", "come", "full circle", "right", "back", "to", "where", "his", "dream", "started."];
+
+    function initGame() {
+        const bank = document.getElementById('bank-1');
+        const zone = document.getElementById('zone-1');
+        if (bank.children.length > 0) return;
+
+        const shuffled = [...words].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach(text => {
+            const chip = document.createElement('div');
+            chip.className = 'word-chip';
+            chip.innerText = text;
+            if(text === "full circle") chip.style.background = "var(--secondary)";
+
+            chip.onclick = () => {
+                if (chip.parentNode === bank) zone.appendChild(chip);
+                else bank.appendChild(chip);
+                playAzureAudio(text);
+            };
+            bank.appendChild(chip);
+        });
+    }
+
+    function checkSentence() {
+        const zone = document.getElementById('zone-1');
+        const answer = Array.from(zone.children).map(c => c.innerText).join(' ');
+
+        if (answer === correctSentence) {
+            zone.style.border = "3px solid var(--accent)";
+            playAzureAudio("Correct! The process has come full circle.");
+            document.getElementById('check-3').style.display = 'none';
+            document.getElementById('nav-next-page').style.display = 'inline-block';
+            Array.from(zone.children).forEach(c => c.onclick = null);
+        } else {
+            zone.style.border = "3px solid #c0392b";
+            playAzureAudio("Try again.");
+        }
+    }
+
+</script>
+
+</body>
+</html>
