@@ -411,12 +411,26 @@
             let nextStep = currentStep + direction;
             if (nextStep >= 1 && nextStep <= totalSteps) {
                 goToStep(nextStep);
+            } else if (currentStep === totalSteps && direction === 1) {
+                // 跳转到 page4_2.html
+                window.location.href = 'page4_2.html';
             }
         }
 
         function updateNavButtons() {
             document.getElementById('btnPrev').disabled = (currentStep === 1);
-            document.getElementById('btnNext').disabled = (currentStep === totalSteps);
+            
+            // 最后一页逻辑修改
+            const btnNext = document.getElementById('btnNext');
+            if (currentStep === totalSteps) {
+                btnNext.disabled = false; // 确保不禁用
+                btnNext.innerHTML = 'Go to Part 2 ❯';
+                btnNext.style.backgroundColor = '#27ae60'; // 可选：变成绿色提示跳转
+            } else {
+                btnNext.disabled = false;
+                btnNext.innerHTML = 'Next ❯';
+                btnNext.style.backgroundColor = ''; 
+            }
             
             // 移动端：当内容很多时（如Step3, Step6），自动滚动到顶部
             window.scrollTo({ top: 0, behavior: 'smooth' });
