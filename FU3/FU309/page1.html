@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Unit 3 - Travel Adventures | Page 1</title>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* 统一配色风格：梦幻极光紫蓝调 */
+            --bg-gradient: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+            --nav-bg: rgba(255, 255, 255, 0.85);
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --primary-color: #4a00e0;
+            --secondary-color: #8e2de2;
+            --accent-color: #ff6b6b;
+            --text-dark: #2d3436;
+            --text-light: #636e72;
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-image: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 导航栏 --- */
+        nav {
+            background: var(--nav-bg);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            text-decoration: none;
+            color: var(--text-light);
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .nav-btn:hover {
+            background-color: rgba(142, 45, 226, 0.1);
+            color: var(--primary-color);
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            color: white;
+            box-shadow: 0 4px 15px rgba(142, 45, 226, 0.4);
+        }
+
+        /* --- 主内容区 --- */
+        .main-container {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .content-card {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 1200px;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            display: flex;
+            gap: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        /* 左侧：图片展示 */
+        .left-panel {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .cover-image-wrapper {
+            width: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+
+        .cover-image-wrapper:hover { transform: translateY(-5px); }
+        .cover-image { width: 100%; height: auto; display: block; }
+
+        /* 右侧：问答交互 */
+        .right-panel {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .qa-block {
+            background: #fff;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--secondary-color);
+            transition: transform 0.2s;
+        }
+
+        .qa-block:hover { transform: translateY(-2px); }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .q-text {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        /* 按钮样式 */
+        .action-btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.05);
+            background: #ff5252;
+        }
+
+        .audio-btn {
+            background: white;
+            border: 2px solid var(--secondary-color);
+            color: var(--secondary-color);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .audio-btn:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .audio-btn.playing {
+            animation: pulse 1s infinite;
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        /* 答案区域 */
+        .answer-box {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ddd;
+            display: none;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: var(--text-dark);
+            animation: slideDown 0.4s ease-out;
+        }
+
+        .keyword-link {
+            color: var(--primary-color);
+            font-weight: bold;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            cursor: pointer;
+            background: rgba(74, 0, 224, 0.05);
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+
+        .keyword-link:hover { background: rgba(74, 0, 224, 0.15); }
+
+        /* 模态框 (Modal) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+            z-index: 2000; display: none; justify-content: center; align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            width: 90%; max-width: 900px; max-height: 90vh;
+            border-radius: 20px; padding: 30px;
+            position: relative; overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            animation: zoomIn 0.3s ease;
+        }
+
+        .close-modal {
+            position: absolute; top: 15px; right: 20px;
+            font-size: 1.5rem; cursor: pointer; color: #aaa;
+            background: #f1f2f6; width: 40px; height: 40px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        }
+
+        .close-modal:hover { background: var(--accent-color); color: white; }
+
+        /* 轮播图样式 */
+        .carousel-wrapper { position: relative; margin-top: 20px; border-radius: 12px; overflow: hidden; }
+        .carousel-img { width: 100%; height: 400px; object-fit: cover; display: block; }
+        .carousel-ctrl {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: rgba(0,0,0,0.5); color: white; border: none;
+            width: 50px; height: 50px; border-radius: 50%;
+            font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: 0.3s;
+        }
+        .carousel-ctrl:hover { background: var(--primary-color); }
+        .prev-btn { left: 15px; } .next-btn { right: 15px; }
+        
+        .carousel-info {
+            text-align: center; margin-top: 15px; font-weight: bold; color: var(--primary-color);
+        }
+
+        /* 动画关键帧 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(142, 45, 226, 0.7); } 70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(142, 45, 226, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(142, 45, 226, 0); } }
+
+        /* 响应式适配 */
+        @media (max-width: 900px) {
+            .content-card { flex-direction: column; padding: 20px; }
+            .nav-brand span { display: none; } /* 手机上隐藏 "Unit 3" 文字，只留图标或 Main Menu */
+            .nav-brand { font-size: 1rem; }
+            .nav-links { gap: 5px; }
+            .nav-btn { padding: 6px 12px; font-size: 0.85rem; }
+            .carousel-img { height: 250px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="main page.html" class="nav-brand">
+            <i class="fas fa-home"></i> <span>Unit 3</span>
+        </a>
+        <div class="nav-links">
+            <a href="main page.html" class="nav-btn">Menu</a>
+            <a href="page1.html" class="nav-btn active">Page 1</a>
+            <a href="page2.html" class="nav-btn">Page 2</a>
+            <a href="page3.html" class="nav-btn">Page 3</a>
+            <a href="page4.html" class="nav-btn">Page 4</a>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="content-card">
+            
+            <div class="left-panel">
+                <div class="cover-image-wrapper">
+                    <img src="images/Cover of the Unit 01.jpg" alt="Alberta Landscape" class="cover-image">
+                    <div style="padding: 15px; color: #666; font-style: italic; text-align: center;">
+                        Exploring the Great Outdoors
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                
+                <div class="qa-block" id="qa1">
+                    <div class="question-header">
+                        <h3 class="q-text">Q1: Where was the picture taken?</h3>
+                        <button class="audio-btn" onclick="playAudio('Where was the picture taken?', this)">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                    </div>
+                    <button class="action-btn" onclick="revealAnswer('ans1', 'qa2')">
+                        Show Answer <i class="fas fa-eye"></i>
+                    </button>
+                    
+                    <div id="ans1" class="answer-box">
+                        The picture was taken in <span class="keyword-link" onclick="showMapModal()">Alberta, Canada</span>.
+                        <div style="margin-top:10px; display:flex; align-items:center;">
+                            <button class="audio-btn" style="width:32px; height:32px; font-size:0.8rem;" onclick="playAudio('The picture was taken in Alberta, Canada. Alberta is a province in Western Canada. Its landscape encompasses mountains, prairies, desert badlands and vast coniferous forests.', this)">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                            <span style="font-size:0.9rem; color:#888; margin-left:10px;">(Click Alberta for details)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qa-block" id="qa2" style="display:none;">
+                    <div class="question-header">
+                        <h3 class="q-text">Q2: What weather phenomenon is shown?</h3>
+                        <button class="audio-btn" onclick="playAudio('What weather phenomenon is shown in the picture?', this)">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                    </div>
+                    <button class="action-btn" onclick="revealAnswer('ans2', 'qa3')">
+                        Show Answer <i class="fas fa-eye"></i>
+                    </button>
+                    
+                    <div id="ans2" class="answer-box">
+                        The picture shows the weather phenomenon called <span class="keyword-link" onclick="openAuroraGallery()">aurora borealis</span>.
+                        <div style="margin-top:10px;">
+                            <button class="audio-btn" style="width:32px; height:32px; font-size:0.8rem;" onclick="playAudio('The picture shows the weather phenomenon called aurora borealis.', this)">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qa-block" id="qa3" style="display:none;">
+                    <div class="question-header">
+                        <h3 class="q-text">Q3: Where can you watch aurora borealis?</h3>
+                        <button class="audio-btn" onclick="playAudio('Where can you watch aurora borealis in the world?', this)">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                    </div>
+                    <button class="action-btn" onclick="revealAnswer('ans3', null)">
+                        Show Answer <i class="fas fa-eye"></i>
+                    </button>
+                    
+                    <div id="ans3" class="answer-box">
+                        <p id="txt-q3" style="margin:0 0 10px 0;">The aurora borealis can be observed primarily in high-latitude regions near the Arctic Circle, including northern Norway, Sweden, Finland, Iceland, Alaska, Yukon and Northwest Territories, and parts of Russia’s Arctic regions.</p>
+                        <button class="audio-btn" style="width:32px; height:32px; font-size:0.8rem;" onclick="playAudio(document.getElementById('txt-q3').innerText, this)">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                        <img src="images/Aurora Borealis Area.jpg" style="width:100%; border-radius:10px; margin-top:15px; border:1px solid #eee;" alt="Map">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="generalModal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="close-modal" onclick="closeModalDirect()">&times;</div>
+            <h2 id="modal-title" style="color: var(--primary-color); margin-top:0;">Title</h2>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Azure Speech SDK 配置 ---
+        // 请在此处填写您的 Azure Key 和 Region
+        // 如果留空，系统会自动降级使用浏览器自带语音，确保页面不报错
+        const azureKey = ""; 
+        const azureRegion = ""; 
+        
+        let synthesizer;
+
+        function initSpeechSDK() {
+            if (typeof SpeechSDK !== 'undefined' && azureKey && azureRegion) {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                // 设置高品质神经语音 (Jenny 是非常自然的美式女声)
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+                synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+            }
+        }
+
+        // 页面加载完成后尝试初始化
+        window.onload = function() {
+            initSpeechSDK();
+        };
+
+        // 统一播放函数
+        function playAudio(text, btnElement) {
+            // 视觉反馈：按钮动画
+            if(btnElement) btnElement.classList.add('playing');
+
+            if (synthesizer) {
+                // 使用 Azure
+                synthesizer.speakTextAsync(
+                    text,
+                    result => {
+                        if(btnElement) btnElement.classList.remove('playing');
+                        synthesizer.close();
+                        synthesizer = undefined;
+                        initSpeechSDK(); // 重新初始化以便下次使用
+                    },
+                    error => {
+                        console.log("Azure error, falling back to browser TTS");
+                        browserSpeak(text, btnElement);
+                    }
+                );
+            } else {
+                // 降级方案：使用浏览器原生 TTS
+                browserSpeak(text, btnElement);
+            }
+        }
+
+        function browserSpeak(text, btnElement) {
+            window.speechSynthesis.cancel();
+            const ut = new SpeechSynthesisUtterance(text);
+            ut.lang = 'en-US';
+            ut.rate = 0.9;
+            ut.onend = () => { if(btnElement) btnElement.classList.remove('playing'); };
+            window.speechSynthesis.speak(ut);
+        }
+
+        // --- 2. 页面交互逻辑 ---
+
+        // 显示答案
+        function revealAnswer(ansId, nextBlockId) {
+            const ansDiv = document.getElementById(ansId);
+            ansDiv.style.display = 'block';
+            
+            if (nextBlockId) {
+                setTimeout(() => {
+                    const nextBlock = document.getElementById(nextBlockId);
+                    nextBlock.style.display = 'block';
+                    nextBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 600);
+            }
+        }
+
+        // 模态框逻辑
+        function closeModalDirect() {
+            document.getElementById('generalModal').style.display = 'none';
+            window.speechSynthesis.cancel();
+        }
+
+        function closeModal(e) {
+            if (e.target.id === 'generalModal') closeModalDirect();
+        }
+
+        // Alberta 地图展示
+        function showMapModal() {
+            const modal = document.getElementById('generalModal');
+            document.getElementById('modal-title').innerText = "Alberta, Canada";
+            
+            const content = `
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <img src="images/Albert, Canada.jpg" style="width:100%; border-radius:12px; object-fit:cover; height:250px;">
+                        <p style="text-align:center; color:#666;">Scenic View</p>
+                    </div>
+                    <div style="flex: 1; min-width: 300px;">
+                        <img src="images/Albert, Canada map.jpg" style="width:100%; border-radius:12px; object-fit:contain; height:250px; background:#f9f9f9;">
+                        <p style="text-align:center; color:#666;">Geographic Location</p>
+                    </div>
+                </div>
+                <div style="background:#f8f9fa; padding:20px; border-radius:12px; margin-top:20px; line-height:1.6; border-left:4px solid var(--primary-color);">
+                    Alberta is a province in Western Canada. Its landscape encompasses mountains, prairies, desert badlands and vast coniferous forests. It has more than 600 lakes, and rich mineral deposits.
+                </div>
+            `;
+            
+            document.getElementById('modal-body').innerHTML = content;
+            modal.style.display = 'flex';
+        }
+
+        // 极光图片轮播数据
+        const auroraData = [
+            { src: "images/Aurora Borealis in Finland.jpg", loc: "Finland" },
+            { src: "images/Aurora Borealis in Sweden.jpg", loc: "Sweden" },
+            { src: "images/Aurora Borealis in Iceland.jpg", loc: "Iceland" },
+            { src: "images/Aurora Borealis in Norway.jpg", loc: "Norway" }
+        ];
+        let auroraIdx = 0;
+
+        function openAuroraGallery() {
+            auroraIdx = 0;
+            renderCarousel();
+            document.getElementById('modal-title').innerText = "Aurora Viewing Spots";
+            document.getElementById('generalModal').style.display = 'flex';
+        }
+
+        function renderCarousel() {
+            const item = auroraData[auroraIdx];
+            const html = `
+                <div class="carousel-wrapper">
+                    <img src="${item.src}" class="carousel-img" alt="${item.loc}">
+                    <button class="carousel-ctrl prev-btn" onclick="moveSlide(-1)">&#10094;</button>
+                    <button class="carousel-ctrl next-btn" onclick="moveSlide(1)">&#10095;</button>
+                </div>
+                <div class="carousel-info">
+                    <span style="font-size:1.5rem; color:var(--secondary-color);">${item.loc}</span>
+                    <br>
+                    <span style="font-size:0.9rem; color:#aaa; letter-spacing:2px;">${auroraIdx + 1} / ${auroraData.length}</span>
+                </div>
+            `;
+            document.getElementById('modal-body').innerHTML = html;
+        }
+
+        function moveSlide(step) {
+            auroraIdx += step;
+            if (auroraIdx >= auroraData.length) auroraIdx = 0;
+            if (auroraIdx < 0) auroraIdx = auroraData.length - 1;
+            renderCarousel();
+        }
+
+    </script>
+</body>
+</html>

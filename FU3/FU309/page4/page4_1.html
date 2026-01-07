@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Alastair Humphreys - The Journey</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;600;800&family=Merriweather:ital@1&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22;
+            --glass: rgba(0, 0, 0, 0.4); /* 加深一点背景以适应各种屏幕亮度 */
+            --card-glass: rgba(255, 255, 255, 0.1);
+        }
+
+        /* 基础重置 */
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Poppins', sans-serif;
+            color: white;
+            min-height: 100vh;
+            /* 允许内容滚动，不再强制 hidden */
+            overflow-x: hidden;
+            overflow-y: auto;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* 独立的背景层，解决移动端 background-attachment: fixed 的兼容性问题 */
+        .bg-fixed {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('img_alastair_portrait.jpg') no-repeat center center;
+            background-size: cover;
+            z-index: -2;
+        }
+
+        .overlay-bg {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.3); 
+            z-index: -1;
+        }
+
+        /* 主容器 */
+        .container {
+            position: relative; z-index: 10;
+            width: 90%; max-width: 1000px;
+            
+            /* 玻璃拟态兼容写法 */
+            background: var(--glass);
+            -webkit-backdrop-filter: blur(5px); /* Safari 支持 */
+            backdrop-filter: blur(5px); 
+            
+            border-radius: 20px;
+            padding: 40px;
+            /* 底部留出空间给导航栏（如果导航栏绝对定位） */
+            padding-bottom: 80px; 
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            
+            /* 高度自适应 */
+            min-height: 600px;
+            margin: 20px 0; /* 防止贴边 */
+            
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: all 0.5s ease;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .step-section { display: none; width: 100%; text-align: center; }
+        .step-active { display: block; animation: fadeIn 0.8s; }
+
+        h1 { font-size: 3rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; line-height: 1.2; }
+        h2 { font-family: 'Merriweather', serif; color: #f0f0f0; font-weight: 400; margin-bottom: 30px; line-height: 1.4; }
+
+        /* 视频容器自适应 */
+        .video-wrapper {
+            width: 100%; max-width: 700px; margin: 0 auto 20px;
+            border: 4px solid var(--accent); border-radius: 10px; overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: black;
+            aspect-ratio: 16/9; /* 保持比例 */
+            display: flex; align-items: center; justify-content: center;
+        }
+        video { width: 100%; height: 100%; object-fit: contain; }
+
+        /* 卡片布局 - 默认 Flex */
+        .cards-row {
+            display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 20px;
+        }
+
+        .achieve-card {
+            width: 260px; 
+            height: 380px; 
+            border-radius: 15px;
+            position: relative; overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.4); 
+            transition: transform 0.3s;
+            /* 移动端防止卡片太大 */
+            max-width: 100%;
+        }
+        .achieve-card:hover { transform: translateY(-5px); }
+
+        .bg-cycle { background: url('cycling.jpg') center/cover; }
+        .bg-row { background: url('rowing.jpg') center/cover; }
+        .bg-walk { background: url('desert.jpg') center/cover; }
+
+        .card-inner {
+            background: rgba(0,0,0,0.6); 
+            height: 100%; width: 100%;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            padding: 15px; box-sizing: border-box;
+        }
+
+        .card-inner h3 { color: var(--accent); margin: 0 0 10px 0; font-size: 1.4rem; text-shadow: 1px 1px 2px black; }
+        
+        .blur-answer {
+            background: rgba(255,255,255,0.2);
+            color: transparent; text-shadow: 0 0 8px rgba(255,255,255,0.8);
+            padding: 8px 12px; border-radius: 5px; /* 增大点击区域 */
+            cursor: pointer; margin-top: 5px; border: 1px dashed #fff;
+            transition: 0.3s; user-select: none;
+            display: inline-block;
+        }
+        .blur-answer:hover { background: rgba(255,255,255,0.4); }
+        .revealed {
+            color: #2ecc71; text-shadow: none; background: rgba(0,0,0,0.6);
+            border: 1px solid #2ecc71; font-weight: bold;
+            animation: rubberBand 1s;
+        }
+
+        .qa-box { text-align: left; max-width: 900px; margin: 0 auto; width: 100%; }
+        .qa-item {
+            background: rgba(0,0,0,0.5); 
+            padding: 15px; margin-bottom: 10px; border-radius: 10px;
+            display: flex; flex-direction: column;
+            align-items: flex-start;
+            border-left: 4px solid var(--accent);
+        }
+        .qa-top-row {
+            display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 10px;
+        }
+        .qa-question { font-size: 1.1rem; flex: 1; }
+        
+        .qa-ans { 
+            display: none; 
+            color: #f1c40f; 
+            font-weight: bold; 
+            font-size: 1.1rem; 
+            margin-top: 10px; 
+            line-height: 1.4;
+        }
+        
+        .btn-main {
+            background: linear-gradient(45deg, #e67e22, #d35400);
+            border: none; color: white; padding: 12px 30px;
+            border-radius: 50px; font-size: 1.1rem; cursor: pointer;
+            margin-top: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            font-weight: 600; text-shadow: none;
+            /* 防止文字换行 */
+            white-space: nowrap; 
+        }
+        .btn-main:active { transform: scale(0.95); }
+        
+        .btn-reveal { background: #34495e; padding: 5px 15px; font-size: 0.9rem; margin-top:0; white-space: nowrap;}
+
+        .tts-icon {
+            cursor: pointer; background: rgba(0,0,0,0.3); border: 1px solid #fff;
+            color: white; border-radius: 50%; width: 32px; height: 32px;
+            margin-left: 8px; font-size: 1rem; vertical-align: middle;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+
+        .highlight-word {
+            font-size: 2rem; color: #e74c3c; font-weight: 800;
+            text-shadow: 2px 2px 0px black;
+            display: inline-block; word-break: break-all;
+        }
+
+        /* 底部导航栏 */
+        .nav-bar {
+            position: absolute;
+            bottom: 20px;
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.5);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 1rem;
+            display: flex; align-items: center; gap: 5px;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.3); }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* =========================================
+           移动端适配 (Media Queries)
+           ========================================= */
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 20px;
+                padding-bottom: 70px; /* 底部导航空间 */
+                min-height: auto; /* 让高度随内容撑开 */
+            }
+
+            h1 { font-size: 1.8rem; }
+            h2 { font-size: 1.1rem; margin-bottom: 20px; }
+
+            /* 卡片在手机上占满宽度并堆叠 */
+            .achieve-card {
+                width: 100%;
+                height: auto;
+                min-height: 250px;
+            }
+            .card-inner { padding: 20px; }
+
+            /* 问答调整 */
+            .qa-question { font-size: 1rem; }
+            .qa-ans { font-size: 1rem; }
+
+            /* 按钮适配 */
+            .btn-main { padding: 10px 20px; font-size: 1rem; width: 100%; white-space: normal; }
+            
+            /* 导航按钮变小 */
+            .nav-bar { width: 95%; bottom: 10px; }
+            .nav-btn { padding: 8px 15px; font-size: 0.9rem; }
+
+            /* 重点词汇缩小 */
+            .highlight-word { font-size: 1.5rem; }
+            
+            /* Big Reveal 框 */
+            #big-reveal p { font-size: 1rem !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-fixed"></div>
+    <div class="overlay-bg"></div>
+
+    <div class="container">
+        
+        <div id="step1" class="step-section step-active">
+            <h1 class="animate__animated animate__fadeInDown">
+                Alastair Humphreys <button class="tts-icon" onclick="speak('Alastair Humphreys')">🔊</button>
+            </h1>
+            <h2 class="animate__animated animate__fadeInUp">
+                Recall: Who is he? What does he do?
+                <button class="tts-icon" onclick="speak('Who is he? What does he do?')">🔊</button>
+            </h2>
+            <button class="btn-main animate__animated animate__pulse animate__infinite" onclick="goToStep(2)">
+                Watch Video to Recall 🎬
+            </button>
+        </div>
+
+        <div id="step2" class="step-section">
+            <div id="video-wrapper-1" class="video-wrapper">
+                <video id="mainVideo" controls playsinline>
+                    <source src="Microadventure - an introduction.mp4" type="video/mp4">
+                    <p style="color:red; background:white; padding:10px;">Video not supported.</p>
+                </video>
+            </div>
+            <p>Playing 0:00 - 0:33</p>
+            <button class="btn-main" id="btnAfterVid1" style="display:none" onclick="goToStep(3)">
+                Check Achievements 👉
+            </button>
+        </div>
+
+        <div id="step3" class="step-section">
+            <h2>What achievements did he complete?</h2>
+            <div class="cards-row">
+                <div class="achieve-card bg-cycle animate__animated animate__fadeInUp">
+                    <div class="card-inner">
+                        <h3>Cycling the World</h3>
+                        <p>How long did he spend?</p>
+                        <div class="blur-answer" onclick="reveal(this, '4 Years')">????</div>
+                        <p>What distance?</p>
+                        <div class="blur-answer" onclick="reveal(this, '46,000 Miles')">??????</div>
+                        <p>How many countries?</p>
+                        <div class="blur-answer" onclick="reveal(this, '60 Countries')">?? ?????????</div>
+                    </div>
+                </div>
+
+                <div class="achieve-card bg-row animate__animated animate__fadeInUp" style="animation-delay: 0.1s">
+                    <div class="card-inner">
+                        <h3>Rowing</h3>
+                        <p>Across which ocean?</p>
+                        <div class="blur-answer" onclick="reveal(this, 'Atlantic Ocean')">?????? ???</div>
+                    </div>
+                </div>
+
+                <div class="achieve-card bg-walk animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+                    <div class="card-inner">
+                        <h3>Walking</h3>
+                        <p>Walked through where?</p>
+                        <div class="blur-answer" onclick="reveal(this, 'Hot Deserts')">???????</div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-main" style="margin-top:30px;" onclick="goToStep(4)">
+                Summarize His Style 🤔
+            </button>
+        </div>
+
+        <div id="step4" class="step-section">
+            <h2>What kind of adventure does he like?</h2>
+            <p style="font-size:1.2rem;">Big adventure or small adventure?</p>
+            <div id="big-reveal" style="display:none; margin-top:20px; border: 2px solid var(--accent); padding:20px; border-radius:10px; background: rgba(0,0,0,0.5);">
+                <p>"He wasn't always talking about small trips."</p>
+                <p style="color: #f1c40f; font-size:1.4rem; font-weight:bold;">
+                    "He loved these BIG challenges in wild places." 
+                    <button class="tts-icon" onclick="speak('He loved these big challenges in wild places')">🔊</button>
+                </p>
+            </div>
+            <button id="btnShowBig" class="btn-main" onclick="revealBigAdv()">Show Answer</button>
+            <button id="btnNextToProb" class="btn-main" style="display:none; background:#2980b9;" onclick="goToStep(5)">
+                Next: The Problem ➡️
+            </button>
+        </div>
+
+        <div id="step5" class="step-section">
+            <h1 style="color:#e74c3c">However, he noticed a problem...</h1>
+            <div id="video-wrapper-2" class="video-wrapper">
+                </div>
+            <p>Playing 0:33 - 1:15</p>
+            <button class="btn-main" id="btnAfterVid2" style="display:none" onclick="goToStep(6)">
+                Analyze the Problem 👉
+            </button>
+        </div>
+
+        <div id="step6" class="step-section">
+            <h2>Understanding the Problem</h2>
+            <div class="qa-box">
+                <div class="qa-item animate__animated animate__fadeInUp">
+                    <div class="qa-top-row">
+                        <span class="qa-question">1. Do people like adventure?</span>
+                        <button class="btn-main btn-reveal" onclick="showQA(this)">Show</button>
+                    </div>
+                    <span class="qa-ans">Yes, they read websites and watch films about it, thinking they would love to do it.</span>
+                </div>
+                <div class="qa-item animate__animated animate__fadeInUp" style="animation-delay:0.1s">
+                    <div class="qa-top-row">
+                        <span class="qa-question">2. Do people start easily?</span>
+                        <button class="btn-main btn-reveal" onclick="showQA(this)">Show</button>
+                    </div>
+                    <span class="qa-ans" style="color:#e74c3c">No. There are so many things that stop people from crossing oceans or walking across deserts.</span>
+                </div>
+                <div class="qa-item animate__animated animate__fadeInUp" style="animation-delay:0.2s">
+                    <div class="qa-top-row">
+                        <span class="qa-question">3. What is the biggest problem?</span>
+                        <button class="btn-main btn-reveal" onclick="showQA(this)">Show</button>
+                    </div>
+                    <span class="qa-ans">The biggest problem is people don't know how to even start an adventure.</span>
+                </div>
+                <div class="qa-item animate__animated animate__fadeInUp" style="animation-delay:0.3s">
+                    <div class="qa-top-row">
+                        <span class="qa-question">4. Which adjective describes it?</span>
+                        <button class="btn-main btn-reveal" onclick="showQA(this, true)">Show</button>
+                    </div>
+                    <span class="qa-ans"><span class="highlight-word">DAUNTING</span></span>
+                </div>
+                <div class="qa-item animate__animated animate__fadeInUp" style="animation-delay:0.4s; border-left-color:#2ecc71;">
+                    <div class="qa-top-row">
+                        <span class="qa-question">5. What is his solution?</span>
+                        <button class="btn-main btn-reveal" onclick="showQA(this)">Show</button>
+                    </div>
+                    <span class="qa-ans" style="color:#2ecc71">He thought to himself: "What if I make it easy and short?" So there would be no excuse. That is the concept of Micro-adventure.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-bar">
+            <button id="btnPrev" class="nav-btn" onclick="moveStep(-1)">❮ Previous</button>
+            <button id="btnNext" class="nav-btn" onclick="moveStep(1)">Next ❯</button>
+        </div>
+
+    </div>
+
+    <script>
+        const video = document.getElementById('mainVideo');
+        const wrapper1 = document.getElementById('video-wrapper-1');
+        const wrapper2 = document.getElementById('video-wrapper-2');
+        let currentStep = 1;
+        const totalSteps = 6;
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            let msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'en-US';
+            msg.rate = 0.9;
+            window.speechSynthesis.speak(msg);
+        }
+
+        function moveStep(direction) {
+            let nextStep = currentStep + direction;
+            if (nextStep >= 1 && nextStep <= totalSteps) {
+                goToStep(nextStep);
+            }
+        }
+
+        function updateNavButtons() {
+            document.getElementById('btnPrev').disabled = (currentStep === 1);
+            document.getElementById('btnNext').disabled = (currentStep === totalSteps);
+            
+            // 移动端：当内容很多时（如Step3, Step6），自动滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function goToStep(stepNum) {
+            if(window.videoCheckInterval) clearInterval(window.videoCheckInterval);
+            
+            document.querySelectorAll('.step-section').forEach(el => el.classList.remove('step-active'));
+            document.getElementById('step' + stepNum).classList.add('step-active');
+            
+            currentStep = stepNum;
+            updateNavButtons();
+
+            // Video Logic
+            if(stepNum === 2) {
+                wrapper1.appendChild(video);
+                video.currentTime = 0;
+                let playPromise = video.play();
+                if (playPromise !== undefined) playPromise.catch(e => console.log("Autoplay blocked"));
+                checkVideoTime(33, 'btnAfterVid1');
+            } 
+            else if(stepNum === 5) {
+                wrapper2.appendChild(video);
+                video.currentTime = 33;
+                let playPromise = video.play();
+                if (playPromise !== undefined) playPromise.catch(e => console.log("Autoplay blocked"));
+                checkVideoTime(75, 'btnAfterVid2');
+            }
+            else {
+                video.pause();
+                if(!video.parentElement) {
+                    wrapper1.appendChild(video);
+                }
+            }
+        }
+
+        function checkVideoTime(endTime, btnId) {
+            if(window.videoCheckInterval) clearInterval(window.videoCheckInterval);
+            window.videoCheckInterval = setInterval(() => {
+                if(!video.paused && video.currentTime >= endTime) {
+                    video.pause();
+                    document.getElementById(btnId).style.display = 'inline-block';
+                    clearInterval(window.videoCheckInterval);
+                }
+            }, 500);
+        }
+
+        function reveal(el, text) {
+            if(!el.classList.contains('revealed')) {
+                el.innerText = text;
+                el.classList.remove('blur-answer');
+                el.classList.add('revealed');
+                speak(text);
+            }
+        }
+
+        function revealBigAdv() {
+            document.getElementById('big-reveal').style.display = 'block';
+            document.getElementById('big-reveal').classList.add('animate__animated', 'animate__zoomIn');
+            document.getElementById('btnShowBig').style.display = 'none';
+            document.getElementById('btnNextToProb').style.display = 'inline-block';
+            speak("He loved these big challenges in wild places.");
+        }
+
+        function showQA(btn, isDaunting = false) {
+            const topRow = btn.parentElement;
+            const ans = topRow.nextElementSibling;
+            
+            ans.style.display = 'block';
+            ans.classList.add('animate__animated', 'animate__fadeInLeft');
+            btn.style.display = 'none';
+            
+            if(isDaunting) speak('Daunting');
+            else speak(ans.innerText);
+        }
+        
+        updateNavButtons();
+    </script>
+</body>
+</html>

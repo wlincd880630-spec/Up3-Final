@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Unit 3 Vocab Lab (V8 Fixed)</title>
+    <title>Unit 3 Ultimate Vocab Lab (Pro)</title>
     
     <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -11,7 +11,6 @@
     <script src="https://cdn.staticfile.net/phosphor-icons/1.4.2/web/index.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
     
     <style>
         /* 基础重置 */
@@ -19,101 +18,60 @@
         
         body { 
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
-            color: #f1f5f9; 
+            color: #0f172a; 
             margin: 0; padding: 0;
             overflow-x: hidden;
-            background: #0f172a; 
+            background: #0f172a; /* Fallback */
         }
 
-        /* 动态背景 */
+        /* 动态极光背景 */
         .bg-animate { 
-            background: linear-gradient(-45deg, #020617, #1e1b4b, #172554, #0f172a); 
+            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #0f172a); 
             background-size: 400% 400%; 
             animation: gradient 20s ease infinite; 
-            min-height: 100vh; width: 100%; position: fixed; top: 0; left: 0; z-index: -1;
+            min-height: 100vh;
+            width: 100%;
+            position: fixed;
+            top: 0; left: 0; z-index: -1;
         }
         @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         
-        /* Home 按钮 */
+        /* Home 按钮样式 */
         .home-btn {
             position: fixed; top: 20px; left: 20px; z-index: 5000;
             background: rgba(255,255,255,0.1); color: #a5b4fc;
-            padding: 10px 20px; border-radius: 50px; text-decoration: none;
+            padding: 8px 16px; border-radius: 50px; text-decoration: none;
             font-weight: 700; border: 1px solid rgba(255,255,255,0.2);
             backdrop-filter: blur(10px); transition: 0.3s; display: flex; align-items: center; gap: 8px;
-            font-size: 0.9rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            font-size: 0.9rem; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        .home-btn:hover { background: #6366f1; color: white; transform: translateY(-2px); border-color: #818cf8; }
+        .home-btn:hover { background: #a5b4fc; color: #0f172a; transform: translateY(-2px); }
 
-        /* Teacher Mode Lock */
-        .teacher-lock {
-            position: fixed; top: 20px; left: 140px; z-index: 5000; cursor: pointer;
-            background: rgba(255, 255, 255, 0.1); color: #94a3b8;
-            width: 42px; height: 42px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(5px);
-            transition: all 0.3s ease;
+        /* 3D 翻转相关 */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        
+        /* 玻璃拟态 */
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.92); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255, 255, 255, 0.5); 
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5); 
         }
-        .teacher-lock:hover { background: #fbbf24; color: #000; border-color: #fbbf24; transform: scale(1.1); box-shadow: 0 0 15px rgba(251, 191, 36, 0.5); }
-        .teacher-active { background: #fbbf24 !important; color: #000 !important; box-shadow: 0 0 20px #fbbf24; border-color: #fbbf24;}
-
-        /* Teacher Nav */
-        .teacher-nav { 
-            position: fixed; top: 50%; right: 20px; transform: translateY(-50%); 
-            z-index: 6000; background: rgba(15, 23, 42, 0.95); 
-            backdrop-filter: blur(10px); padding: 20px; border-radius: 20px; 
-            border: 1px solid rgba(255,255,255,0.1); 
-            display: flex; flex-direction: column; gap: 12px; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8); min-width: 160px;
-        }
-        .tn-btn { background: rgba(255,255,255,0.05); color: #cbd5e1; border: none; padding: 12px 16px; border-radius: 12px; cursor: pointer; font-size: 0.9rem; text-align: left; transition: 0.2s; display: flex; align-items: center; gap: 12px; }
-        .tn-btn:hover { background: #4f46e5; color: white; transform: translateX(5px); }
-
-        /* 通用 UI */
-        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        
+        /* 动画 */
         .fade-in { animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
+        @keyframes shrink { from { width: 100%; } to { width: 0%; } }
+        .animate-shrink { animation: shrink 10s linear forwards; }
+
+        /* 滚动条优化 */
         .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-
-        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-        .animate-pulse-red { animation: pulseRed 1.5s infinite; }
-
-        /* 单词反馈样式 - 增强对比度 */
-        .word-feedback { display: inline-flex; flex-direction: column; align-items: center; margin-right: 8px; margin-bottom: 8px; vertical-align: top; }
-        .wf-text { font-size: 1.25rem; font-weight: 600; padding: 2px 6px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
-        .wf-score { font-size: 0.75rem; font-weight: bold; margin-top: 2px; }
-        
-        .wf-ok .wf-text { color: #4ade80; } 
-        .wf-ok .wf-score { color: #22c55e; }
-        .wf-mid .wf-text { color: #facc15; } 
-        .wf-mid .wf-score { color: #eab308; }
-        .wf-bad .wf-text { color: #f87171; border-bottom: 2px solid #ef4444; background: rgba(239, 68, 68, 0.1); } 
-        .wf-bad .wf-score { color: #ef4444; }
-        .wf-bad:hover .wf-text { background: rgba(239, 68, 68, 0.2); transform: scale(1.05); }
-        .wf-miss .wf-text { color: #94a3b8; text-decoration: line-through; opacity: 0.6; } 
-        .wf-miss .wf-score { display: none; }
-
-        /* 音素分析面板 */
-        .phoneme-box { 
-            margin-top: 15px; background: #020617; border-left: 4px solid #f87171; 
-            padding: 16px; border-radius: 0 12px 12px 0; animation: fadeIn 0.3s;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-        }
-        .ph-badge { 
-            display: inline-block; padding: 4px 8px; margin: 0 4px 4px 0; 
-            border-radius: 6px; font-family: monospace; font-size: 0.9rem; border: 1px solid;
-        }
-        .ph-good { background: rgba(22, 163, 74, 0.2); border-color: #16a34a; color: #4ade80; }
-        .ph-bad { background: rgba(220, 38, 38, 0.2); border-color: #dc2626; color: #f87171; font-weight: bold; }
-
-        /* Blind Mode Styles (Updated logic doesn't strictly need these but good for transition) */
-        .blind-word { color: transparent; background: rgba(255,255,255,0.15); border-bottom: 2px dashed #94a3b8; cursor: pointer; border-radius: 4px; padding: 0 4px; transition: 0.3s; }
-        .blind-word:hover { background: rgba(255,255,255,0.3); }
-        .revealed-word { color: #818cf8; background: transparent; border-bottom: none; animation: fadeIn 0.3s; padding: 0 4px; }
-
     </style>
 </head>
 <body>
@@ -126,59 +84,64 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const AZURE_KEY = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
-        const AZURE_REGION = "eastus2"; 
+        // ==========================================
+        // Azure Configuration
+        // ==========================================
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const azureRegion = "eastus2"; 
+        // ==========================================
 
         let synthesizer = null;
-        let recognizer = null;
 
-        // --- TTS (Fixed Speed Logic) ---
-        const playTTS = (text, rate, onStart, onEnd) => {
-            if (synthesizer) { try { synthesizer.close(); } catch(e){} synthesizer = null; }
-            window.speechSynthesis.cancel(); 
+        const speak = (text, onComplete) => {
+            // 1. Clean up previous
+            if (synthesizer) {
+                try { synthesizer.close(); } catch(e) {}
+                synthesizer = null;
+            }
+            if (!text) return;
+
+            // 2. Init Azure
             try {
-                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
-                speechConfig.speechSynthesisVoiceName = "en-US-AriaNeural"; 
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-AriaNeural"; // Upgraded Voice
+
                 const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
                 synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
                 
-                // FIXED: Convert decimal rate to percentage string for SSML
-                // 0.85 -> "-15%", 0.93 -> "-7%", 1.0 -> "+0%"
-                const pct = Math.round((rate - 1.0) * 100);
-                const rateStr = pct === 0 ? "+0%" : (pct > 0 ? `+${pct}%` : `${pct}%`);
-
-                const ssml = `
-                    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-                        <voice name="en-US-AriaNeural">
-                            <prosody rate="${rateStr}">
-                                ${text}
-                            </prosody>
-                        </voice>
-                    </speak>`;
-
-                if(onStart) onStart();
-                synthesizer.speakSsmlAsync(
-                    ssml, 
-                    res => { 
-                        if(onEnd) onEnd(); 
-                        synthesizer.close(); synthesizer = null; 
-                    }, 
-                    err => { 
-                        console.log(err); 
-                        if(onEnd) onEnd(); 
-                        synthesizer.close(); synthesizer = null; 
+                synthesizer.speakTextAsync(
+                    text,
+                    result => {
+                        if (onComplete) onComplete();
+                        synthesizer.close();
+                        synthesizer = null;
+                    },
+                    error => {
+                        console.error(error);
+                        synthesizer.close();
+                        synthesizer = null;
                     }
                 );
-            } catch (e) { console.error("TTS Error", e); if(onEnd) onEnd(); }
+            } catch (e) {
+                console.error("Azure Init Error:", e);
+                // Fallback
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'en-US';
+                window.speechSynthesis.speak(u);
+            }
         };
 
-        const stopAudio = () => {
-            if (synthesizer) { try { synthesizer.close(); } catch(e){} synthesizer = null; }
-            if (recognizer) { try { recognizer.stopContinuousRecognitionAsync(); recognizer.close(); } catch(e){} recognizer = null; }
+        const stopSpeech = () => {
+            if (synthesizer) {
+                try { synthesizer.close(); } catch(e) {}
+                synthesizer = null;
+            }
+            window.speechSynthesis.cancel();
         };
 
-        // Data Source
+        // --- 69 Words Database ---
         const VOCAB_SOURCE = [
+            // [Word, Syllables, CN, Definition, Ex1, Cn1, Ex2, Cn2, Ex3, Cn3, Hint3]
             ["Adventure", "ad-ven-ture", "冒险", "An exciting and possibly dangerous activity.", "Our journey through the Amazon rainforest was an incredible adventure.", "我们穿越亚马逊雨林的旅程是一次不可思议的冒险。", "Life is a daring adventure.", "生活是一场大胆的冒险。", "The camping trip turned into a real adventure when we got lost.", "当我们迷路时，露营旅行变成了一场真正的冒险。", "The camping trip turned into a real [exciting experience] when we got lost."],
             ["Micro", "mi-cro", "极小的", "Extremely small; relating to a small scale.", "We need a microscope to examine the micro organisms in the water.", "我们需要显微镜来检查水中的微生物。", "The micro economy focuses on individual consumers and businesses.", "微观经济关注个人消费者和企业。", "This camera lens allows you to take amazing micro photographs.", "这个相机镜头让你能拍出惊人的微距照片。", "This camera lens allows you to take amazing [extremely small] photographs."],
             ["Information", "in-for-ma-tion", "信息", "Facts provided or learned about something.", "Please read the brochure for more information about the course.", "请阅读小册子以获取有关课程的更多信息。", "The witness provided crucial information to the police investigation.", "证人向警方调查提供了关键信息。", "We live in an age where information is instantly accessible.", "我们生活在一个信息触手可及的时代。", "We live in an age where [knowledge and data] is instantly accessible."],
@@ -259,118 +222,34 @@
 
         const BATCH_SIZE = 15;
 
+        const cleanTarget = (str) => {
+            return str.toLowerCase()
+                .replace(/\b(sb|sth|somebody|something)\b/g, '')
+                .replace(/\+\s*adj\s*\+/g, '')
+                .replace(/from\s+doing/g, '')
+                .replace(/[^a-z ]/g, '') 
+                .replace(/\s+/g, ' ')
+                .trim();
+        };
+
         // --- Components ---
-const Dashboard = ({ onStart, onResume }) => {
+
+        const Dashboard = ({ onStart }) => {
             const batches = Math.ceil(FULL_VOCAB.length / BATCH_SIZE);
-            const saved = localStorage.getItem("unit3_vocab_progress");
-            
             return (
                 <div className="h-full w-full flex flex-col items-center justify-center p-6 overflow-y-auto custom-scroll">
-                    <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 drop-shadow-xl text-center tracking-tight">Unit 3 Vocab Lab</h1>
-                    
-                    {/* 积分规则与使用说明面板 (Updated) */}
-                    <div className="glass-panel p-6 rounded-2xl mb-8 border border-white/30 text-slate-200 max-w-5xl w-full text-left shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-yellow-400 border-b border-white/10 pb-4">
-                            <i className="ph ph-info"></i> 学习指南与积分规则
-                        </h2>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base">
-                            
-                            {/* 左侧：基础学习环节 */}
-                            <div className="space-y-6">
-                                <div>
-                                    <h3 className="font-bold text-indigo-400 text-lg flex items-center gap-2 mb-2"><i className="ph ph-cards"></i> 1. 闪卡 (Flashcards)</h3>
-                                    <p className="text-slate-400 text-sm mb-2">学习单词的拼写、音标及多个例句。</p>
-                                    <ul className="list-disc list-inside text-xs text-slate-300 space-y-1 bg-slate-900/30 p-3 rounded-lg">
-                                        <li>点击 <i className="ph ph-speaker-high inline"></i> 听发音: <span className="text-green-400 font-bold">+2分</span> (每个词限一次)</li>
-                                        <li>使用 <i className="ph ph-eye-closed inline"></i> 盲读模式: <span className="text-green-400 font-bold">+2分</span> (每个例句限一次)</li>
-                                        <li>快速浏览或停留过久可能会有微小扣分/加分。</li>
-                                    </ul>
-                                </div>
-
-                                <div>
-                                    <h3 className="font-bold text-indigo-400 text-lg flex items-center gap-2 mb-2"><i className="ph ph-puzzle-piece"></i> 2. 配对 (Match)</h3>
-                                    <p className="text-slate-400 text-sm mb-2">消除游戏，将单词与其英文释义配对。</p>
-                                    <ul className="list-disc list-inside text-xs text-slate-300 space-y-1 bg-slate-900/30 p-3 rounded-lg">
-                                        <li>配对正确: <span className="text-green-400 font-bold">+2分</span></li>
-                                        <li>配对错误: <span className="text-red-400 font-bold">-1分</span> (请看准再点)</li>
-                                    </ul>
-                                </div>
-
-                                <div>
-                                    <h3 className="font-bold text-indigo-400 text-lg flex items-center gap-2 mb-2"><i className="ph ph-headphones"></i> 3. 听写 (Dictation)</h3>
-                                    <p className="text-slate-400 text-sm mb-2">听单词发音，在输入框中正确拼写。</p>
-                                    <ul className="list-disc list-inside text-xs text-slate-300 space-y-1 bg-slate-900/30 p-3 rounded-lg">
-                                        <li>拼写正确: <span className="text-green-400 font-bold">+5分</span></li>
-                                        <li>拼写错误: <span className="text-red-400 font-bold">-1分</span> (错误5次后强制重置)</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            {/* 右侧：进阶与语音环节 */}
-                            <div className="space-y-6">
-                                <div>
-                                    <h3 className="font-bold text-indigo-400 text-lg flex items-center gap-2 mb-2"><i className="ph ph-sort-ascending"></i> 4. 组句 (Unscramble)</h3>
-                                    <p className="text-slate-400 text-sm mb-2">将打乱顺序的单词重组为正确的例句。</p>
-                                    <ul className="list-disc list-inside text-xs text-slate-300 space-y-1 bg-slate-900/30 p-3 rounded-lg">
-                                        <li>正确完成: <span className="text-green-400 font-bold">+10分</span></li>
-                                        <li>使用提示 (Hint): <span className="text-red-400 font-bold">-15分</span> (慎用!)</li>
-                                        <li>听原句 (Listen): <span className="text-red-400 font-bold">-10分</span></li>
-                                    </ul>
-                                </div>
-
-                                <div>
-                                    <h3 className="font-bold text-indigo-400 text-lg flex items-center gap-2 mb-2"><i className="ph ph-microphone-stage"></i> 5. 语音评测 (Shadowing)</h3>
-                                    <p className="text-slate-400 text-sm mb-2">大声朗读例句，Azure AI 将从准确度、流利度等多维度评分。</p>
-                                    
-                                    <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-600">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-bold text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded border border-yellow-400/20">Up Star 奖励规则</span>
-                                            <span className="text-[10px] text-slate-400">仅首通有效</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-300 font-mono">
-                                            <div className="flex justify-between border-b border-white/5 pb-1"><span>68-70分</span> <span className="text-green-400 font-bold">+5</span></div>
-                                            <div className="flex justify-between border-b border-white/5 pb-1"><span>71-75分</span> <span className="text-green-400 font-bold">+8</span></div>
-                                            <div className="flex justify-between border-b border-white/5 pb-1"><span>76-80分</span> <span className="text-green-400 font-bold">+10</span></div>
-                                            <div className="flex justify-between border-b border-white/5 pb-1"><span>81-85分</span> <span className="text-green-400 font-bold">+12</span></div>
-                                            <div className="flex justify-between border-b border-white/5 pb-1"><span>86-90分</span> <span className="text-green-400 font-bold">+15</span></div>
-                                            <div className="flex justify-between border-b border-white/5 pb-1"><span>91-95分</span> <span className="text-green-400 font-bold">+17</span></div>
-                                            <div className="flex justify-between border-b border-white/5 pb-1"><span>96-100分</span> <span className="text-green-400 font-bold">+20</span></div>
-                                        </div>
-                                        <div className="mt-3 text-xs text-red-400 bg-red-400/10 p-2 rounded border border-red-400/20 flex items-start gap-2">
-                                            <i className="ph ph-warning-circle text-lg shrink-0"></i>
-                                            <span><strong>未达标惩罚：</strong> 如果得分低于 68 分，将扣除 10 分，直至朗读合格通关。</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="mt-8 pt-4 border-t border-white/10 text-center text-sm text-slate-400 italic">
-                            请在完成所有 Batch 后，截图“Summary 总结页面”发送给 Steven 老师以兑换奖励。
-                        </div>
+                    <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-2 drop-shadow-xl text-center tracking-tight">Unit 3 Vocab Lab</h1>
+                    <div className="glass-panel p-6 rounded-2xl mb-8 border border-white/30 text-slate-700 max-w-2xl text-center shadow-lg">
+                        <h2 className="text-2xl font-bold mb-2 flex items-center justify-center gap-2"><i className="ph ph-star-fill text-yellow-500"></i> 积分规则</h2>
+                        <p className="text-lg opacity-90">学习每组词汇均累计积分。<br/>每组完成后，请<span className="font-bold text-indigo-600">截图</span>发送给 <strong className="text-indigo-600">Steven</strong> 兑换 Up Star。</p>
                     </div>
-
-                    {/* 按钮区域 */}
-                    {saved && (
-                        <button onClick={onResume} className="mb-8 px-8 py-4 bg-green-600 text-white rounded-full font-bold text-xl shadow-lg hover:bg-green-500 transition animate-bounce w-full max-w-md border-4 border-green-700/30">
-                            <i className="ph ph-play-circle mr-2"></i> 继续上次进度 (Resume)
-                        </button>
-                    )}
-                    
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl pb-24">
                         {Array.from({ length: batches }).map((_, i) => (
-                            <button key={i} onClick={() => onStart(i)} className="group bg-slate-800/80 hover:bg-slate-700 rounded-3xl p-6 shadow-xl transition-all duration-300 transform hover:-translate-y-2 text-left relative overflow-hidden border border-white/5 hover:border-indigo-500/50">
-                                <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-20 transition"><i className="ph ph-trophy text-9xl text-indigo-400"></i></div>
-                                <div className="relative z-10">
-                                    <h3 className="text-2xl font-bold text-slate-100 mb-1">Batch {i + 1}</h3>
-                                    <p className="text-indigo-400 font-medium text-sm mb-4">Words {i * BATCH_SIZE + 1} - {Math.min((i + 1) * BATCH_SIZE, FULL_VOCAB.length)}</p>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-slate-500 bg-slate-900 px-2 py-1 rounded">{(i < batches -1) ? BATCH_SIZE : (FULL_VOCAB.length - i*BATCH_SIZE)} words</span>
-                                        <div className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-full font-bold text-xs shadow-lg group-hover:bg-indigo-500 transition">Start <i className="ph ph-arrow-right ml-1"></i></div>
-                                    </div>
-                                </div>
+                            <button key={i} onClick={() => onStart(i)} className="group bg-white/90 hover:bg-white rounded-3xl p-8 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 text-left relative overflow-hidden border-4 border-transparent hover:border-indigo-300">
+                                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition"><i className="ph ph-trophy text-9xl text-indigo-900"></i></div>
+                                <h3 className="text-3xl font-bold text-slate-800 mb-2">Batch {i + 1}</h3>
+                                <p className="text-slate-500 font-medium text-lg mb-6">Words {i * BATCH_SIZE + 1} - {Math.min((i + 1) * BATCH_SIZE, FULL_VOCAB.length)}</p>
+                                <div className="inline-flex items-center px-6 py-2 bg-indigo-600 text-white rounded-full font-bold text-sm shadow-lg group-hover:bg-indigo-700 transition">Start Challenge</div>
                             </button>
                         ))}
                     </div>
@@ -378,21 +257,8 @@ const Dashboard = ({ onStart, onResume }) => {
             );
         };
 
-        const TeacherNav = ({ setMode }) => {
-            return (
-                <div className="teacher-nav fade-in">
-                    <h4>Teacher Nav</h4>
-                    <button onClick={()=>setMode('flash')} className="tn-btn"><i className="ph ph-cards"></i> Flashcards</button>
-                    <button onClick={()=>setMode('match')} className="tn-btn"><i className="ph ph-puzzle-piece"></i> Match</button>
-                    <button onClick={()=>setMode('dictation')} className="tn-btn"><i className="ph ph-headphones"></i> Dictation</button>
-                    <button onClick={()=>setMode('unscramble')} className="tn-btn"><i className="ph ph-sort-ascending"></i> Unscramble</button>
-                    <button onClick={()=>setMode('shadowing')} className="tn-btn"><i className="ph ph-microphone-stage"></i> Shadowing</button>
-                </div>
-            );
-        };
-
-        const Flashcards = ({ words, onNextModule, updateScore, score, initialIdx, saveProgress }) => {
-            const [idx, setIdx] = useState(initialIdx || 0);
+        const Flashcards = ({ words, onNextModule, updateScore, score }) => {
+            const [idx, setIdx] = useState(0);
             const [flipped, setFlipped] = useState(false);
             const [paidTTS, setPaidTTS] = useState(new Set()); 
             const [paidBlind, setPaidBlind] = useState(new Set()); 
@@ -405,12 +271,11 @@ const Dashboard = ({ onStart, onResume }) => {
                 setPaidTTS(new Set()); 
                 setPaidBlind(new Set());
                 setBlindStates(new Set());
-                stopAudio();
-                saveProgress('flash', idx);
+                stopSpeech();
             }, [idx]);
 
             const handleTTS = (text, id) => {
-                playTTS(text, 1.0);
+                speak(text);
                 if (!paidTTS.has(id)) {
                     updateScore(2); 
                     setPaidTTS(prev => new Set(prev).add(id));
@@ -434,7 +299,7 @@ const Dashboard = ({ onStart, onResume }) => {
                 if (duration < 30) updateScore(-5);
                 else if (duration > 60) updateScore(5);
 
-                stopAudio();
+                stopSpeech();
                 setFlipped(false);
                 setTimeout(() => {
                     if (idx < words.length - 1) setIdx(idx + 1);
@@ -455,30 +320,30 @@ const Dashboard = ({ onStart, onResume }) => {
                     <div className="flex-1 perspective-1000 relative group cursor-pointer mb-6" onClick={() => setFlipped(!flipped)}>
                         <div className={`w-full h-full min-h-[500px] duration-500 transform-style-3d transition-transform ${flipped ? 'rotate-y-180' : ''}`}>
                             <div className="absolute w-full h-full backface-hidden glass-panel rounded-[2rem] flex flex-col items-center justify-center p-10 border-b-[12px] border-indigo-500 shadow-2xl">
-                                <span className="text-indigo-300 font-mono text-2xl mb-6 uppercase tracking-widest bg-indigo-900/50 px-4 py-1 rounded-lg">{w.syl}</span>
-                                <h1 className="text-6xl md:text-8xl font-bold text-slate-100 text-center leading-tight break-words">{w.w}</h1>
+                                <span className="text-indigo-600 font-mono text-2xl mb-6 uppercase tracking-widest bg-indigo-50 px-4 py-1 rounded-lg">{w.syl}</span>
+                                <h1 className="text-6xl md:text-8xl font-bold text-slate-800 text-center leading-tight break-words">{w.w}</h1>
                                 <p className="text-slate-400 mt-12 text-base font-medium animate-pulse flex items-center gap-2"><i className="ph ph-hand-tap"></i> Tap to flip</p>
                             </div>
-                            <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-slate-900 rounded-[2rem] flex flex-col p-6 md:p-12 border-b-[12px] border-pink-500 overflow-y-auto custom-scroll shadow-2xl" onClick={e=>e.stopPropagation()}>
-                                <div className="flex justify-between items-start mb-8 border-b border-slate-700 pb-6">
-                                    <div><h2 className="text-4xl md:text-5xl font-bold text-slate-100 mb-2">{w.cn}</h2><p className="text-slate-400 text-lg md:text-xl font-medium leading-relaxed max-w-2xl">{w.def}</p></div>
-                                    <button onClick={(e) => { e.stopPropagation(); handleTTS(w.w, 'main'); }} className={`p-4 rounded-full transition transform hover:scale-105 shadow-md ${paidTTS.has('main') ? 'bg-gray-700 text-gray-500' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}>
+                            <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-white rounded-[2rem] flex flex-col p-6 md:p-12 border-b-[12px] border-pink-500 overflow-y-auto custom-scroll shadow-2xl" onClick={e=>e.stopPropagation()}>
+                                <div className="flex justify-between items-start mb-8 border-b pb-6">
+                                    <div><h2 className="text-4xl md:text-5xl font-bold text-slate-800 mb-2">{w.cn}</h2><p className="text-slate-600 text-lg md:text-xl font-medium leading-relaxed max-w-2xl">{w.def}</p></div>
+                                    <button onClick={(e) => { e.stopPropagation(); handleTTS(w.w, 'main'); }} className={`p-4 rounded-full transition transform hover:scale-105 shadow-md ${paidTTS.has('main') ? 'bg-gray-200 text-gray-500' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'}`}>
                                         <i className="ph ph-speaker-high text-3xl"></i>
                                     </button>
                                 </div>
                                 <div className="space-y-6">
                                     {[{t:"Context A", e:w.exA, c:w.cnA, col:"blue", id:"exA"},{t:"Context B", e:w.exB, c:w.cnB, col:"purple", id:"exB"},{t:"Context C", e:w.exC, c:w.cnC, col:"pink", id:"exC"}].map((x, i) => (
-                                        <div key={i} className={`p-5 rounded-2xl bg-slate-800 border border-slate-700 flex gap-4 items-start hover:bg-slate-750 transition`}>
+                                        <div key={i} className={`p-5 rounded-2xl bg-${x.col}-50 border border-${x.col}-100 flex gap-4 items-start hover:shadow-md transition`}>
                                             <div className="flex flex-col gap-2 shrink-0">
-                                                <button onClick={(e) => { e.stopPropagation(); handleTTS(x.e, x.id); }} className={`p-3 rounded-full shadow hover:scale-110 transition ${paidTTS.has(x.id) ? 'bg-gray-700 text-gray-500' : 'bg-slate-600 text-white'}`}>
+                                                <button onClick={(e) => { e.stopPropagation(); handleTTS(x.e, x.id); }} className={`p-3 rounded-full shadow hover:scale-110 transition ${paidTTS.has(x.id) ? 'bg-gray-200 text-gray-400' : 'bg-white text-'+x.col+'-600'}`}>
                                                     <i className="ph ph-speaker-simple-high text-xl"></i>
                                                 </button>
-                                                <button onClick={(e) => { e.stopPropagation(); toggleBlind(x.id); }} className={`p-3 rounded-full shadow hover:scale-110 transition ${paidBlind.has(x.id) ? 'bg-gray-700 text-gray-500' : 'bg-slate-600 text-white'}`} title="Blind Shadowing (+2pts)">
+                                                <button onClick={(e) => { e.stopPropagation(); toggleBlind(x.id); }} className={`p-3 rounded-full shadow hover:scale-110 transition ${paidBlind.has(x.id) ? 'bg-gray-200 text-gray-400' : 'bg-white text-gray-700'}`} title="Blind Shadowing (+2pts)">
                                                     <i className={`ph ${blindStates.has(x.id) ? 'ph-eye-closed' : 'ph-eye'} text-xl`}></i>
                                                 </button>
                                             </div>
                                             <div className="flex-1">
-                                                <p className={`serif text-lg md:text-xl text-slate-200 leading-relaxed font-medium transition-all duration-300 ${blindStates.has(x.id) ? 'opacity-0 select-none blur-sm' : 'opacity-100'}`}>{x.e}</p>
+                                                <p className={`serif text-lg md:text-xl text-slate-800 leading-relaxed font-medium transition-all duration-300 ${blindStates.has(x.id) ? 'opacity-0 select-none blur-sm' : 'opacity-100'}`}>{x.e}</p>
                                                 <p className="text-base text-slate-500 mt-2 font-bold">{x.c}</p>
                                             </div>
                                         </div>
@@ -487,12 +352,12 @@ const Dashboard = ({ onStart, onResume }) => {
                             </div>
                         </div>
                     </div>
-                    <button onClick={next} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold text-2xl shadow-xl hover:bg-indigo-500 transition transform hover:scale-[1.01]">{idx === words.length - 1 ? "Start Matching" : "Next Word"}</button>
+                    <button onClick={next} className="w-full bg-white text-indigo-700 py-5 rounded-2xl font-bold text-2xl shadow-xl hover:scale-[1.01] hover:shadow-2xl transition transform">{idx === words.length - 1 ? "Start Matching" : "Next Word"}</button>
                 </div>
             );
         };
 
-        const Match = ({ words, onNextModule, updateScore, score, saveProgress }) => {
+        const Match = ({ words, onNextModule, updateScore, score }) => {
             const [items, setItems] = useState([]);
             const [sel, setSel] = useState([]);
             const [mat, setMat] = useState([]);
@@ -500,7 +365,6 @@ const Dashboard = ({ onStart, onResume }) => {
             useEffect(() => {
                 const pairs = words.flatMap(w => [{ id:w.id, t:w.w, type:'w' }, { id:w.id, t:w.def, type:'d' }]).sort(() => Math.random() - 0.5);
                 setItems(pairs);
-                saveProgress('match', 0);
             }, [words]);
 
             const click = (i) => {
@@ -533,7 +397,7 @@ const Dashboard = ({ onStart, onResume }) => {
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
                             {items.map((it, i) => {
                                 const isSel = sel.includes(i); const isMat = mat.includes(it.id);
-                                let cls = "bg-slate-800 text-slate-200 hover:bg-slate-700 border-2 border-transparent";
+                                let cls = "bg-white/90 text-slate-700 hover:bg-white border-2 border-transparent";
                                 if (isSel) cls = "bg-indigo-600 text-white shadow-2xl scale-105 z-10 border-indigo-300";
                                 if (isMat) cls = "opacity-0 pointer-events-none scale-0";
                                 return <button key={i} onClick={() => click(i)} className={`min-h-[120px] p-4 rounded-2xl shadow-lg transition-all duration-300 flex items-center justify-center text-center ${cls}`}><span className={it.type==='w'?'font-bold text-xl':'text-sm font-medium leading-snug'}>{it.t}</span></button>;
@@ -544,8 +408,8 @@ const Dashboard = ({ onStart, onResume }) => {
             );
         };
 
-        const Dictation = ({ words, onNextModule, updateScore, score, initialIdx, saveProgress }) => {
-            const [idx, setIdx] = useState(initialIdx || 0);
+        const Dictation = ({ words, onNextModule, updateScore, score }) => {
+            const [idx, setIdx] = useState(0);
             const [val, setVal] = useState("");
             const [err, setErr] = useState(0);
             const [st, setSt] = useState('idle');
@@ -556,9 +420,9 @@ const Dashboard = ({ onStart, onResume }) => {
 
             const playDictation = () => {
                 setBtnText("...");
-                playTTS(w.w, 1.0, null, () => {
+                speak(w.w, () => {
                     setTimeout(() => {
-                        playTTS(w.w, 1.0, null, () => {
+                        speak(w.w, () => {
                             setBtnText("Play Again");
                         });
                     }, 300);
@@ -567,10 +431,9 @@ const Dashboard = ({ onStart, onResume }) => {
 
             useEffect(() => {
                 setVal(""); setErr(0); setSt('idle'); setIsRetry(false); setIsResetting(false);
-                stopAudio();
-                saveProgress('dictation', idx);
+                stopSpeech();
                 setTimeout(playDictation, 500);
-                return () => stopAudio();
+                return () => stopSpeech();
             }, [idx]);
 
             const check = (e) => {
@@ -581,14 +444,14 @@ const Dashboard = ({ onStart, onResume }) => {
                 const target = w.w.toLowerCase().trim();
 
                 if (cleanInput === target) {
-                    setSt('ok'); stopAudio(); playTTS("Correct!", 1.2);
+                    setSt('ok'); stopSpeech(); speak("Correct!");
                     if (!isRetry) updateScore(5); 
                     setTimeout(() => { if(idx < words.length-1) setIdx(idx+1); else onNextModule(); }, 800);
                 } else {
                     const newErr = err + 1;
                     setErr(newErr);
                     setSt('no'); updateScore(-1); 
-                    stopAudio(); playTTS("Try again", 1.2);
+                    stopSpeech(); speak("Try again");
 
                     if (newErr >= 5) {
                         setIsResetting(true);
@@ -611,29 +474,29 @@ const Dashboard = ({ onStart, onResume }) => {
 
                     <div className="glass-panel rounded-[2.5rem] p-12 shadow-2xl w-full text-center relative overflow-hidden">
                         {isResetting && (
-                            <div className="absolute inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center">
+                            <div className="absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center">
                                 <div className="text-red-500 font-bold text-3xl mb-4">Too many errors!</div>
-                                <div className="text-indigo-400 text-5xl font-bold mb-8">{w.w}</div>
+                                <div className="text-indigo-600 text-5xl font-bold mb-8">{w.w}</div>
                                 <p className="mt-4 text-slate-400">Retry in 5s (0 pts)</p>
                             </div>
                         )}
-                        <div className="absolute top-0 left-0 h-2 bg-indigo-900 w-full"><div className="h-full bg-indigo-500 transition-all duration-500" style={{width: `${(idx/words.length)*100}%`}}></div></div>
+                        <div className="absolute top-0 left-0 h-2 bg-indigo-100 w-full"><div className="h-full bg-indigo-500 transition-all duration-500" style={{width: `${(idx/words.length)*100}%`}}></div></div>
                         
-                        <button onClick={playDictation} className="w-24 h-24 rounded-full bg-indigo-600 text-white shadow-xl flex flex-col items-center justify-center mx-auto mb-10 hover:scale-110 transition border-4 border-white ring-4 ring-indigo-400">
+                        <button onClick={playDictation} className="w-24 h-24 rounded-full bg-indigo-600 text-white shadow-xl flex flex-col items-center justify-center mx-auto mb-10 hover:scale-110 transition border-4 border-white ring-4 ring-indigo-200">
                             <i className="ph ph-speaker-high text-3xl mb-1"></i>
                             <span className="text-[10px] font-bold opacity-80">{btnText}</span>
                         </button>
                         
                         <form onSubmit={check}>
-                            <input autoFocus value={val} onChange={e => setVal(e.target.value)} className={`w-full text-center text-5xl font-bold py-6 border-b-4 bg-transparent outline-none tracking-wide transition-colors ${st==='ok'?'border-green-500 text-green-500':st==='no'?'border-red-500 text-red-500':'border-slate-500 focus:border-indigo-500 text-slate-200'}`} placeholder="Type the word..." />
+                            <input autoFocus value={val} onChange={e => setVal(e.target.value)} className={`w-full text-center text-5xl font-bold py-6 border-b-4 bg-transparent outline-none tracking-wide transition-colors ${st==='ok'?'border-green-500 text-green-600':st==='no'?'border-red-500 text-red-500':'border-slate-300 focus:border-indigo-500 text-slate-800'}`} placeholder="Type the word..." />
                         </form>
                     </div>
                 </div>
             );
         };
 
-        const Unscramble = ({ words, onNextModule, updateScore, score, initialIdx, saveProgress }) => {
-            const [idx, setIdx] = useState(initialIdx || 0);
+        const Unscramble = ({ words, onNextModule, updateScore, score }) => {
+            const [idx, setIdx] = useState(0);
             const [parts, setParts] = useState([]);
             const [ord, setOrd] = useState([]);
             const [potential, setPotential] = useState(10);
@@ -641,7 +504,7 @@ const Dashboard = ({ onStart, onResume }) => {
             const [isResetting, setIsResetting] = useState(false);
             const w = words[idx]; const sen = w.exB;
 
-            useEffect(() => { resetBoard(); stopAudio(); saveProgress('unscramble', idx); }, [idx]);
+            useEffect(() => { resetBoard(); stopSpeech(); }, [idx]);
 
             const resetBoard = () => {
                 setParts(sen.replace(/[.,!?;]/g,'').split(' ').sort(()=>Math.random()-0.5).map((t,i)=>({id:i,t})));
@@ -657,13 +520,13 @@ const Dashboard = ({ onStart, onResume }) => {
 
             const check = () => { 
                 if (ord.map(o=>o.t).join(' ') === sen.replace(/[.,!?;]/g,'')) { 
-                    playTTS("Excellent", 1.2); 
+                    speak("Excellent"); 
                     updateScore(potential); 
                     setTimeout(() => { if(idx<words.length-1) setIdx(idx+1); else onNextModule(); }, 800); 
                 } else { 
                     const newFail = fail + 1;
                     setFail(newFail);
-                    playTTS("Wrong", 1.2); 
+                    speak("Wrong"); 
                     setPotential(Math.max(0, potential - 2));
 
                     if (newFail >= 5) {
@@ -686,22 +549,22 @@ const Dashboard = ({ onStart, onResume }) => {
 
                     <div className="glass-panel rounded-[2rem] p-8 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
                         {isResetting && (
-                            <div className="absolute inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center">
+                            <div className="absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center">
                                 <div className="text-red-500 font-bold text-2xl mb-4">Correct Answer:</div>
-                                <div className="text-green-400 text-2xl font-bold text-center p-4">{sen}</div>
-                                <p className="mt-4 text-slate-400">Resetting...</p>
+                                <div className="text-green-600 text-2xl font-bold text-center p-4">{sen}</div>
+                                <p className="text-slate-400 mt-8">Resetting...</p>
                             </div>
                         )}
-                        <div className="text-center mb-6 border-b border-slate-600 pb-6"><h3 className="text-3xl font-bold text-indigo-400 mb-2">{w.w}</h3><p className="text-slate-400 font-medium text-lg">{w.cnB}</p></div>
-                        <div className="bg-slate-800/50 rounded-2xl p-6 min-h-[120px] flex flex-wrap gap-3 justify-center items-center border-2 border-dashed border-slate-600 mb-6 shadow-inner">
+                        <div className="text-center mb-6 border-b border-slate-200 pb-6"><h3 className="text-3xl font-bold text-indigo-700 mb-2">{w.w}</h3><p className="text-slate-500 font-medium text-lg">{w.cnB}</p></div>
+                        <div className="bg-slate-50/50 rounded-2xl p-6 min-h-[120px] flex flex-wrap gap-3 justify-center items-center border-2 border-dashed border-slate-300 mb-6 shadow-inner">
                             {ord.map(x=><button key={x.id} onClick={()=>{if(!isResetting){setOrd(ord.filter(o=>o.id!==x.id)); setParts([...parts,x])}}} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg hover:bg-red-500 transition animate-pop">{x.t}</button>)}
                         </div>
                         <div className="flex flex-wrap gap-3 justify-center mb-auto">
-                            {parts.map(x=><button key={x.id} onClick={()=>{if(!isResetting){setParts(parts.filter(p=>p.id!==x.id)); setOrd([...ord,x])}}} className="bg-slate-700 border border-slate-600 px-4 py-3 rounded-xl shadow-sm hover:border-indigo-500 hover:shadow-md text-lg font-medium transition text-slate-200">{x.t}</button>)}
+                            {parts.map(x=><button key={x.id} onClick={()=>{if(!isResetting){setParts(parts.filter(p=>p.id!==x.id)); setOrd([...ord,x])}}} className="bg-white border border-slate-200 px-4 py-3 rounded-xl shadow-sm hover:border-indigo-300 hover:shadow-md text-lg font-medium transition text-slate-700">{x.t}</button>)}
                         </div>
                         <div className="grid grid-cols-2 gap-4 mt-8">
-                            <button onClick={()=>deductGlobal(10, ()=>playTTS(sen, 1.0))} disabled={isResetting} className="bg-orange-900/30 text-orange-400 font-bold py-4 rounded-2xl hover:bg-orange-900/50 flex items-center justify-center gap-2 border border-orange-800"><i className="ph ph-speaker-high text-xl"></i> Listen (-10)</button>
-                            <button onClick={hint} disabled={isResetting} className="bg-purple-900/30 text-purple-400 font-bold py-4 rounded-2xl hover:bg-purple-900/50 flex items-center justify-center gap-2 border border-purple-800"><i className="ph ph-lightbulb text-xl"></i> Hint (-15)</button>
+                            <button onClick={()=>deductGlobal(10, ()=>speak(sen))} disabled={isResetting} className="bg-orange-50 text-orange-600 font-bold py-4 rounded-2xl hover:bg-orange-100 flex items-center justify-center gap-2 border border-orange-100"><i className="ph ph-speaker-high text-xl"></i> Listen (-10)</button>
+                            <button onClick={hint} disabled={isResetting} className="bg-purple-50 text-purple-600 font-bold py-4 rounded-2xl hover:bg-purple-100 flex items-center justify-center gap-2 border border-purple-100"><i className="ph ph-lightbulb text-xl"></i> Hint (-15)</button>
                             <button onClick={check} disabled={isResetting} className="col-span-2 bg-indigo-600 text-white font-bold py-5 rounded-2xl shadow-xl hover:bg-indigo-700 transition text-xl">Check Answer (+{potential})</button>
                         </div>
                     </div>
@@ -709,167 +572,61 @@ const Dashboard = ({ onStart, onResume }) => {
             );
         };
 
-        const Shadowing = ({ words, onFinish, updateScore, score, initialIdx, saveProgress }) => {
-            const [idx, setIdx] = useState(initialIdx || 0);
-            const [isRecording, setIsRecording] = useState(false);
-            const [result, setResult] = useState(null);
-            const [showCN, setShowCN] = useState(true);
-            const [blindMode, setBlindMode] = useState(false);
-            const [rate, setRate] = useState(1.0);
-            const [btnText, setBtnText] = useState("Record");
-            const [wordDetailsMap, setWordDetailsMap] = useState({});
-            const [activePhonemes, setActivePhonemes] = useState(null);
-            const [isPassed, setIsPassed] = useState(false);
-            const [revealedIndices, setRevealedIndices] = useState(new Set());
-
+        const Writing = ({ words, onFinish, updateScore, score }) => {
+            const [idx, setIdx] = useState(0);
+            const [val, setVal] = useState("");
+            const [potential, setPotential] = useState(10);
+            const [fail, setFail] = useState(0);
+            const [showTarget, setShowTarget] = useState(false);
+            const [isResetting, setIsResetting] = useState(false);
             const w = words[idx];
-            const targetSentence = w.exA; 
-            const targetCN = w.cnA;
 
-            useEffect(() => {
-                stopAudio();
-                setResult(null); setIsRecording(false); setBtnText("Record");
-                setBlindMode(false); setShowCN(true); setWordDetailsMap({}); setActivePhonemes(null);
-                setIsPassed(false); setRevealedIndices(new Set());
-                saveProgress('shadowing', idx);
+            const cleanTarget = (str) => str.toLowerCase().replace(/[^a-z]/g, '');
+
+            useEffect(() => { 
+                setVal(""); setShowTarget(false); setFail(0); setIsResetting(false); setPotential(10);
+                stopSpeech();
             }, [idx]);
+            
+            const deductGlobal = (n, fn) => { updateScore(-n); fn(); };
+            
+           const check = (e) => {
+                e.preventDefault();
+                const cleanIn = cleanTarget(val);
+                const target = cleanTarget(w.w);
+                
+                if (cleanIn.includes(target) && cleanIn.length > 4) {
+                    speak("Great job"); 
+                    updateScore(potential);
+                    if(idx<words.length-1) setIdx(idx+1); else onFinish();
+                } else { 
+                    const newFail = fail + 1;
+                    setFail(newFail);
+                    speak("Try again"); 
+                    setPotential(Math.max(0, potential - 2));
 
-            // --- Toggle Blind Mode (Fixed V8) ---
-            const toggleBlind = () => {
-                if(blindMode) {
-                    setBlindMode(false);
-                    setRevealedIndices(new Set());
-                } else {
-                    setBlindMode(true);
-                    setRevealedIndices(new Set());
-                }
-            };
-
-            const revealWord = (i) => {
-                if(blindMode) {
-                    const newSet = new Set(revealedIndices);
-                    newSet.add(i);
-                    setRevealedIndices(newSet);
-                }
-            };
-
-            // --- Mic Logic (Fixed with getUserMedia) ---
-            const toggleRec = async () => {
-                if(isRecording) {
-                    if(recognizer) {
-                        recognizer.stopContinuousRecognitionAsync(() => {
-                            if(recognizer.manualStopAction) recognizer.manualStopAction();
-                            recognizer.close(); recognizer = null;
-                        });
-                    }
-                    setIsRecording(false);
-                    setBtnText("Processing...");
-                } else {
-                    try {
-                        await navigator.mediaDevices.getUserMedia({ audio: true });
-                    } catch (e) {
-                        alert("Microphone permission denied. Check browser settings.");
-                        return;
-                    }
-
-                    setIsRecording(true);
-                    setBtnText("Stop");
-                    setResult(null);
-                    setActivePhonemes(null);
-
-                    try {
-                        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
-                        speechConfig.speechRecognitionLanguage = "en-US";
-                        const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-                        const pronunciationConfig = new SpeechSDK.PronunciationAssessmentConfig(
-                            targetSentence,
-                            SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
-                            SpeechSDK.PronunciationAssessmentGranularity.Phoneme,
-                            true
-                        );
-                        pronunciationConfig.enableProsodyAssessment = true;
-
-                        recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-                        pronunciationConfig.applyTo(recognizer);
-
-                        let allWords = [];
-                        let fluScores = [];
-                        let prosScores = [];
-
-                        recognizer.recognized = (s, e) => {
-                            if(e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-                                const jsonStr = e.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult);
-                                const json = JSON.parse(jsonStr);
-                                if(json.NBest && json.NBest[0]) {
-                                    const nb = json.NBest[0];
-                                    if(nb.Words) allWords.push(...nb.Words);
-                                    if(nb.PronunciationAssessment) {
-                                        fluScores.push(nb.PronunciationAssessment.FluencyScore);
-                                        prosScores.push(nb.PronunciationAssessment.ProsodyScore);
-                                    }
-                                }
-                            }
-                        };
-
-                        recognizer.startContinuousRecognitionAsync();
-
-                        recognizer.manualStopAction = () => {
-                            if (allWords.length > 0) {
-                                const validWords = allWords.filter(w => w.PronunciationAssessment.ErrorType !== "Insertion");
-                                const accuracy = validWords.length > 0 ? _.meanBy(validWords, w => w.PronunciationAssessment.AccuracyScore) : 0;
-                                const fluency = fluScores.length > 0 ? _.mean(fluScores) : 0;
-                                const prosody = prosScores.length > 0 ? _.mean(prosScores) : 0;
-                                const targetCount = targetSentence.split(' ').length;
-                                const completeness = Math.min(100, (validWords.length / targetCount) * 100);
-                                const total = Math.round(accuracy*0.4 + fluency*0.2 + completeness*0.2 + prosody*0.2);
-
-                                const details = allWords.map((w, i) => ({
-                                    id: i, word: w.Word, score: w.PronunciationAssessment.AccuracyScore,
-                                    error: w.PronunciationAssessment.ErrorType, phonemes: w.Phonemes
-                                }));
-
-                                setResult({ acc: accuracy, flu: fluency, com: completeness, pro: prosody, total, details });
-                                setBtnText("Record Again");
-
-                                if (isPassed) {
-                                    playTTS(total >= 68 ? "Great practice!" : "Keep practicing.", 1.2);
-                                } else {
-                                    if (total < 68) {
-                                        updateScore(-10);
-                                        playTTS("Try again.", 1.2);
-                                    } else {
-                                        setIsPassed(true);
-                                        let pts = 5;
-                                        if(total>=96) pts=20;
-                                        else if(total>=91) pts=17;
-                                        else if(total>=86) pts=15;
-                                        else if(total>=81) pts=12;
-                                        else if(total>=76) pts=10;
-                                        else if(total>=71) pts=8;
-                                        updateScore(pts);
-                                        playTTS("Good Job!", 1.2);
-                                    }
-                                }
-                            } else {
-                                setBtnText("No valid speech. Try again.");
-                            }
-                        };
-                    } catch(e) {
-                        console.error(e);
-                        setIsRecording(false);
-                        setBtnText("Error: Check Mic");
+                    if (newFail >= 5) {
+                        setIsResetting(true);
+                        setPotential(0);
+                        setTimeout(() => { 
+                            setIsResetting(false); setVal(""); setFail(0); setShowTarget(false);
+                        }, 5000);
                     }
                 }
             };
 
-            const showPhonemeDetails = (wd) => {
-                setActivePhonemes(wd);
+            const renderScenario = (text) => {
+                const parts = text.split(/(\[.*?\])/);
+                return parts.map((part, i) => {
+                    if (part.startsWith('[') && part.endsWith(']')) return <span key={i} className="text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-200 mx-1">{part.slice(1, -1)}</span>;
+                    return <span key={i}>{part}</span>;
+                });
             };
 
             return (
-                <div className="h-full flex flex-col p-4 max-w-4xl mx-auto w-full fade-in pb-32">
+                <div className="h-full flex flex-col p-4 max-w-5xl mx-auto w-full fade-in pb-24">
                     <div className="flex justify-between items-center text-white mb-6 bg-black/20 p-4 rounded-2xl backdrop-blur-md">
-                        <div className="flex items-center gap-2"><i className="ph ph-microphone-stage text-3xl text-yellow-300"></i> <h2 className="text-2xl font-bold">Shadowing</h2></div>
+                        <div className="flex items-center gap-2"><i className="ph ph-pencil-simple-slash text-3xl text-yellow-300"></i> <h2 className="text-2xl font-bold">Restore</h2></div>
                         <div className="flex gap-6 items-center">
                             <span className="text-yellow-300 font-bold flex gap-2 text-xl bg-black/20 px-4 py-1 rounded-full"><i className="ph ph-star-fill text-yellow-400"></i> {score}</span>
                             <span className="font-mono bg-white/20 px-3 py-1 rounded-full text-lg">{idx+1} / {words.length}</span>
@@ -877,119 +634,37 @@ const Dashboard = ({ onStart, onResume }) => {
                     </div>
 
                     <div className="glass-panel rounded-[2rem] p-8 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
-                        
-                        {/* Status Indicator */}
-                        {isPassed && (
-                            <div className="absolute top-4 right-4 bg-green-500/20 border border-green-500 text-green-400 px-3 py-1 rounded-full text-sm font-bold animate-pulse">
-                                ✅ Passed
+                        {isResetting && (
+                            <div className="absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center">
+                                <div className="text-red-500 font-bold text-2xl mb-4">Too many errors! Answer:</div>
+                                <div className="text-green-600 text-xl font-bold text-center p-4 border border-green-200 rounded-xl bg-green-50">{w.exC}</div>
+                                <p className="mt-4 text-slate-400">Retry in 5s (0 pts)</p>
                             </div>
                         )}
 
-                        <div className="flex flex-wrap gap-3 mb-6 border-b border-slate-600 pb-4 justify-between items-center">
-                            <div className="flex gap-2">
-                                <button onClick={()=>playTTS(targetSentence, rate)} className="bg-indigo-600 text-white px-4 py-2 rounded-full font-bold hover:bg-indigo-500 flex items-center gap-2"><i className="ph ph-speaker-high"></i> Listen</button>
-                                <select value={rate} onChange={e=>setRate(Number(e.target.value))} className="bg-slate-700 text-white border border-slate-500 rounded-full px-3 text-sm font-medium outline-none">
-                                    <option value="0.85">0.85x</option>
-                                    <option value="0.93">0.93x</option>
-                                    <option value="1.0">1.0x</option>
-                                </select>
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 mb-8 shadow-sm">
+                            <p className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-widest">Scenario Sentence</p>
+                            <div className="text-2xl serif text-slate-800 leading-relaxed font-medium">
+                                {renderScenario(w.hintC)}
                             </div>
-                            <div className="flex gap-2">
-                                <button onClick={()=>setShowCN(!showCN)} className={`px-4 py-2 rounded-full font-bold text-sm ${showCN?'bg-blue-600 text-white':'bg-slate-700 text-gray-400'}`}>中</button>
-                                <button onClick={toggleBlind} className={`px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 ${blindMode?'bg-purple-600 text-white':'bg-purple-900 text-purple-300'}`}>
-                                    <i className={`ph ${blindMode?'ph-eye-closed':'ph-eye'}`}></i> {blindMode?'Blind':'Text'}
-                                </button>
+                            <div className="mt-4 text-sm text-slate-500 flex items-center gap-2">
+                                <i className="ph ph-info text-indigo-500"></i> Replace the text in red with the vocabulary word.
                             </div>
                         </div>
 
-                        {/* Text Display Logic (Fixed Blind Mode) */}
-                        <div className="mb-8 min-h-[120px]">
-                            <div className="text-2xl md:text-3xl font-serif text-slate-100 leading-normal mb-4">
-                                {targetSentence.split(' ').map((word, i) => {
-                                    // If blindMode is on and this word is NOT revealed -> hide it
-                                    const isHidden = blindMode && !revealedIndices.has(i);
-                                    return (
-                                        <span 
-                                            key={i} 
-                                            className={`mr-1.5 inline-block transition-all duration-300 cursor-pointer ${isHidden ? 'blind-word' : 'revealed-word'}`} 
-                                            onClick={()=>revealWord(i)}
-                                        >
-                                            {word}
-                                        </span>
-                                    );
-                                })}
-                            </div>
-                            {showCN && <div className="text-lg text-slate-400 font-medium">{targetCN}</div>}
-                        </div>
-
-                        <div className="flex flex-col items-center">
-                            <button onClick={toggleRec} className={`w-20 h-20 rounded-full flex items-center justify-center shadow-xl transition-all ${isRecording ? 'bg-red-500 animate-pulse-red scale-110' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>
-                                <i className={`ph ${isRecording ? 'ph-stop' : 'ph-microphone'} text-3xl text-white`}></i>
+                        <div className="flex items-center gap-4 mb-6">
+                            <button onClick={()=>deductGlobal(10, ()=>setShowTarget(true))} disabled={showTarget} className="bg-pink-50 text-pink-600 px-6 py-3 rounded-xl font-bold hover:bg-pink-100 disabled:opacity-50 transition border border-pink-200 flex items-center gap-2">
+                                <i className="ph ph-eye"></i> Reveal Target Word (-10)
                             </button>
-                            <p className="mt-3 text-slate-400 font-medium">{btnText}</p>
+                            {showTarget ? (
+                                <div className="text-xl animate-fade-in flex items-center gap-2">Target: <span className="text-indigo-600 font-bold text-3xl bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100">{w.w}</span></div>
+                            ) : null}
                         </div>
 
-                        {/* Feedback Area */}
-                        {result && (
-                            <div className="mt-6 bg-slate-900/80 p-6 rounded-2xl text-left border border-white/10 animate-fade-in">
-                                <div className="grid grid-cols-2 gap-4 mb-4 text-sm md:text-base border-b border-white/10 pb-4">
-                                    <div className="flex justify-between"><span className="text-gray-400">Accuracy</span><span className="font-bold text-white">{Math.round(result.acc)}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-400">Fluency</span><span className="font-bold text-white">{Math.round(result.flu)}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-400">Complete</span><span className="font-bold text-white">{Math.round(result.com)}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-400">Prosody</span><span className="font-bold text-white">{Math.round(result.pro)}</span></div>
-                                </div>
-                                
-                                <div className="flex justify-center mb-6">
-                                    <div className={`w-24 h-24 rounded-full flex flex-col items-center justify-center border-4 ${result.total>=68?'border-green-500 text-green-400':'border-red-500 text-red-400'} bg-slate-800`}>
-                                        <span className="text-3xl font-bold">{Math.round(result.total)}</span>
-                                        <span className="text-[10px] uppercase tracking-wider text-gray-400">Total</span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-black/30 p-4 rounded-xl leading-loose text-lg">
-                                    {result.details.map((wd, i) => {
-                                        let statusClass = "wf-mid";
-                                        if (wd.score >= 80) statusClass = "wf-ok";
-                                        if (wd.score < 60 || wd.error === "Mispronunciation") statusClass = "wf-bad";
-                                        if (wd.error === "Omission") statusClass = "wf-miss";
-
-                                        return (
-                                            <div key={i} className={`word-feedback ${statusClass}`} onClick={()=>wd.error!=="None" && showPhonemeDetails(wd)}>
-                                                <span className="wf-text">{wd.word}</span>
-                                                <span className="wf-score">{Math.round(wd.score)}</span>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                                <div className="text-xs text-center mt-3 text-gray-500">Tap red words for diagnosis</div>
-
-                                {/* Phoneme Details */}
-                                {activePhonemes && (
-                                    <div className="phoneme-box">
-                                        <div className="text-xs text-gray-400 uppercase mb-2">Sound Analysis: <strong className="text-white text-lg ml-2">{activePhonemes.word}</strong></div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {activePhonemes.phonemes ? activePhonemes.phonemes.map((p, k) => (
-                                                <span key={k} className={`ph-badge ${p.PronunciationAssessment.AccuracyScore >= 60 ? 'ph-good' : 'ph-bad'}`}>
-                                                    {p.Phoneme} {Math.round(p.PronunciationAssessment.AccuracyScore)}
-                                                </span>
-                                            )) : <span className="text-gray-500 italic">No phoneme data available</span>}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        <div className="mt-8 text-center">
-                            {(result && result.total >= 68) || isPassed ? (
-                                <button onClick={()=>{ if(idx<words.length-1) setIdx(idx+1); else onFinish(); }} className="bg-green-600 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg hover:bg-green-700 transition animate-bounce">
-                                    Next Sentence ❯
-                                </button>
-                            ) : (
-                                <div className="text-slate-400 text-sm font-medium bg-slate-800 inline-block px-4 py-2 rounded-lg border border-slate-700">
-                                    Score ≥ 68 to unlock next
-                                </div>
-                            )}
-                        </div>
+                        <form onSubmit={check} className="flex-1 flex flex-col">
+                            <textarea value={val} onChange={e=>setVal(e.target.value)} className="w-full flex-1 p-6 border-2 border-slate-200 rounded-2xl focus:border-indigo-500 outline-none text-2xl resize-none bg-white shadow-inner font-serif text-slate-700" placeholder="Type the restored sentence here..." />
+                            <button className="w-full mt-6 bg-pink-600 text-white py-5 rounded-2xl font-bold text-2xl shadow-xl hover:bg-pink-700 transition transform hover:scale-[1.01]">Submit Answer (+{potential})</button>
+                        </form>
                     </div>
                 </div>
             );
@@ -1002,12 +677,12 @@ const Dashboard = ({ onStart, onResume }) => {
                     <i className="ph ph-trophy text-9xl text-yellow-300 mb-8 animate-bounce drop-shadow-2xl"></i>
                     <h1 className="text-7xl font-extrabold mb-10 tracking-tight">Batch Complete!</h1>
                     <div className="glass-panel rounded-[2.5rem] p-10 border border-white/40 mb-10 w-full max-w-2xl grid grid-cols-2 gap-8 shadow-2xl text-slate-800">
-                        <div><div className="text-sm uppercase tracking-widest opacity-60 mb-2 font-bold text-slate-300">Total Score</div><div className="text-6xl font-bold text-indigo-400 drop-shadow-sm">{s.pts}</div></div>
-                        <div><div className="text-sm uppercase tracking-widest opacity-60 mb-2 font-bold text-slate-300">Time Spent</div><div className={`text-6xl font-bold drop-shadow-sm ${m>=25?'text-green-400':'text-red-400'}`}>{m}m</div></div>
+                        <div><div className="text-sm uppercase tracking-widest opacity-60 mb-2 font-bold">Total Score</div><div className="text-6xl font-bold text-indigo-600 drop-shadow-sm">{s.pts}</div></div>
+                        <div><div className="text-sm uppercase tracking-widest opacity-60 mb-2 font-bold">Time Spent</div><div className={`text-6xl font-bold drop-shadow-sm ${m>=25?'text-green-600':'text-red-500'}`}>{m}m</div></div>
                     </div>
                     <div className="bg-black/40 p-8 rounded-3xl max-w-2xl border border-white/20 shadow-xl backdrop-blur-md">
                         <h3 className="text-2xl font-bold text-yellow-400 mb-4 flex items-center justify-center gap-3"><i className="ph ph-star-fill"></i> STEVEN UP STAR</h3>
-                        <p className="text-xl text-slate-200 leading-relaxed">Screenshot this screen to redeem rewards.<br/><span className={`text-sm font-bold px-3 py-1 rounded-lg mt-2 inline-block ${m>=25?'bg-green-600 text-white':'bg-red-600 text-white'}`}>Requirement: Study Time > 25 mins</span></p>
+                        <p className="text-xl text-slate-200 leading-relaxed">Screenshot this screen to redeem rewards.<br/><span className={`text-sm font-bold px-3 py-1 rounded-lg mt-2 inline-block ${m>=25?'bg-green-500 text-white':'bg-red-500 text-white'}`}>Requirement: Study Time > 25 mins</span></p>
                     </div>
                 </div>
             );
@@ -1020,30 +695,6 @@ const Dashboard = ({ onStart, onResume }) => {
             const [startT, setStartT] = useState(0);
             const [score, setScore] = useState(150);
             const [fin, setFin] = useState({pts:0, time:0});
-            const [teacherMode, setTeacherMode] = useState(false);
-            const [savedData, setSavedData] = useState(null);
-
-            const handleTeacherLogin = () => {
-                const pwd = prompt("Enter Teacher Password:");
-                if(btoa(pwd) === "ODg4MTIz") setTeacherMode(true);
-            };
-
-            const saveProgress = (currentMode, subIdx) => {
-                const data = { batch, mode: currentMode, score, subIndex: subIdx, words: words }; 
-                localStorage.setItem("unit3_vocab_progress", JSON.stringify(data));
-            };
-
-            const handleResume = () => {
-                const saved = JSON.parse(localStorage.getItem("unit3_vocab_progress"));
-                if(saved) {
-                    setBatch(saved.batch);
-                    setWords(saved.words);
-                    setScore(saved.score);
-                    setSavedData(saved);
-                    setMode(saved.mode);
-                    setStartT(Date.now()); 
-                }
-            };
 
             const start = (i) => { 
                 setBatch(i); 
@@ -1051,22 +702,18 @@ const Dashboard = ({ onStart, onResume }) => {
                 setStartT(Date.now()); 
                 setScore(150); 
                 setMode('flash'); 
-                setSavedData(null);
             };
-            const finish = () => { setFin({ pts: score, time: (Date.now()-startT)/1000 }); setMode('summary'); localStorage.removeItem("unit3_vocab_progress"); };
+            const finish = () => { setFin({ pts: score, time: (Date.now()-startT)/1000 }); setMode('summary'); };
             const updateScore = (delta) => setScore(s => s + delta);
 
             return (
                 <>
-                    <div className={`teacher-lock ${teacherMode?'teacher-active':''}`} onClick={handleTeacherLogin}><i className={`ph ${teacherMode?'ph-lock-open':'ph-lock'}`}></i></div>
-                    {teacherMode && <TeacherNav setMode={setMode} />}
-                    
-                    {mode==='dash' && <Dashboard onStart={start} onResume={handleResume} />}
-                    {mode==='flash' && <Flashcards words={words} onNextModule={()=>setMode('match')} updateScore={updateScore} score={score} initialIdx={savedData?.mode==='flash'?savedData.subIndex:0} saveProgress={saveProgress} />}
-                    {mode==='match' && <Match words={words} onNextModule={()=>setMode('dictation')} updateScore={updateScore} score={score} saveProgress={saveProgress} />}
-                    {mode==='dictation' && <Dictation words={words} onNextModule={()=>setMode('unscramble')} updateScore={updateScore} score={score} initialIdx={savedData?.mode==='dictation'?savedData.subIndex:0} saveProgress={saveProgress} />}
-                    {mode==='unscramble' && <Unscramble words={words} onNextModule={()=>setMode('shadowing')} updateScore={updateScore} score={score} initialIdx={savedData?.mode==='unscramble'?savedData.subIndex:0} saveProgress={saveProgress} />}
-                    {mode==='shadowing' && <Shadowing words={words} onFinish={finish} updateScore={updateScore} score={score} initialIdx={savedData?.mode==='shadowing'?savedData.subIndex:0} saveProgress={saveProgress} />}
+                    {mode==='dash' && <Dashboard onStart={start} />}
+                    {mode==='flash' && <Flashcards words={words} onNextModule={()=>setMode('match')} updateScore={updateScore} score={score} />}
+                    {mode==='match' && <Match words={words} onNextModule={()=>setMode('dictation')} updateScore={updateScore} score={score} />}
+                    {mode==='dictation' && <Dictation words={words} onNextModule={()=>setMode('unscramble')} updateScore={updateScore} score={score} />}
+                    {mode==='unscramble' && <Unscramble words={words} onNextModule={()=>setMode('writing')} updateScore={updateScore} score={score} />}
+                    {mode==='writing' && <Writing words={words} onFinish={finish} updateScore={updateScore} score={score} />}
                     {mode==='summary' && <Summary s={fin} />}
                 </>
             );

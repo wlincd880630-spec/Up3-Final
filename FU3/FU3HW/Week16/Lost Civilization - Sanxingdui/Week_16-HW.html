@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanxingdui Assignment V10 - Apple Compatible</title>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #0f172a;
+            --bronze-main: #2b5c54; 
+            --bronze-light: #4a8b7f;
+            --gold-main: #d4af37;   
+            --gold-light: #fefce8;
+            --text-light: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.98);
+            --correct: #15803d;
+            --wrong: #b91c1c;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', "Microsoft YaHei", Tahoma, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #app-container { max-width: 1200px; margin: 0 auto; padding: 20px; padding-bottom: 120px; }
+
+        /* HEADER */
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 30px; background: rgba(15, 23, 42, 0.95);
+            border-bottom: 3px solid var(--gold-main); border-radius: 15px;
+            margin-bottom: 20px; position: sticky; top: 10px; z-index: 1000;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+        }
+        .score-board span { margin-left: 20px; font-weight: bold; color: var(--gold-main); font-size: 1.1rem; }
+
+        /* PAGES */
+        .page { display: none; animation: fadeIn 0.4s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card {
+            background: var(--card-bg); color: #1e293b; border-radius: 15px; padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); border-top: 6px solid var(--bronze-main);
+        }
+
+        h1, h2, h3 { color: var(--bronze-main); margin-top: 0; }
+        .gold-txt { color: var(--gold-main); }
+
+        .btn {
+            background: var(--bronze-main); color: white; border: 2px solid var(--gold-main);
+            padding: 10px 25px; border-radius: 50px; cursor: pointer; font-size: 1rem;
+            transition: 0.2s; font-weight: bold; margin: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .btn:hover { background: var(--gold-main); color: #0f172a; transform: translateY(-2px); }
+        .btn-red { background: #be123c; border-color: #f43f5e; }
+        .btn-small { padding: 6px 15px; font-size: 0.9rem; }
+
+        .input-field { padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 1rem; }
+        .input-field:focus { border-color: var(--bronze-main); outline: none; }
+
+        /* VOCAB GRID */
+        .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+        .mini-card {
+            background: white; border: 1px solid #e2e8f0; border-radius: 12px; height: 120px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; position: relative; transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .mini-card:hover { transform: translateY(-5px); border-color: var(--gold-main); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .mini-card.learned { background: #f0fdf4; border: 2px solid var(--correct); }
+        .add-btn { 
+            position: absolute; top: 8px; right: 8px; font-size: 1.4rem; color: #cbd5e1; z-index: 2; transition: 0.2s; 
+        }
+        .add-btn:hover { color: var(--gold-main); transform: scale(1.2); }
+        .add-btn.added { color: var(--gold-main); }
+
+        /* ZOOM MODAL */
+        .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); z-index:2000; display:none; justify-content:center; align-items:center; }
+        .big-card { 
+            width: 90%; max-width: 900px; height: 85vh; background: #fff; border-radius: 20px; 
+            position: relative; display:flex; flex-direction:column; overflow: hidden;
+            box-shadow: 0 0 50px rgba(212, 175, 55, 0.3); border: 4px solid var(--gold-main);
+        }
+        
+        .modal-close-btn { 
+            position: absolute; top: 15px; right: 15px; font-size: 2rem; cursor: pointer; 
+            color: #64748b; z-index: 50; background: #f1f5f9; border-radius: 50%; width: 50px; height: 50px; 
+            text-align: center; line-height: 50px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition:0.2s;
+        }
+        .modal-close-btn:hover { background: var(--wrong); color: white; transform: rotate(90deg); }
+
+        .flashcard-inner { flex: 1; position: relative; overflow-y: auto; overflow-x: hidden; }
+        
+        .front-view { 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; min-height: 500px;
+            cursor: pointer; text-align: center; background: #f8fafc; color: var(--bronze-main); 
+        }
+        .front-word { font-size: 4.5rem; font-weight: 800; margin-bottom: 20px; }
+        
+        .back-view { display: none; padding: 40px; text-align: left; background: #fff; color: #334155; }
+        .back-view.active { display: block; }
+
+        .word-header { 
+            border-bottom: 3px solid var(--gold-main); padding-bottom: 15px; margin-bottom: 25px; 
+            display:flex; justify-content:space-between; align-items:flex-end; 
+        }
+        .audio-icon { 
+            width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--bronze-main); 
+            display: flex; justify-content: center; align-items: center; cursor: pointer; 
+            color: var(--bronze-main); font-size: 1.2rem; transition: 0.2s; 
+        }
+        .audio-icon:hover { background: var(--bronze-main); color: white; }
+
+        .def-box { 
+            background: #f1f5f9; padding: 20px; border-left: 6px solid var(--bronze-light); 
+            margin-bottom: 25px; font-size: 1.15rem; line-height: 1.6; color: #1e293b; 
+        }
+        .ex-item { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed #e2e8f0; }
+        .ex-en { font-size: 1.1rem; font-weight: 500; color: #0f172a; margin-bottom: 5px; }
+        .ex-cn { display: none; color: #64748b; font-size: 1rem; margin-top: 8px; font-style: italic; }
+        .ex-cn.show { display: block; }
+
+        /* VIDEO & CUSTOM SUBTITLES (New for Safari Compatibility) */
+        .video-box { 
+            background: black; width: 100%; border-radius: 10px; overflow: hidden; 
+            border: 3px solid var(--gold-main); position: relative;
+        }
+        video { width: 100%; display: block; }
+        
+        /* Custom Subtitle Overlay */
+        #sub-overlay-1 {
+            position: absolute; bottom: 20px; left: 5%; width: 90%; 
+            text-align: center; color: white; pointer-events: none;
+            font-size: 16px; line-height: 1.4; text-shadow: 1px 1px 2px black;
+            background: rgba(0,0,0,0.6); padding: 5px; border-radius: 5px;
+            display: none; /* Hidden by default, shown by JS */
+            z-index: 10;
+        }
+
+        .controls { 
+            background: #1e293b; padding: 12px; display: flex; gap: 15px; 
+            justify-content: center; align-items: center; border-radius: 0 0 10px 10px; 
+        }
+        select.speed-sel { padding: 6px; border-radius: 5px; background: #334155; color: white; border: 1px solid #475569; cursor: pointer; }
+
+        /* MATCHING GAME */
+        .match-container { display: flex; justify-content: space-between; gap: 60px; position: relative; padding: 30px 0; user-select: none; }
+        .match-col { flex: 1; display: flex; flex-direction: column; gap: 25px; z-index: 2; }
+        .match-item { 
+            padding: 18px; background: white; border: 2px solid #cbd5e1; border-radius: 10px; 
+            text-align: center; cursor: pointer; font-weight: bold; transition: 0.2s; position: relative;
+        }
+        .match-item:hover { border-color: var(--bronze-main); background: #f0fdf4; }
+        .match-item.selected { background: var(--gold-light); border-color: var(--gold-main); transform: scale(1.05); z-index: 3; }
+        .match-item.matched { background: #dcfce7; border-color: var(--correct); color: var(--correct); cursor: default; opacity: 0.8; }
+        
+        #svg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        line { stroke: var(--gold-main); stroke-width: 4; stroke-linecap: round; opacity: 0.8; }
+
+        /* QUIZ */
+        .q-option-btn {
+            display: block; width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #e2e8f0;
+            background: white; border-radius: 10px; cursor: pointer; text-align: left; font-size: 1rem; transition: 0.2s;
+        }
+        .q-option-btn:hover { background: #f8fafc; border-color: var(--bronze-main); }
+        .q-option-btn.correct { background: #dcfce7; border-color: var(--correct); color: var(--correct); font-weight: bold; }
+        .q-option-btn.wrong { background: #fee2e2; border-color: var(--wrong); color: var(--wrong); }
+
+        /* REPORT TABLE */
+        .rep-table { width: 100%; border-collapse: collapse; margin-top: 25px; font-size: 0.95rem; table-layout: fixed; }
+        .rep-table th { background: var(--bronze-main); color: white; padding: 12px; text-align: left; }
+        .rep-table td { border: 1px solid #ddd; padding: 12px; vertical-align: top; color: #333; word-wrap: break-word; }
+        .status-ok { color: var(--correct); font-weight: bold; }
+        .status-err { color: var(--wrong); font-weight: bold; }
+
+        /* PRINT STYLE (Browser Native Fix) */
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { 
+                position: absolute; left: 0; top: 0; width: 100%; 
+                background: white; color: black; padding: 40px; 
+                display: block !important;
+                font-family: 'Times New Roman', serif;
+            }
+            .print-header { text-align: center; border-bottom: 3px solid #2b5c54; padding-bottom: 15px; margin-bottom: 30px; }
+            .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .print-item { break-inside: avoid; page-break-inside: avoid; border: 1px solid #ccc; padding: 15px; border-radius: 5px; }
+            .print-word { font-size: 14pt; font-weight: bold; color: #2b5c54; }
+            .print-cn { font-size: 12pt; margin-left: 10px; }
+            .print-def { font-style: italic; margin-top: 5px; font-size: 11pt; color: #444; }
+            .print-ex { font-size: 10pt; color: #222; margin-top: 5px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="print-area" style="display:none;">
+    <div class="print-header">
+        <h1>Vocabulary List: Introduction to SanXingDui</h1>
+        <p>Student Name: <span id="print-name"></span> | Date: <span id="print-date"></span></p>
+    </div>
+    <div id="print-content" class="print-grid"></div>
+</div>
+
+<div id="app-container">
+    <div class="header">
+        <div style="color:var(--gold-main); font-weight:bold;"><i class="fas fa-user-graduate"></i> <span id="u-name">Guest</span></div>
+        <div class="score-board">
+            <span><i class="fas fa-star"></i> <span id="s-star">0</span></span>
+            <span><i class="fas fa-book"></i> <span id="s-vocab">0</span></span>
+            <span><i class="fas fa-video"></i> <span id="s-video">0</span></span>
+        </div>
+        <button class="btn btn-small btn-red" onclick="resetData()">重置进度 (Reset)</button>
+    </div>
+
+    <div id="p1" class="page active">
+        <div class="card" style="padding: 50px;">
+            <h1 style="font-size: 3rem; text-align:center; margin-bottom:10px;">SANXINGDUI</h1>
+            <h2 class="gold-txt" style="text-align:center;">The Lost Civilization</h2>
+            <div style="max-width: 800px; margin: 30px auto; font-size: 1.1rem; line-height: 1.8;">
+                <p><strong><i class="fas fa-clipboard-list"></i> 作业与积分说明 (Instructions):</strong></p>
+                <ul style="list-style: none; padding: 0;">
+                    <li><i class="fas fa-check-circle" style="color:var(--correct)"></i> <strong>1. 词汇学习:</strong> 点击卡片学习。停留30秒、点击发音或查看翻译均可获得积分。</li>
+                    <li><i class="fas fa-check-circle" style="color:var(--correct)"></i> <strong>2. 词汇测试:</strong> 选择数量(30%-100%)，获得相应基础分。答对+1分，答错-1分。</li>
+                    <li><i class="fas fa-check-circle" style="color:var(--correct)"></i> <strong>3. 视频理解:</strong> 完成Part 1（概括）和 Part 2（细节10题）。</li>
+                    <li><i class="fas fa-save" style="color:var(--gold-main)"></i> <strong>智能存档:</strong> 随时退出，点击“恢复进度”即可回到断点。</li>
+                </ul>
+            </div>
+            <div style="text-align:center; margin-top: 40px;">
+                <input type="text" id="username" class="input-field" placeholder="请输入你的英文名 (Enter Name)" style="max-width:300px; text-align:center;">
+                <br><br>
+                <button class="btn" onclick="startNew()">开始新任务 (Start)</button>
+                <button class="btn" id="resume-btn" onclick="resume()" style="display:none; background:var(--gold-main); color:black;">恢复上次进度 (Resume)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="p2" class="page">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2>核心词汇表 (Vocabulary)</h2>
+                <div>
+                    <button class="btn btn-small" onclick="printList()"><i class="fas fa-print"></i> 打印 PDF</button>
+                    <button class="btn btn-small" onclick="gotoPage('p3')">进入测试 (Quiz) <i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+            <p style="color:#666; margin-bottom:15px;">点击卡片查看详情。点击 <i class="fas fa-plus-circle"></i> 将单词加入你的 PDF 生词表。</p>
+            <div class="vocab-grid" id="vocab-grid"></div>
+        </div>
+    </div>
+
+    <div id="zoom-modal" class="overlay">
+        <div class="big-card">
+            <div class="modal-close-btn" onclick="closeZoom()">&times;</div>
+            <div class="flashcard-inner">
+                <div class="front-view" onclick="flipZoom()">
+                    <div class="front-word" id="zm-w-front">WORD</div>
+                    <div style="color:#94a3b8; font-size:1.2rem;"><i class="fas fa-hand-pointer"></i> 点击查看详情 (Click to Flip)</div>
+                </div>
+                <div class="back-view">
+                    <div class="word-header">
+                        <div>
+                            <span style="font-size:3.5rem; font-weight:800; color:var(--bronze-main)" id="zm-w-back">Word</span>
+                            <span style="font-size:1.5rem; color:#666; font-style:italic;" id="zm-t">n.</span>
+                            <div style="font-size:2rem; color:#333; margin-top:10px; font-weight:bold;" id="zm-cn">中文</div>
+                        </div>
+                        <div class="audio-icon" onclick="speakZoomWord()"><i class="fas fa-volume-up"></i></div>
+                    </div>
+                    <div class="def-box">
+                        <p><strong>Definition:</strong> <span id="zm-def"></span></p>
+                        <p><strong>Synonym:</strong> <span id="zm-syn"></span></p>
+                    </div>
+                    <h4 style="color:var(--bronze-main); border-bottom:1px solid #eee; padding-bottom:5px;">Examples:</h4>
+                    <div class="ex-item">
+                        <div style="display:flex; justify-content:space-between;">
+                            <div class="ex-en" id="zm-e1"></div>
+                            <i class="fas fa-volume-up" style="cursor:pointer; color:var(--bronze-light);" onclick="speakZoomEx(1)"></i>
+                        </div>
+                        <div class="ex-cn" id="zm-e1cn"></div>
+                        <button class="btn btn-small" style="font-size:0.8rem; margin-top:5px; padding:2px 8px; background:#e2e8f0; color:#333; border:none;" onclick="toggleZoomEx(1)">显示中文</button>
+                    </div>
+                    <div class="ex-item">
+                        <div style="display:flex; justify-content:space-between;">
+                            <div class="ex-en" id="zm-e2"></div>
+                            <i class="fas fa-volume-up" style="cursor:pointer; color:var(--bronze-light);" onclick="speakZoomEx(2)"></i>
+                        </div>
+                        <div class="ex-cn" id="zm-e2cn"></div>
+                        <button class="btn btn-small" style="font-size:0.8rem; margin-top:5px; padding:2px 8px; background:#e2e8f0; color:#333; border:none;" onclick="toggleZoomEx(2)">显示中文</button>
+                    </div>
+                    <div style="text-align:center; margin-top:30px;">
+                        <button class="btn" style="background:#64748b; border:none; padding:10px 40px;" onclick="closeZoom()">关闭卡片 (Close)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="p3" class="page">
+        <div class="card">
+            <h2 style="text-align:center;">词汇小测验 (Vocabulary Quiz)</h2>
+            <div id="quiz-start-view" style="text-align:center; margin-top:30px;">
+                <p>请选择测试数量 (基础分):</p>
+                <button class="btn" onclick="initQuiz(0.3)">30% (30pts)</button>
+                <button class="btn" onclick="initQuiz(0.5)">50% (60pts)</button>
+                <button class="btn" onclick="initQuiz(0.8)">80% (100pts)</button>
+                <button class="btn" onclick="initQuiz(1.0)">100% (140pts)</button>
+            </div>
+            <div id="quiz-question-view" style="display:none; max-width:700px; margin:0 auto;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                    <strong>Question <span id="q-idx">1</span></strong>
+                    <span class="gold-txt">Score: <span id="q-score-disp">0</span></span>
+                </div>
+                <div style="background:#f1f5f9; padding:25px; border-radius:10px; border-left:6px solid var(--bronze-main); margin-bottom:20px;">
+                    <div style="font-size:0.9rem; color:#64748b;">Definition (定义):</div>
+                    <div id="q-def-text" style="font-size:1.3rem; font-weight:bold; color:#333; margin-bottom:10px;"></div>
+                    <div style="font-size:0.9rem; color:#64748b;">Synonym (同义词):</div>
+                    <div id="q-syn-text" style="font-weight:bold; color:var(--bronze-light);"></div>
+                </div>
+                <div id="q-options-container"></div>
+                <button id="q-next-btn" class="btn" style="width:100%; margin-top:20px; display:none;" onclick="nextQuestion()">下一题 (Next)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="p4" class="page">
+        <div class="card">
+            <h2>背景介绍 (Introduction)</h2>
+            <div style="display:flex; gap:30px; align-items:flex-start; flex-wrap:wrap;">
+                <div style="width:40%; min-width:300px;">
+                    <div style="position:relative; width:100%; height:300px; overflow:hidden; border-radius:10px; border:3px solid var(--gold-main);">
+                        <img src="gold_mask.jpg" class="slide active" style="width:100%; height:100%; object-fit:cover; display:block;">
+                        <img src="excavation_site.jpg" class="slide" style="width:100%; height:100%; object-fit:cover; display:none;">
+                        <img src="bronze_tree.jpg" class="slide" style="width:100%; height:100%; object-fit:cover; display:none;">
+                        <img src="bronze_mask.jpg" class="slide" style="width:100%; height:100%; object-fit:cover; display:none;">
+                    </div>
+                    <div style="text-align:center; margin-top:10px;">
+                        <button class="btn btn-small" onclick="slide(-1)">❮</button>
+                        <button class="btn btn-small" onclick="slide(1)">❯</button>
+                    </div>
+                </div>
+                <div style="flex:1; min-width:300px;">
+                    <div id="intro-content" style="font-size:1.2rem; line-height:1.8;">
+                        Sanxingdui is a famous ancient site in Sichuan, China. Farmers found it in 1929. In the 1980s, archaeologists dug up amazing treasures like big bronze masks and gold. These masks have huge eyes and look very strange. This culture started around 1200 BCE. Then, the people suddenly left. Maybe there was an earthquake or a flood. It is still a big mystery today.
+                    </div>
+                    <br>
+                    <button class="btn" onclick="speak(document.getElementById('intro-content').innerText)"><i class="fas fa-volume-up"></i> 朗读 (Listen)</button>
+                </div>
+            </div>
+            <div style="text-align:right; margin-top:30px;">
+                <button class="btn" onclick="gotoPage('p5')">进入视频 Part 1</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="p5" class="page">
+        <div class="card">
+            <h2>Part 1: General Understanding</h2>
+            
+            <div id="p1-pre" style="background:#fff7ed; padding:25px; border:2px solid var(--gold-main); border-radius:10px; margin-bottom:20px;">
+                <h3 style="margin-top:0;"><i class="fas fa-eye"></i> 请先阅读问题 (Pre-reading Questions)</h3>
+                <p><strong>1. Based on the video, what is the primary subject?</strong><br>A. Agricultural techniques<br>B. Strategic warfare<br>C. The enigma of Sanxingdui<br>D. Bronze casting evolution</p>
+                <p><strong>2. Where is the Sanxingdui site geographically situated?</strong><br>A. Yellow River Valley<br>B. Heart of Sichuan<br>C. Yangtze Delta<br>D. Northern Plains</p>
+                <div style="text-align:center; margin-top:20px;">
+                    <button class="btn" onclick="startVideo1()">隐藏问题并播放视频</button>
+                </div>
+            </div>
+
+            <div id="player1" style="display:none;">
+                <div class="video-box">
+                    <video id="vid1" playsinline>
+                        <source src="The_Lost_Civilization_of_the_Sanxingdui_Ancient_China_s_Forgotten_World.mp4" type="video/mp4">
+                    </video>
+                    <div id="sub-overlay-1" style="position:absolute; bottom:30px; width:100%; text-align:center; color:white; font-size:16px; background:rgba(0,0,0,0.6); padding:5px; pointer-events:none; display:none;"></div>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-small" onclick="togglePlay('vid1')"><i class="fas fa-play"></i> / <i class="fas fa-pause"></i></button>
+                    <input type="range" id="prog1" value="0" style="flex:1;" oninput="scrub('vid1', this.value)">
+                    <span style="color:white; font-size:0.9rem;">Speed:</span>
+                    <select class="speed-sel" onchange="setSpeed('vid1', this.value)">
+                        <option value="0.5">0.5x</option>
+                        <option value="1.0" selected>1.0x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2.0">2.0x</option>
+                    </select>
+                </div>
+                <button class="btn" style="width:100%; margin-top:20px;" onclick="finishVideo1()">观看完毕，开始答题</button>
+            </div>
+
+            <div id="p1-post-qs" style="display:none; max-width:800px; margin:0 auto;">
+                <h3>请回答 (Answer Questions):</h3>
+                <button class="btn btn-small" style="background:#64748b; margin-bottom:15px;" onclick="replayVideo1()">重新观看视频</button>
+                <div style="background:#f8fafc; padding:20px; border-radius:10px; margin-bottom:15px;">
+                    <p><strong>1. Based on the video, what is the primary subject?</strong></p>
+                    <label><input type="radio" name="gq1" value="A"> A. Ancient agricultural techniques in the basin</label><br>
+                    <label><input type="radio" name="gq1" value="B"> B. Strategic warfare history of the Shang</label><br>
+                    <label><input type="radio" name="gq1" value="C"> C. The enigma and discovery of Sanxingdui civilization</label><br>
+                    <label><input type="radio" name="gq1" value="D"> D. Evolution of bronze casting in Yellow River</label>
+                </div>
+                <div style="background:#f8fafc; padding:20px; border-radius:10px; margin-bottom:15px;">
+                    <p><strong>2. Where is the Sanxingdui site geographically situated?</strong></p>
+                    <label><input type="radio" name="gq2" value="A"> A. Yellow River Valley near Henan</label><br>
+                    <label><input type="radio" name="gq2" value="B"> B. In the heart of Sichuan province</label><br>
+                    <label><input type="radio" name="gq2" value="C"> C. Yangtze Delta near Shanghai</label><br>
+                    <label><input type="radio" name="gq2" value="D"> D. Northern Plains near Beijing</label>
+                </div>
+                <button class="btn" onclick="submitP1()">提交并进入 Part 2</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="p6" class="page">
+        <div class="card">
+            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:320px;">
+                    <h2>Part 2: Detail Comprehension</h2>
+                    <p><strong>注意：</strong> 无字幕盲听 (No Subtitles)。包含10道题目。</p>
+                    <div class="video-box">
+                        <video id="vid2" playsinline>
+                            <source src="The_Lost_Civilization_of_the_Sanxingdui_Ancient_China_s_Forgotten_World.mp4" type="video/mp4">
+                        </video>
+                    </div>
+                    <div class="controls">
+                        <button class="btn btn-small" onclick="togglePlay('vid2')"><i class="fas fa-play"></i></button>
+                        <input type="range" id="seek2" value="0" style="flex:1" oninput="scrub('vid2', this.value)">
+                        <select class="speed-sel" onchange="setSpeed('vid2', this.value)">
+                            <option value="1.0">1.0x</option>
+                            <option value="0.75">0.75x</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="flex:1; height:700px; overflow-y:auto; padding:0 15px; border-left:1px solid #e2e8f0;">
+                    <h3 style="margin-top:0;">Questions (10 Total)</h3>
+                    
+                    <div class="mb-4"><strong>1. Who stumbled upon the first artifacts in 1929? (Easy)</strong><br><select id="d1" class="input-field"><option value="">Select...</option><option value="A">A. A soldier</option><option value="B">B. A farmer</option><option value="C">C. An archaeologist</option></select></div>
+                    <div class="mb-4"><strong>2. What is the most striking feature of the bronze masks? (Easy)</strong><br><select id="d2" class="input-field"><option value="">Select...</option><option value="A">A. Small, realistic eyes</option><option value="B">B. Exaggerated features like large almond-shaped eyes</option><option value="C">C. Smiling human expressions</option></select></div>
+                    <div class="mb-4"><strong>3. Was the Sanxingdui culture identical to the Shang Dynasty? (Easy)</strong><br><select id="d3" class="input-field"><option value="">Select...</option><option value="T">True</option><option value="F">False</option></select></div>
+                    <div class="mb-4"><strong>4. Were the artifacts deliberately broken before being buried? (Easy)</strong><br><select id="d4" class="input-field"><option value="">Select...</option><option value="T">True</option><option value="F">False</option></select></div>
+
+                    <div class="mb-4"><strong>5. Timeline: Flourished around ___ / Vanished around ___ BCE. (Medium)</strong><br><input type="text" id="d5a" class="input-field" placeholder="Year" style="width:40%"> / <input type="text" id="d5b" class="input-field" placeholder="Year" style="width:40%"></div>
+                    <div class="mb-4"><strong>6. What is one likely reason suggested for their abandonment of the site? (Medium)</strong><br><select id="d6" class="input-field"><option value="">Select...</option><option value="A">A. A deadly disease</option><option value="B">B. A long war with the Shang</option><option value="C">C. A natural disaster like an earthquake or flood</option></select></div>
+                    <div class="mb-4"><strong>7. The large bronze trees discovered at the site likely symbolize: (Medium)</strong><br><select id="d7" class="input-field"><option value="">Select...</option><option value="A">A. Agricultural wealth</option><option value="B">B. Simple decoration</option><option value="C">C. A connection between earth and heaven</option></select></div>
+
+                    <div class="mb-4"><strong>8. The "unique worldview" of Sanxingdui implies: (Hard)</strong><br><select id="d8" class="input-field"><option value="">Select...</option><option value="A">A. They were influenced heavily by Egypt.</option><option value="B">B. They developed independently from other Chinese societies.</option><option value="C">C. They copied the Xia Dynasty.</option></select></div>
+                    <div class="mb-4" style="background:#f0fdf4; padding:10px; border:1px solid #bbf7d0; border-radius:8px;">
+                        <strong>9. (High Level) The presence of elephant tusks (ivory) suggests that the people:</strong><br>
+                        <label style="display:block; margin:5px 0;"><input type="radio" name="d9" value="A"> A. Hunted local elephants for food only.</label>
+                        <label style="display:block; margin:5px 0;"><input type="radio" name="d9" value="B"> B. Had access to distant regions and engaged in long-distance trade.</label>
+                        <label style="display:block; margin:5px 0;"><input type="radio" name="d9" value="C"> C. Followed a strict isolationist policy prohibiting trade.</label>
+                        <label style="display:block; margin:5px 0;"><input type="radio" name="d9" value="D"> D. Used ivory primarily for building houses.</label>
+                        <label style="display:block; margin:5px 0;"><input type="radio" name="d9" value="E"> E. Were politically controlled by the Shang Dynasty.</label>
+                    </div>
+
+                    <div class="mb-4">
+                        <strong>10. Draw Lines to Match Events: (Hard)</strong>
+                        <div class="match-container" id="match-area">
+                            <svg id="svg-layer"></svg>
+                            <div class="match-col">
+                                <div class="match-item" id="L-A" onclick="clkM('L','A')">A. 1929</div>
+                                <div class="match-item" id="L-B" onclick="clkM('L','B')">B. 1980s</div>
+                                <div class="match-item" id="L-C" onclick="clkM('L','C')">C. 1200 BCE</div>
+                                <div class="match-item" id="L-D" onclick="clkM('L','D')">D. 1100 BCE</div>
+                            </div>
+                            <div class="match-col">
+                                <div class="match-item" id="R-1" onclick="clkM('R','1')">Site Abandoned</div>
+                                <div class="match-item" id="R-2" onclick="clkM('R','2')">Farmer Found Jade</div>
+                                <div class="match-item" id="R-3" onclick="clkM('R','3')">Civilization Flourished</div>
+                                <div class="match-item" id="R-4" onclick="clkM('R','4')">Massive Pits Found</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-small" onclick="clrM()">清除连线 (Clear Lines)</button>
+                    </div>
+
+                    <button class="btn" style="width:100%; margin-top:20px; background:var(--gold-main); color:black;" onclick="subFinal()">提交作业 (Submit)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="p7" class="page">
+        <div class="card">
+            <h1 style="text-align:center;">Mission Report</h1>
+            <h2 id="rep-name" style="text-align:center; color:#555;"></h2>
+            <div style="display:flex; justify-content:space-around; margin:30px 0; text-align:center;">
+                <div><div style="font-size:2rem; color:var(--bronze-main)" id="rep-star">0</div>UP Stars</div>
+                <div><div style="font-size:2rem; color:var(--gold-main)" id="rep-vocab">0</div>Vocab</div>
+                <div><div style="font-size:2rem; color:var(--wrong)" id="rep-video">0</div>Video</div>
+                <div><div style="font-size:2rem; color:#3b82f6" id="rep-total">0</div>Total</div>
+            </div>
+            <table class="rep-table">
+                <thead><tr><th width="50%">Question (完整题干)</th><th width="15%">Your Answer</th><th width="20%">Correct</th><th width="15%">Points</th></tr></thead>
+                <tbody id="report-body"></tbody>
+            </table>
+            <div style="text-align:center; margin-top:40px;">
+                <button class="btn" onclick="window.print()"><i class="fas fa-print"></i> 打印 PDF (Print)</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- 1. DATA: 47 FULL VOCABULARY ---
+    const rawVocab = [
+        ["archaeologists","n.","A person who studies human history by digging up and analyzing artifacts.","historian","考古学家","The discovery has baffled archaeologists for decades.","这一发现让考古学家困惑了几十年。","Archaeologists found ancient pottery in the cave.","考古学家在洞穴里发现了古代陶器。"],
+        ["enigma","n.","A person or thing that is mysterious, puzzling, or difficult to understand.","puzzle","谜；不解之谜","We aim to unravel the enigma of the Sanxingdui culture.","我们旨在解开三星堆文化的谜团。","The reason for his sudden departure remains an enigma.","他突然离开的原因仍然是一个谜。"],
+        ["artifacts","n.","Objects made by a human being, typically an item of cultural or historical interest.","relic","人工制品；文物","They stumbled upon a collection of jade artifacts.","他们偶然发现了一批玉器文物。","The museum has a vast collection of Roman artifacts.","博物馆收藏了大量的罗马文物。"],
+        ["magnitude","n.","The great size or extent of something; importance.","scale","重要性；规模","The magnitude of the Sanxingdui site was truly revealed in the 1980s.","三星堆遗址的规模在20世纪80年代才真正显现出来。","We did not realize the magnitude of the problem until it was too late.","直到为时已晚，我们才意识到问题的严重性。"],
+        ["sacrificial pits","n.","Large holes in the ground used for offering items to gods or ancestors.","offering site","祭祀坑","Archaeologists uncovered two massive sacrificial pits filled with treasures.","考古学家发现了两个装满珍宝的巨大祭祀坑。","Ancient people threw valuable items into sacrificial pits to please the gods.","古人把贵重物品扔进祭祀坑以取悦神灵。"],
+        ["ivory","n.","The hard creamy-white substance composing the main part of the tusks of an elephant.","tusk","象牙","They found bronze, gold, and even ivory artifacts in the pits.","他们在坑里发现了青铜、黄金甚至象牙文物。","The trade of ivory has been banned to protect elephants.","为了保护大象，象牙贸易已被禁止。"],
+        ["deities","n.","Gods or goddesses in a polytheistic religion.","divinity","神灵","The masks are unlike any other depictions of ancient Chinese deities.","这些面具不同于任何其他中国古代神灵的描绘。","The temple was built to worship local deities.","这座寺庙是为了崇拜当地神灵而建的。"],
+        ["ancestors","n.","A person, typically one more remote than a grandparent, from whom one is descended.","forefather","祖先","Were the masks meant to depict gods or ancestors?","这些面具是用来描绘神灵还是祖先？","Many cultures have rituals to honor their ancestors.","许多文化都有祭奠祖先的仪式。"],
+        ["worldview","n.","A particular philosophy of life or conception of the world.","perspective","世界观","The Sanxingdui people likely had their own unique worldview.","三星堆人可能有自己独特的世界观。","Traveling to different countries can broaden your worldview.","去不同的国家旅行可以开阔你的世界观。"],
+        ["migration","n.","Movement from one part of something to another.","movement","迁移","Some think they migrated and blended into other emerging cultures.","有些人认为他们迁移并融入了其他新兴文化。","The annual migration of birds is a spectacular sight.","鸟类的年度迁徙是一个壮观的景象。"],
+        ["speculate","v.","To form a theory or conjecture about a subject without firm evidence.","guess","推测","This has led many to speculate about extraterrestrial influence.","这导致许多人推测有外星影响。","We can only speculate about what happened, as there are no records.","我们只能推测发生了什么，因为没有记录。"],
+        ["extraterrestrial","adj.","Of or from outside the earth or its atmosphere.","alien","外星的","Some believe the masks suggest extraterrestrial influence.","有些人认为面具暗示了外星影响。","Scientists are searching for signals from extraterrestrial civilizations.","科学家正在寻找来自外星文明的信号。"],
+        ["ingenuity","n.","The quality of being clever, original, and inventive.","creativity","独创性；聪明才智","The site is a testament to the creativity and ingenuity of the civilization.","该遗址是该文明创造力和独创性的证明。","With a little ingenuity, he fixed the machine without tools.","凭着一点聪明才智，他在没有工具的情况下修好了机器。"],
+        ["baffled","adj.","Totally bewildered or perplexed.","confused","困惑的","The mystery has baffled archaeologists for decades.","这个谜团让考古学家困惑了几十年。","I was completely baffled by his strange behavior.","我完全被他的奇怪行为搞糊涂了。"],
+        ["extraordinary","adj.","Very unusual or remarkable.","amazing","非凡的","This discovery was the first hint of something extraordinary.","这一发现是非凡事物的第一个暗示。","She has an extraordinary memory for names and faces.","她对名字和面孔有非凡的记忆力。"],
+        ["striking","adj.","Attracting attention by reason of being unusual, extreme, or prominent.","noticeable","引人注目的","The most striking finds were the massive bronze masks.","最引人注目的发现是巨大的青铜面具。","There is a striking contrast between wealth and poverty in the city.","城市里的贫富差距非常引人注目。"],
+        ["exaggerated","adj.","Regarded or represented as larger, better, or worse than in reality.","overstated","夸张的","These masks had exaggerated features like giant eyes.","这些面具有夸张的特征，比如巨大的眼睛。","The cartoon characters often have exaggerated facial expressions.","卡通人物通常有夸张的面部表情。"],
+        ["almond-shaped","adj.","Having the shape of an almond; oval with pointed ends.","oval","杏仁形的","The masks feature large almond-shaped eyes.","面具具有巨大的杏仁形眼睛。","She has beautiful, dark, almond-shaped eyes.","她有一双美丽、深邃的杏仁眼。"],
+        ["angular","adj.","Having sharp corners or angles.","sharp","有棱角的","The masks have angular faces and sharp chins.","面具具有棱角分明的脸和尖下巴。","His handwriting is very angular and hard to read.","他的字迹非常有棱角，很难辨认。"],
+        ["haunting","adj.","Poignant and evocative; difficult to ignore or forget.","unforgettable","萦绕心头的；令人难忘的","The masks have haunting expressions that stare at you.","面具有令人难忘的表情，盯着你看。","The haunting melody of the song stayed in my mind all day.","这首歌令人难忘的旋律整天在我脑海中回荡。"],
+        ["otherworldly","adj.","Relating to an imaginary or spiritual world.","supernatural","超凡的；似乎来自另一个世界的","They seem almost otherworldly, unlike human faces.","它们看起来几乎是超凡的，不像是人类的脸。","The glowing lights gave the forest an otherworldly appearance.","发光的灯光给森林增添了一种超凡脱俗的外观。"],
+        ["contemporaneous","adj.","Existing or occurring in the same period of time.","contemporary","同时代的","Sanxingdui was contemporaneous with the Shang dynasty.","三星堆与商朝是同时代的。","These two famous writers were contemporaneous.","这两位著名作家是同时代的。"],
+        ["distinct","adj.","Recognizably different in nature from something else of a similar type.","different","截然不同的","The artifacts from Sanxingdui were distinct from Shang culture.","三星堆的文物与商朝文化截然不同。","There are two distinct dialects spoken in this region.","在这个地区有两种截然不同的方言。"],
+        ["elusive","adj.","Difficult to find, catch, or achieve.","hard to find","难以捉摸的","The truth about their disappearance remains elusive.","他们消失的真相仍然难以捉摸。","Success has remained elusive for him.","成功对他来说仍然难以捉摸。"],
+        ["deliberately","adv.","Consciously and intentionally; on purpose.","intentionally","故意地","Items were deliberately broken before being buried.","物品在被埋葬前被故意打碎。","He deliberately left the door unlocked.","他故意没有锁门。"],
+        ["profoundly","adv.","To a profound extent; extremely.","deeply","深刻地","The civilization was both unique and profoundly mysterious.","这个文明既独特又极其神秘。","The book had a profoundly moving effect on me.","这本书对我产生了深刻的感动。"],
+        ["unravel","v.","To investigate and solve or explain a mystery or puzzle.","solve","解开；揭示","Join us as we unravel the enigma of Sanxingdui.","加入我们，一起解开三星堆的谜团。","Scientists are trying to unravel the secrets of the universe.","科学家们正在试图解开宇宙的秘密。"],
+        ["stumbled upon","v. phr.","To find or discover something by chance.","find by chance","偶然发现","A farmer stumbled upon the artifacts while digging a well.","一位农民在挖井时偶然发现了这些文物。","I stumbled upon a quaint little cafe while walking in Paris.","我在巴黎散步时偶然发现了一家古色古香的小咖啡馆。"],
+        ["flourished","v.","To grow or develop in a healthy or vigorous way.","thrived","繁荣；兴盛","The civilization is thought to have flourished around 1200 BCE.","据认为该文明在公元前1200年左右繁荣发展。","The arts flourished during the Renaissance period.","文艺复兴时期艺术繁荣发展。"],
+        ["abandoned","v.","To leave a place, thing, or person, usually for ever.","left","遗弃；放弃","The site was mysteriously abandoned around 1100 BCE.","该遗址在公元前1100年左右被神秘地遗弃了。","The house had been abandoned for years and was in ruins.","这所房子已经被遗弃多年，变成了一片废墟。"],
+        ["vanish without a trace","v. phr.","To disappear completely and leave no sign.","disappear","消失得无影无踪","The people seem to vanish without a trace.","这些人似乎消失得无影无踪。","The ship vanished without a trace in the Bermuda Triangle.","这艘船在百慕大三角消失得无影无踪。"],
+        ["blended into","v.","To mix with another substance or people so that they combine together.","merged","融入","They may have migrated and blended into other cultures.","他们可能迁移并融入了其他文化。","The spy blended into the crowd to avoid detection.","为了避免被发现，间谍混入了人群中。"],
+        ["engage in","v.","To participate or become involved in.","participate","从事；参与","They were possibly engaging in long-distance trade.","他们可能从事长距离贸易。","Students are encouraged to engage in community service.","鼓励学生参与社区服务。"],
+        ["abound","v.","To exist in large numbers or amounts.","plentiful","大量存在","Theories about the Sanxingdui culture abound.","关于三星堆文化的理论大量存在。","Stories abound about the haunted house on the hill.","关于山上那座鬼屋的故事流传甚广。"],
+        ["captured the imagination","v.","To make someone very interested or excited.","fascinated","激发想象力","The idea has captured the imagination of many people.","这个想法激发了许多人的想象力。","Space exploration has always captured the imagination of the public.","太空探索一直激发着公众的想象力。"],
+        ["reshaped","v.","To shape or form something differently or again.","transformed","重塑","The discovery has reshaped our understanding of early history.","这一发现重塑了我们对早期历史的理解。","The new technology has reshaped the entire industry.","新技术重塑了整个行业。"],
+        ["reignited","v.","To make something such as a disagreement or worry start again.","revived","重新点燃","New discoveries have reignited interest in the site.","新发现重新点燃了人们对该遗址的兴趣。","The scandal reignited the debate about corruption.","丑闻重新引发了关于腐败的辩论。"],
+        ["buried for over 3000 years","phr.","Hidden underground for a very long period of time.","ancient","埋藏了3000多年","Secrets have remained buried for over 3000 years.","秘密被埋藏了3000多年。","The ancient city lay buried for centuries before being found.","这座古城在被发现之前已经被埋藏了几个世纪。"],
+        ["challenge everything","phr.","To question all previous beliefs or knowledge.","question","挑战认知","These discoveries challenge everything we thought we knew.","这些发现挑战了我们以为知道的一切。","New scientific evidence can challenge everything we believe.","新的科学证据可以挑战我们要相信的一切。"],
+        ["in complete isolation","phr.","Without any contact with other people or societies.","separately","完全孤立","This culture seemed to exist in complete isolation.","这种文化似乎完全孤立地存在。","The monk lived in complete isolation in the mountains.","这位僧侣在山中过着完全与世隔绝的生活。"],
+        ["sudden disappearance","phr.","Vanishing quickly and unexpectedly.","vanishing","突然消失","Their sudden disappearance is a fascinating mystery.","他们的突然消失是一个迷人的谜团。","Police are investigating the sudden disappearance of the money.","警方正在调查这笔钱的突然消失。"],
+        ["long-distance trade","phr.","Buying and selling goods over long distances.","commerce","长距离贸易","The ivory suggests they engaged in long-distance trade.","象牙表明他们从事长距离贸易。","The Silk Road was a famous route for long-distance trade.","丝绸之路是一条著名的长距离贸易路线。"],
+        ["cultural connections","phr.","Links or relationships between different cultures.","links","文化联系","They likely had cultural connections across Asia.","他们可能在亚洲各地有文化联系。","Art and music can create cultural connections between nations.","艺术和音乐可以在国家之间建立文化联系。"],
+        ["ancestor worship","phr.","The custom of respecting and honoring deceased ancestors.","veneration","祖先崇拜","The bronze trees possibly indicated a form of ancestor worship.","青铜树可能表明了一种祖先崇拜的形式。","Ancestor worship is a central part of many Asian traditions.","祖先崇拜是许多亚洲传统的核心部分。"],
+        ["cosmic balance","phr.","Harmony within the universe and nature.","harmony","宇宙平衡","They may have had a belief in cosmic balance.","他们可能相信宇宙平衡。","Traditional medicine often focuses on restoring cosmic balance.","传统医学通常侧重于恢复宇宙平衡。"],
+        ["patchwork","phr.","A mixture of different things.","mixture","拼凑图","Ancient China was a patchwork of independent cultures.","古代中国是独立文化的拼凑图。","The blanket was a colorful patchwork of fabric scraps.","这条毯子是由彩色碎布拼凑而成的。"],
+        ["lost civilization","phr.","A society that has ceased to exist and is known only through archaeology.","ancient society","失落文明","Sanxingdui is a lost civilization whose secrets were buried.","三星堆是一个秘密被埋藏的失落文明。","Many explorers searched for the lost civilization of Atlantis.","许多探险家寻找亚特兰蒂斯的失落文明。"]
+    ];
+
+    const vocabList = rawVocab.map(x => ({
+        w: x[0], t: x[1], d: x[2], s: x[3], cn: x[4], e1: x[5], e1cn: x[6], e2: x[7], e2cn: x[8]
+    }));
+
+    // --- VTT SUBTITLES (For Safari, parsed by JS) ---
+    // Note: Safari does not support Blob VTT. We use a custom overlay.
+    const vttContent = `WEBVTT
+
+00:00:02.240 --> 00:00:06.000
+Deep in the heart of Sichuan, China lies a mystery that has
+
+00:00:06.000 --> 00:00:10.240
+baffled archaeologists for decades, a lost civilization whose secrets
+
+00:00:10.240 --> 00:00:13.670
+have remained buried for over 3000 years.
+
+00:00:13.670 --> 00:00:17.870
+Join us as we unravel the enigma of the Sanxingdui culture, an
+
+00:00:17.870 --> 00:00:22.270
+ancient society unlike anything we've seen in Chinese history.
+
+00:00:23.510 --> 00:00:27.910
+The story of Sanxingdui begins in 1929, when a farmer in Sichuan
+
+00:00:27.910 --> 00:00:31.350
+province stumbled upon a collection of jade artifacts while digging a well.
+
+00:00:31.350 --> 00:00:35.910
+This discovery was the first hint of something extraordinary,
+
+00:00:35.910 --> 00:00:40.030
+but it wasn't until the 1980s that the magnitude of the Sanxingdui site was truly revealed.
+
+00:00:44.250 --> 00:00:49.450
+Archaeologists uncovered 2 massive sacrificial pits filled with jade, bronze, gold and even ivory.
+
+00:00:53.070 --> 00:00:56.470
+Artifacts unlike anything previously seen in China.
+
+00:00:56.470 --> 00:01:03.310
+These discoveries would go on to challenge everything we thought we knew about early Chinese civilization.
+
+00:01:04.420 --> 00:01:10.580
+The most striking finds at Sanxingdui were the massive bronze masks.
+
+00:01:10.580 --> 00:01:17.940
+These masks, some of which stood over a meter tall, had exaggerated features: large almond shaped eyes, angular faces.
+
+00:01:17.940 --> 00:01:25.580
+They seem almost otherworldly, unlike any other depictions of ancient Chinese deities.
+
+00:01:25.580 --> 00:01:33.480
+Who created these masks? Were they meant to depict gods, ancestors, or aliens?
+
+00:01:34.850 --> 00:01:42.530
+The Sanxingdui civilization flourished around 1200 BCE during the Bronze Age. But here's where things get puzzling.
+
+00:01:42.530 --> 00:01:49.490
+This culture seemed to exist in complete isolation from other early Chinese civilizations like the Shang.
+
+00:01:49.490 --> 00:01:55.570
+Despite being contemporaneous with the Shang, the artifacts from Sanxingdui were distinct.
+
+00:01:55.570 --> 00:02:02.810
+Their style, craftsmanship, and symbolism were unlike anything found in Shang culture.
+
+00:02:02.810 --> 00:02:11.670
+This led many to speculate that the Sanxingdui people had their own unique worldview.
+
+00:02:12.870 --> 00:02:20.230
+Another fascinating aspect is their sudden disappearance. Around 1100 BCE, the site was mysteriously abandoned.
+
+00:02:20.230 --> 00:02:26.110
+People seem to vanish without a trace. There are no historical records explaining why.
+
+00:02:26.110 --> 00:02:35.510
+Some researchers suggest a natural disaster like an earthquake or flood forced them to leave.
+
+00:02:35.510 --> 00:02:44.000
+Others think they may have migrated and blended into other emerging cultures.
+
+00:02:45.570 --> 00:02:56.690
+The artifacts found in the pits also raise questions. Many items were deliberately broken before being buried.
+
+00:02:56.690 --> 00:03:04.970
+It appears these items were sacrificed. The presence of elephant tusks suggests access to distant regions.
+
+00:03:04.970 --> 00:03:15.070
+Possibly engaging in long-distance trade or having cultural connections that stretched across Asia.
+
+00:04:26.150 --> 00:04:33.790
+In 2021, archaeologists uncovered 6 additional sacrificial pits with more bronze statues and gold masks.
+
+00:04:33.790 --> 00:04:48.150
+These discoveries have reignited interest and brought us closer to understanding the people who lived there.
+
+00:04:49.000 --> 00:04:52.840
+Yet despite these new finds, many questions remain.
+
+00:04:52.840 --> 00:04:56.480
+Who were the Sanxingdui people, and why did they create such
+
+00:04:56.480 --> 00:04:59.640
+elaborate artifacts? What drove them to abandon their
+
+00:04:59.640 --> 00:05:02.240
+city, and where did they go?
+
+00:05:03.440 --> 00:05:06.640
+The mystery of Sanxingdui captivates us because it is a
+
+00:05:06.640 --> 00:05:09.960
+reminder of how much of our past is still hidden.
+
+00:05:09.960 --> 00:05:12.800
+Even in a well documented country like China, there are still
+
+00:05:12.800 --> 00:05:16.760
+secrets waiting to be uncovered, lost worlds that challenge our
+
+00:05:16.760 --> 00:05:19.640
+understanding of history and humanity.
+
+00:05:19.640 --> 00:05:23.480
+The Sanxingdui site stands as a testament to the creativity and
+
+00:05:23.480 --> 00:05:27.360
+ingenuity of a civilization that chose to express itself in ways
+
+00:05:27.360 --> 00:05:31.120
+that were both unique and profoundly mysterious.
+
+00:05:31.120 --> 00:05:32.950
+Perhaps one day we will uncover the
+
+00:05:32.950 --> 00:05:35.590
+answers that have eluded us for so long.
+
+00:05:35.590 --> 00:05:38.950
+Until then, the golden masks, broken statues, and bronze
+
+00:05:38.950 --> 00:05:42.550
+trees will continue to whisper their secrets, inviting us
+
+00:05:42.550 --> 00:05:45.870
+to explore, to question, and to wonder about the lost
+
+00:05:45.870 --> 00:05:49.230
+civilization of Sanxingdui. What secrets still lie buried
+
+00:05:49.230 --> 00:05:51.990
+beneath the sands of time?
+
+00:05:52.790 --> 00:05:55.590
+If the Mystery of Sanxingdui intrigued you, make sure to
+
+00:05:55.590 --> 00:05:59.710
+watch our next video as we uncover more
+
+00:05:59.710 --> 00:06:02.670
+enigmas and untold stories.`;   
+
+
+ // --- APP STATE ---
+    let state = {
+        user: "",
+        stars: 0, vocabScore: 0, videoScore: 0,
+        myList: [], learned: {},
+        quizData: [], quizIdx: 0, quizCorrect: 0,
+        currPage: 'p1', vid1Time: 0, vid2Time: 0,
+        matchLines: [], 
+        ans: {}
+    };
+
+    // --- AZURE TTS ---
+    const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9"; 
+    const azureRegion = "eastus2"; 
+    let synthesizer;
+
+    function speak(text) {
+        if(!synthesizer && typeof SpeechSDK!=='undefined' && azureKey) {
+            const conf = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+            conf.speechSynthesisVoiceName = "en-US-JennyNeural";
+            synthesizer = new SpeechSDK.SpeechSynthesizer(conf);
+        }
+        if(synthesizer) {
+            synthesizer.speakTextAsync(text, r=>{}, e=>console.log(e));
+        } else {
+            const u = new SpeechSynthesisUtterance(text); u.lang='en-US'; window.speechSynthesis.speak(u);
+        }
+    }
+
+    // --- SUBTITLE PARSER (Cross-Browser) ---
+    function parseVTT(vttStr) {
+        const lines = vttStr.split(/\r?\n/);
+        const cues = [];
+        let start = null, end = null, text = "";
+        
+        for (let line of lines) {
+            if (line.includes('-->')) {
+                const parts = line.split('-->');
+                start = timeToSec(parts[0].trim());
+                end = timeToSec(parts[1].trim());
+            } else if (line.trim() === '' && start !== null) {
+                cues.push({s:start, e:end, t:text.trim()});
+                start = null; text = "";
+            } else if (start !== null && !line.match(/^\d+$/)) {
+                text += line + " ";
+            }
+        }
+        if(start !== null) cues.push({s:start, e:end, t:text.trim()});
+        return cues;
+    }
+
+    function timeToSec(str) {
+        const p = str.split(':');
+        const s = parseFloat(p[2]);
+        return parseInt(p[0])*3600 + parseInt(p[1])*60 + s;
+    }
+
+    const subtitles = parseVTT(vttContent);
+
+    // --- CORE & INIT ---
+    window.onload = () => {
+        if(localStorage.getItem('sx_v10')) document.getElementById('resume-btn').style.display='inline-block';
+        
+        // Custom Subtitle Loop
+        const subOverlay = document.getElementById('sub-overlay-1');
+        const v1 = document.getElementById('vid1');
+        v1.ontimeupdate = () => {
+            const t = v1.currentTime;
+            const cue = subtitles.find(c => t >= c.s && t <= c.e);
+            if(cue) {
+                subOverlay.style.display = 'block';
+                subOverlay.innerText = cue.t;
+            } else {
+                subOverlay.style.display = 'none';
+            }
+            state.vid1Time = t;
+        };
+
+        const v2 = document.getElementById('vid2');
+        v2.ontimeupdate = () => { state.vid2Time = v2.currentTime; };
+
+        // Save Loop
+        setInterval(() => {
+            localStorage.setItem('sx_v10', JSON.stringify(state));
+        }, 2000);
+    };
+
+    function startNew() {
+        const n=document.getElementById('username').value;
+        if(!n) return alert("请输入名字");
+        localStorage.removeItem('sx_v10');
+        state.user=n; initVocab(); saveState(); gotoPage('p2');
+    }
+    function resume() {
+        state=JSON.parse(localStorage.getItem('sx_v10'));
+        initVocab();
+        document.getElementById('username').value=state.user;
+        state.matchLines.forEach(l=>drawLine(l.l, l.r));
+        
+        // Restore Quiz
+        if(state.currPage === 'p3') {
+            if(state.quizData.length > 0 && state.quizIdx < state.quizData.length) {
+                document.getElementById('quiz-start-view').style.display='none';
+                document.getElementById('quiz-question-view').style.display='block';
+                showQuizQ();
+            } else {
+                document.getElementById('quiz-start-view').style.display='block';
+                document.getElementById('quiz-question-view').style.display='none';
+            }
+        }
+        
+        const v1=document.getElementById('vid1');
+        const v2=document.getElementById('vid2');
+        if(v1) v1.currentTime = state.vid1Time;
+        if(v2) v2.currentTime = state.vid2Time;
+
+        gotoPage(state.currPage);
+    }
+    function saveState() { localStorage.setItem('sx_v10', JSON.stringify(state)); updateBoard(); }
+    function updateBoard() {
+        document.getElementById('s-star').innerText=state.stars;
+        document.getElementById('s-vocab').innerText=state.vocabScore;
+        document.getElementById('s-video').innerText=state.videoScore;
+        document.getElementById('u-name').innerText=state.user;
+    }
+    function resetData() { if(confirm("清除进度?")) { localStorage.removeItem('sx_v10'); location.reload(); } }
+    function gotoPage(pid) {
+        document.querySelectorAll('video').forEach(v=>v.pause());
+        document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+        document.getElementById(pid).classList.add('active');
+        state.currPage=pid;
+        if(pid==='p7') renderReport();
+        saveState();
+    }
+
+    // --- VOCAB ---
+    function initVocab() {
+        const g=document.getElementById('vocab-grid'); g.innerHTML="";
+        vocabList.forEach((v,i)=>{
+            const d=document.createElement('div'); d.className=`mini-card ${state.learned[i]?'learned':''}`;
+            d.innerHTML=`<div class="add-btn ${state.myList.includes(i)?'added':''}" onclick="toggleList(event,${i})"><i class="fas ${state.myList.includes(i)?'fa-check-circle':'fa-plus-circle'}"></i></div><div style="font-weight:bold; color:var(--bronze-main)">${v.w}</div>`;
+            d.onclick=()=>openZoom(i);
+            g.appendChild(d);
+        });
+    }
+    let zIdx=0;
+    function openZoom(i) {
+        zIdx=i; const v=vocabList[i];
+        document.getElementById('zm-w-front').innerText=v.w;
+        document.getElementById('zm-w-back').innerText=v.w;
+        document.getElementById('zm-t').innerText=v.t;
+        document.getElementById('zm-cn').innerText=v.cn;
+        document.getElementById('zm-def').innerText=v.d;
+        document.getElementById('zm-syn').innerText=v.s;
+        document.getElementById('zm-e1').innerText=v.e1; document.getElementById('zm-e1cn').innerText=v.e1cn;
+        document.getElementById('zm-e2').innerText=v.e2; document.getElementById('zm-e2cn').innerText=v.e2cn;
+        document.querySelector('.back-view').classList.remove('active');
+        document.querySelector('.front-view').style.display='flex';
+        document.getElementById('zoom-modal').style.display='flex';
+        if(!state.learned[i]) { state.learned[i]=true; state.stars++; saveState(); initVocab(); }
+    }
+    function flipZoom() { document.querySelector('.front-view').style.display='none'; document.querySelector('.back-view').classList.add('active'); }
+    function closeZoom() { document.getElementById('zoom-modal').style.display='none'; }
+    function speakZoomWord() { speak(vocabList[zIdx].w); }
+    function speakZoomEx(n) { speak(n===1?vocabList[zIdx].e1:vocabList[zIdx].e2); }
+    function toggleZoomEx(n) { document.getElementById(`zm-e${n}cn`).classList.toggle('show'); }
+    function toggleList(e,i) { e.stopPropagation(); if(state.myList.includes(i)) state.myList=state.myList.filter(x=>x!==i); else state.myList.push(i); initVocab(); saveState(); }
+
+    function printList() {
+        const c=document.getElementById('print-content'); c.innerHTML='';
+        document.getElementById('print-name').innerText=state.user;
+        document.getElementById('print-date').innerText=new Date().toLocaleDateString();
+        state.myList.forEach((idx, n)=>{
+            const v=vocabList[idx];
+            c.innerHTML+=`<div class="print-item"><div class="print-word">${n+1}. ${v.w} (${v.t}) <span class="print-cn">${v.cn}</span></div><div class="print-def">Def: ${v.d}</div><div class="print-ex">Ex 1: ${v.e1}</div><div class="print-ex">Ex 2: ${v.e2}</div></div>`;
+        });
+        window.print();
+    }
+
+    // --- QUIZ ---
+    function initQuiz(pct) {
+        let count = Math.floor(vocabList.length * pct);
+        state.quizData = [];
+        let pool = [...vocabList].map((v,i)=>({...v, idx:i})).sort(()=>0.5-Math.random()).slice(0, count);
+        let base = 0;
+        if(pct==0.3) base=30; else if(pct==0.5) base=60; else if(pct==0.8) base=100; else if(pct==1.0) base=140;
+        state.vocabScore = base;
+
+        pool.forEach(q => {
+            let opts = [q];
+            while(opts.length < 4) {
+                let r = vocabList[Math.floor(Math.random()*vocabList.length)];
+                if(!opts.find(o=>o.w===r.w)) opts.push(r);
+            }
+            opts.sort(()=>0.5-Math.random());
+            state.quizData.push({q:q, opts:opts});
+        });
+        
+        state.quizIdx = 0; state.quizCorrect = 0;
+        document.getElementById('quiz-start-view').style.display='none';
+        document.getElementById('quiz-question-view').style.display='block';
+        saveState();
+        showQuizQ();
+    }
+
+    function showQuizQ() {
+        if(state.quizIdx >= state.quizData.length) {
+            saveState();
+            alert(`Quiz Complete! Score: ${state.vocabScore}`);
+            gotoPage('p4');
+            return;
+        }
+        const data = state.quizData[state.quizIdx];
+        document.getElementById('q-idx').innerText = state.quizIdx + 1;
+        document.getElementById('q-def-text').innerText = data.q.d;
+        document.getElementById('q-syn-text').innerText = data.q.s;
+        document.getElementById('q-next-btn').style.display = 'none';
+        
+        const c = document.getElementById('q-options-container'); c.innerHTML='';
+        data.opts.forEach(o => {
+            const b = document.createElement('div'); b.className='q-option-btn';
+            b.innerText = o.w;
+            b.onclick = () => {
+                Array.from(c.children).forEach(k=>k.style.pointerEvents='none');
+                if(o.w === data.q.w) { b.classList.add('correct'); state.quizCorrect++; state.vocabScore+=1; }
+                else { b.classList.add('wrong'); state.vocabScore-=1; Array.from(c.children).find(k=>k.innerText===data.q.w).classList.add('correct'); }
+                document.getElementById('q-score-disp').innerText = state.vocabScore;
+                document.getElementById('q-next-btn').style.display = 'block';
+                saveState();
+            };
+            c.appendChild(b);
+        });
+    }
+    function nextQuestion() { state.quizIdx++; showQuizQ(); }
+
+    // --- VIDEO P1 ---
+    let sIdx=0;
+    function slide(n) {
+        const imgs=document.querySelectorAll('.slide');
+        imgs[sIdx].style.display='none';
+        sIdx=(sIdx+n+imgs.length)%imgs.length;
+        imgs[sIdx].style.display='block';
+    }
+    function startVideo1() { document.getElementById('p1-pre').style.display='none'; document.getElementById('player1').style.display='block'; document.getElementById('vid1').play(); }
+    function finishVideo1() { document.getElementById('player1').style.display='none'; document.getElementById('p1-post-qs').style.display='block'; }
+    function replayVideo1() { document.getElementById('p1-post-qs').style.display='none'; document.getElementById('player1').style.display='block'; }
+    function togglePlay(id) { const v=document.getElementById(id); v.paused?v.play():v.pause(); }
+    function scrub(id,v){const el=document.getElementById(id);el.currentTime=(v/100)*el.duration;}
+    function setSpeed(id,v){document.getElementById(id).playbackRate=v;}
+    function submitP1() {
+        const q1=document.querySelector('input[name="gq1"]:checked');
+        const q2=document.querySelector('input[name="gq2"]:checked');
+        state.ans.gq1 = q1?q1.value:'-'; state.ans.gq2 = q2?q2.value:'-';
+        if(state.ans.gq1==='C') state.videoScore+=5;
+        if(state.ans.gq2==='B') state.videoScore+=5;
+        saveState(); gotoPage('p6');
+    }
+
+    // --- MATCHING ---
+    let selLeft=null;
+    function clkM(side, id) {
+        if(side==='L') {
+            document.querySelectorAll('.match-col:first-child .match-item').forEach(e=>e.classList.remove('selected'));
+            selLeft = id; document.getElementById('L-'+id).classList.add('selected');
+        } else {
+            if(!selLeft) return;
+            drawLine(`L-${selLeft}`, `R-${id}`);
+            state.matchLines.push({l:`L-${selLeft}`, r:`R-${id}`});
+            document.getElementById(`L-${selLeft}`).classList.remove('selected');
+            document.getElementById(`L-${selLeft}`).classList.add('matched');
+            document.getElementById(`R-${id}`).classList.add('matched');
+            selLeft=null; saveState();
+        }
+    }
+    function drawLine(id1, id2) {
+        const l=document.getElementById(id1), r=document.getElementById(id2), svg=document.getElementById('svg-layer');
+        const c=document.getElementById('match-area').getBoundingClientRect();
+        const r1=l.getBoundingClientRect(), r2=r.getBoundingClientRect();
+        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',r1.right-c.left); line.setAttribute('y1',r1.top+r1.height/2-c.top);
+        line.setAttribute('x2',r2.left-c.left); line.setAttribute('y2',r2.top+r2.height/2-c.top);
+        svg.appendChild(line);
+    }
+    function clrM() { document.getElementById('svg-layer').innerHTML=''; state.matchLines=[]; document.querySelectorAll('.match-item').forEach(e=>e.classList.remove('matched','selected')); saveState(); }
+
+    function subFinal() {
+        state.ans.d1=document.getElementById('d1').value;
+        state.ans.d2=document.getElementById('d2').value;
+        state.ans.d3=document.getElementById('d3').value;
+        state.ans.d4=document.getElementById('d4').value;
+        state.ans.d5a=document.getElementById('d5a').value; state.ans.d5b=document.getElementById('d5b').value;
+        state.ans.d6=document.getElementById('d6').value;
+        state.ans.d7=document.getElementById('d7').value;
+        state.ans.d8=document.getElementById('d8').value;
+        const d9 = document.querySelector('input[name="d9"]:checked');
+        state.ans.d9 = d9 ? d9.value : '-';
+
+        let s=0;
+        if(state.ans.d1==='B') s+=5; if(state.ans.d2==='B') s+=5; if(state.ans.d3==='F') s+=5; if(state.ans.d4==='T') s+=5;
+        if(state.ans.d5a.includes('1200') && state.ans.d5b.includes('1100')) s+=5;
+        if(state.ans.d6==='C') s+=5; if(state.ans.d7==='C') s+=5; if(state.ans.d8==='B') s+=5; if(state.ans.d9==='B') s+=5;
+        state.matchLines.forEach(l=>{
+            if(l.l==='L-A' && l.r==='R-2') s+=1.25; if(l.l==='L-B' && l.r==='R-4') s+=1.25;
+            if(l.l==='L-C' && l.r==='R-3') s+=1.25; if(l.l==='L-D' && l.r==='R-1') s+=1.25;
+        });
+        state.videoScore += s;
+        state.stars += Math.floor(s/5);
+        saveState(); gotoPage('p7');
+    }
+
+    function renderReport() {
+        document.getElementById('rep-name').innerText = "Student: "+state.user;
+        document.getElementById('rep-star').innerText = state.stars;
+        document.getElementById('rep-vocab').innerText = state.vocabScore;
+        document.getElementById('rep-video').innerText = state.videoScore;
+        document.getElementById('rep-total').innerText = state.vocabScore + state.videoScore;
+
+        const b = document.getElementById('report-body');
+        const row = (q,a,c,s) => `<tr><td>${q}</td><td>${a}</td><td>${c}</td><td class="${s>0?'status-ok':'status-err'}">${s}</td></tr>`;
+        
+        let h = "";
+        h += row("1. Based on the video, what is the primary subject?", state.ans.gq1, "C (The enigma of Sanxingdui)", state.ans.gq1 === 'C' ? 5 : 0);
+        h += row("2. Where is the Sanxingdui site geographically situated?", state.ans.gq2, "B (Heart of Sichuan)", state.ans.gq2 === 'B' ? 5 : 0);
+        
+        // Part 2
+        h += row("3. Who stumbled upon the first artifacts in 1929?", state.ans.d1, "B (Farmer)", state.ans.d1 === 'B' ? 5 : 0);
+        h += row("4. What is the most striking feature of the bronze masks?", state.ans.d2, "B (Exaggerated)", state.ans.d2 === 'B' ? 5 : 0);
+        h += row("5. Was the Sanxingdui culture identical to the Shang Dynasty?", state.ans.d3, "False", state.ans.d3 === 'F' ? 5 : 0);
+        h += row("6. Were the artifacts deliberately broken before being buried?", state.ans.d4, "True", state.ans.d4 === 'T' ? 5 : 0);
+        h += row("7. Flourished around ___ BCE and Vanished around ___ BCE.", `${state.ans.d5a} / ${state.ans.d5b}`, "1200 / 1100", (state.ans.d5a.includes('1200') && state.ans.d5b.includes('1100')) ? 5 : 0);
+        h += row("8. What is one likely reason suggested for their abandonment of the site?", state.ans.d6, "C (Disaster)", state.ans.d6 === 'C' ? 5 : 0);
+        h += row("9. The large bronze trees discovered at the site likely symbolize:", state.ans.d7, "C (Earth-Heaven)", state.ans.d7 === 'C' ? 5 : 0);
+        
+        // ⬇️ 修改点1：使用单引号包裹题干，避免 "unique worldview" 的双引号冲突
+        h += row('10. The "unique worldview" of Sanxingdui implies:', state.ans.d8, "B (Independent)", state.ans.d8 === 'B' ? 5 : 0);
+        
+        h += row("11. The presence of elephant tusks (ivory) suggests that the people:", state.ans.d9, "B (Had access to distant regions and engaged in long-distance trade.)", state.ans.d9 === 'B' ? 5 : 0);
+        
+        // ⬇️ 修改点2：重新计算连线题得分，以便正确显示绿色/红色和具体分数
+        let mScore = 0;
+        state.matchLines.forEach(l => {
+            if(l.l==='L-A' && l.r==='R-2') mScore+=1.25; 
+            if(l.l==='L-B' && l.r==='R-4') mScore+=1.25;
+            if(l.l==='L-C' && l.r==='R-3') mScore+=1.25; 
+            if(l.l==='L-D' && l.r==='R-1') mScore+=1.25;
+        });
+        h += row("12. Time of Events (Matching)", "See Canvas", "A-2, B-4, C-3, D-1", mScore);
+
+        b.innerHTML = h;
+    }
+</script>
+</body>
+</html>

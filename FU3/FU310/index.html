@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Movie-Goer's Guide to London - Main Menu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-red: #C8102E;
+            --royal-blue: #003399;
+            --gold: #D4AF37;
+            --text-bg: #000000;
+        }
+
+        body, html { 
+            margin: 0; padding: 0; height: 100%; width: 100%; 
+            font-family: 'Nunito', sans-serif; 
+            background: #000; 
+            color: #fff; 
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .container {
+            text-align: center;
+            z-index: 10;
+        }
+
+        .main-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 5rem;
+            color: var(--gold);
+            margin: 0;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.8);
+            letter-spacing: 3px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .subtitle {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: #ddd;
+            font-style: italic;
+            margin-top: 10px;
+            margin-bottom: 60px;
+            animation: fadeInDown 1s ease-out 0.3s backwards;
+        }
+
+        .nav-grid {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-card {
+            background: rgba(20, 20, 20, 0.85);
+            border: 2px solid #444;
+            border-radius: 15px;
+            width: 280px;
+            padding: 30px 20px;
+            text-align: center;
+            text-decoration: none;
+            color: #fff;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(5px);
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.8s ease-out backwards;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 动画延迟 */
+        .nav-card:nth-child(1) { animation-delay: 0.5s; }
+        .nav-card:nth-child(2) { animation-delay: 0.7s; }
+        .nav-card:nth-child(3) { animation-delay: 0.9s; }
+
+        .nav-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--gold);
+            background: rgba(30, 30, 30, 0.95);
+            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.2);
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--primary-red);
+            transition: 0.3s;
+        }
+
+        .nav-card:hover .card-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .card-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            margin: 0 0 10px 0;
+            letter-spacing: 1px;
+        }
+
+        .card-desc {
+            font-size: 0.95rem;
+            color: #aaa;
+            line-height: 1.5;
+        }
+
+        .card-btn {
+            margin-top: 20px;
+            padding: 8px 20px;
+            border: 1px solid #666;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            background: transparent;
+            color: #fff;
+            transition: 0.3s;
+        }
+
+        .nav-card:hover .card-btn {
+            background: var(--gold);
+            color: #000;
+            border-color: var(--gold);
+            font-weight: bold;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 20px;
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 class="main-title">A Movie-Goer's Guide to London</h1>
+        <p class="subtitle">An Interactive English Learning Journey</p>
+
+        <div class="nav-grid">
+            <a href="page 01/page 01.html" class="nav-card">
+                <i class="fas fa-video card-icon"></i>
+                <h2 class="card-title">Part 1: Introduction</h2>
+                <p class="card-desc">Start your tour! Explore the map, watch movie clips, and guess the famous locations.</p>
+                <div class="card-btn">Start Tour <i class="fas fa-arrow-right"></i></div>
+            </a>
+
+            <a href="page 02/page 02.html" class="nav-card">
+                <i class="fas fa-book-reader card-icon"></i>
+                <h2 class="card-title">Part 2: First Reading</h2>
+                <p class="card-desc">Read the guide for the first time. Identify the text type and main idea.</p>
+                <div class="card-btn">Start Reading <i class="fas fa-arrow-right"></i></div>
+            </a>
+
+            <a href="page 03/page 03.html" class="nav-card">
+                <i class="fas fa-microscope card-icon"></i>
+                <h2 class="card-title">Part 3: Intensive Reading</h2>
+                <p class="card-desc">Analyze each paragraph in detail, extract key info, and check the tour order.</p>
+                <div class="card-btn">Start Analysis <i class="fas fa-arrow-right"></i></div>
+            </a>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2024 English Learning Module
+    </footer>
+
+</body>
+</html>

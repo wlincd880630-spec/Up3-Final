@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Part 3: Reading Contest (Deep Analysis)</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&family=Merriweather:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22;
+            --glass: rgba(20, 20, 20, 0.9); 
+            --text-color: #ecf0f1;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Poppins', sans-serif;
+            background: url('img_alastair_portrait.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: var(--text-color);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 120px; 
+        }
+
+        .overlay-bg {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7); z-index: -1;
+        }
+
+        .container {
+            width: 95%; max-width: 900px;
+            margin: 30px auto;
+            display: flex; flex-direction: column; gap: 25px;
+        }
+
+        .header-section {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        h1 { margin: 0; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
+        .sub-text { font-size: 0.9rem; color: #ccc; margin-top: 5px; }
+
+        .sentence-card {
+            background: var(--glass);
+            border-left: 5px solid #3498db;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
+            flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+        .sent-num {
+            background: #3498db; color: white; width: 32px; height: 32px; 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; margin-right: 10px; font-size: 0.9rem;
+        }
+        .btn-tool {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
+            color: white; padding: 6px 14px; border-radius: 20px;
+            cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;
+        }
+        .btn-tool:hover { background: rgba(255,255,255,0.2); }
+        .btn-tool.active { background: var(--accent); border-color: var(--accent); }
+        .speed-select {
+            background: rgba(0,0,0,0.3); color: white; border: 1px solid #777;
+            border-radius: 5px; padding: 5px; font-size: 0.85rem;
+        }
+
+        /* Text Area */
+        .text-area {
+            font-size: 1.35rem; line-height: 1.8; margin-bottom: 25px;
+            font-family: 'Merriweather', serif; min-height: 60px;
+        }
+        .word-span { padding: 2px 4px; border-radius: 4px; display: inline-block; transition: 0.2s;}
+        
+        .blind-mode .word-span {
+            color: transparent; background: rgba(255,255,255,0.15); 
+            border-bottom: 2px dashed #999; cursor: pointer; margin: 0 2px;
+        }
+        .blind-mode .word-span.revealed {
+            color: #f1c40f; background: transparent; border-bottom: none; animation: fadeIn 0.3s;
+        }
+
+        /* Recording */
+        .record-section {
+            margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2);
+            padding-top: 15px; display: flex; flex-direction: column; gap: 15px;
+        }
+        .record-controls { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .btn-record {
+            width: 70px; height: 70px; border-radius: 50%;
+            background: #e74c3c; border: 4px solid rgba(255,255,255,0.2);
+            color: white; font-size: 1.8rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); transition: 0.3s;
+        }
+        .btn-record.recording { animation: pulseRed 1.5s infinite; background: #c0392b; }
+        .status-text { font-size: 0.9rem; color: #ccc; min-height: 20px; font-weight: 500;}
+
+        /* Scores */
+        .scores-container { display: flex; flex-direction: column-reverse; gap: 12px; margin-top: 10px; }
+        .score-card {
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px; padding: 15px; position: relative; animation: flipInX 0.6s;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .score-top-row { display: flex; align-items: center; width: 100%; }
+        
+        .total-badge {
+            width: 75px; height: 75px; border-radius: 50%; background: #27ae60; color: white;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 1.5rem; border: 3px solid rgba(255,255,255,0.3);
+            margin-right: 20px; flex-shrink: 0;
+        }
+        .total-badge span { font-size: 0.6rem; text-transform: uppercase; font-weight: normal; margin-top: -2px;}
+        
+        .metrics-grid { flex-grow: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 15px; font-size: 0.85rem; }
+        .metric-row { display: flex; justify-content: space-between; }
+        .m-val { font-weight: bold; color: #fff; }
+
+        /* Words Feedback */
+        .feedback-detail {
+            background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;
+            font-family: 'Merriweather', serif; font-size: 1.1rem; line-height: 1.8;
+        }
+        .w-ok { color: #2ecc71; }
+        .w-bad { 
+            color: #e74c3c; font-weight: bold; border-bottom: 2px solid #e74c3c; 
+            cursor: pointer; padding: 0 2px;
+        }
+        .w-bad:hover { background: rgba(231, 76, 60, 0.2); border-radius: 3px; }
+        .w-miss { color: #95a5a6; text-decoration: line-through; opacity: 0.6; }
+
+        /* Phoneme Analysis Box */
+        .phoneme-analysis {
+            background: #2c3e50; border-left: 4px solid #f1c40f;
+            padding: 10px; margin-top: 5px; border-radius: 0 5px 5px 0;
+            display: none; animation: fadeIn 0.3s;
+        }
+        .ph-title { font-size: 0.85rem; color: #ccc; margin-bottom: 5px; text-transform: uppercase; }
+        .ph-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+        .ph-badge {
+            padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .ph-good { background: rgba(39, 174, 96, 0.3); color: #2ecc71; border-color: #2ecc71; }
+        .ph-bad { background: rgba(231, 76, 60, 0.3); color: #e74c3c; border-color: #e74c3c; font-weight: bold; }
+
+        .btn-delete {
+            position: absolute; top: 5px; right: 8px;
+            background: none; border: none; color: #e74c3c;
+            cursor: pointer; opacity: 0.6; font-size: 1.1rem;
+        }
+        .btn-delete:hover { opacity: 1; transform: scale(1.1); }
+
+        /* Navigation */
+        .nav-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(0,0,0,0.95); padding: 15px 5%;
+            display: flex; justify-content: space-between; z-index: 100;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        .nav-btn {
+            background: transparent; border: 1px solid white; color: white;
+            padding: 10px 25px; border-radius: 30px; cursor: pointer; font-size: 1rem;
+        }
+        .nav-btn:hover { background: white; color: black; }
+
+        @keyframes pulseRed {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="overlay-bg"></div>
+
+    <div class="container">
+        <div class="header-section">
+            <h1>Deep Analysis Contest 
+
+[Image of sound wave analysis]
+</h1>
+            <div class="sub-text">Click red words to see which sound (phoneme) was wrong</div>
+        </div>
+
+        <div id="sentences-list"></div>
+    </div>
+
+    <div class="nav-bar">
+        <button class="nav-btn" onclick="window.location.href='page4_2.html'">❮ Previous</button>
+        <button class="nav-btn" onclick="alert('Module Complete!')">Finish 🏁</button>
+    </div>
+
+    <script>
+        const AZURE_KEY = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const AZURE_REGION = "eastus2";
+
+        const fullTextSentences = [
+            "British adventurer Alastair Humphreys has ridden his bike around the world, walked across India, and rowed from Africa to South America.",
+            "In 2011, however, Humphreys had some of the biggest adventures of his life—and he never even left the United Kingdom.",
+            "For a year, Humphreys went on microadventures—small, low-cost trips close to home.",
+            "Why did he do this?",
+            "“I started to think that it was to have an adventure anywhere,” he explains.",
+            "For his first trip, he went hiking with a friend around the M25—a 188-kilometer road that goes all the way around London.",
+            "Other adventures included swimming in the River Thames, sleeping outside on a hill, and going on a mountain biking trip.",
+            "Humphreys learned something important: We find adventure when we try something new.",
+            "Humphreys wanted other people to make this discovery, too, so he decided to share his idea.",
+            "He challenged people to go on microadventures and send him four-minute videos of their trips.",
+            "He asked them to do things like climb a hill, go away for a weekend, or choose a random place on a map and go there.",
+            "People from all over the world accepted his challenge and posted their videos on Twitter (a social media, like Weibo)."
+        ];
+
+        let recognizers = {}; 
+        let isRecording = {};
+
+        window.onload = function() {
+            const container = document.getElementById('sentences-list');
+            fullTextSentences.forEach((text, index) => {
+                createSentenceCard(container, text, index + 1);
+            });
+        };
+
+        function createSentenceCard(container, text, num) {
+            const card = document.createElement('div');
+            card.className = 'sentence-card';
+            
+            const wordsHtml = text.split(' ').map(word => `<span class="word-span" onclick="revealMe(this)">${word}</span>`).join(' ');
+
+            card.innerHTML = `
+                <div class="toolbar">
+                    <div class="sent-num">${num}</div>
+                    <button class="btn-tool" onclick="playTTS(this, '${text.replace(/'/g, "\\'")}')">
+                        <i class="fas fa-volume-up"></i> Listen
+                    </button>
+                    <select class="speed-select" id="speed-${num}">
+                        <option value="0.85">0.85x</option>
+                        <option value="0.93">0.93x</option>
+                        <option value="1.0" selected>1.0x</option>
+                    </select>
+                    <button class="btn-tool" style="margin-left:auto" onclick="toggleBlindMode(${num}, this)">
+                        <i class="fas fa-eye-slash"></i> Hide Text
+                    </button>
+                </div>
+
+                <div class="text-area" id="text-area-${num}">
+                    ${wordsHtml}
+                </div>
+
+                <div class="record-section">
+                    <div class="record-controls">
+                        <button class="btn-record" id="btn-rec-${num}" onclick="handleRecording(${num}, '${text.replace(/'/g, "\\'")}')">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <div class="status-text" id="status-${num}">Click mic to start contest</div>
+                    </div>
+                    <div class="scores-container" id="scores-${num}"></div>
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        // --- TTS & Blind Mode ---
+        function playTTS(btn, text) {
+            window.speechSynthesis.cancel();
+            const toolbar = btn.parentElement;
+            const speedSelect = toolbar.querySelector('.speed-select');
+            let msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'en-GB';
+            msg.rate = parseFloat(speedSelect.value);
+            msg.onstart = () => { btn.innerHTML = '<i class="fas fa-stop"></i>'; btn.classList.add('active'); };
+            msg.onend = () => { btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen'; btn.classList.remove('active'); };
+            window.speechSynthesis.speak(msg);
+        }
+
+        function toggleBlindMode(id, btn) {
+            const textArea = document.getElementById(`text-area-${id}`);
+            const isBlind = textArea.classList.toggle('blind-mode');
+            if(isBlind) {
+                btn.innerHTML = '<i class="fas fa-eye"></i> Show All';
+                btn.classList.add('active');
+                textArea.querySelectorAll('.word-span').forEach(s => s.classList.remove('revealed'));
+            } else {
+                btn.innerHTML = '<i class="fas fa-eye-slash"></i> Hide Text';
+                btn.classList.remove('active');
+            }
+        }
+        function revealMe(el) {
+            if(el.parentElement.classList.contains('blind-mode')) el.classList.add('revealed');
+        }
+
+        // --- Azure Recording ---
+        async function handleRecording(id, referenceText) {
+            const btn = document.getElementById(`btn-rec-${id}`);
+            const status = document.getElementById(`status-${id}`);
+            if (isRecording[id]) {
+                stopAzureRecording(id);
+                return;
+            }
+            startAzureRecording(id, referenceText, btn, status);
+        }
+
+        function startAzureRecording(id, referenceText, btn, status) {
+            isRecording[id] = true;
+            btn.classList.add('recording');
+            btn.innerHTML = '<i class="fas fa-stop"></i>';
+            status.innerText = "Listening... Read now!";
+            status.style.color = "#e74c3c";
+
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+
+                const pronunciationAssessmentConfig = new SpeechSDK.PronunciationAssessmentConfig(
+                    referenceText,
+                    SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark,
+                    SpeechSDK.PronunciationAssessmentGranularity.Phoneme,
+                    true
+                );
+                pronunciationAssessmentConfig.enableProsodyAssessment = true;
+
+                const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+                pronunciationAssessmentConfig.applyTo(recognizer);
+
+                recognizers[id] = recognizer;
+                let lastResultEvent = null;
+
+                recognizer.recognized = (s, e) => {
+                    if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                        lastResultEvent = e;
+                    }
+                };
+
+                recognizer.canceled = (s, e) => {
+                    stopAzureRecording(id);
+                };
+
+                recognizer.startContinuousRecognitionAsync();
+
+                recognizer.manualStopAction = () => {
+                    if (lastResultEvent) {
+                        const resultObj = SpeechSDK.PronunciationAssessmentResult.fromResult(lastResultEvent.result);
+                        const jsonStr = lastResultEvent.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult);
+                        const jsonObj = JSON.parse(jsonStr);
+                        displayScore(id, resultObj, jsonObj);
+                        status.innerText = "Analysis Complete";
+                        status.style.color = "#2ecc71";
+                    } else {
+                        status.innerText = "No clear voice. Try again.";
+                        status.style.color = "#ccc";
+                    }
+                };
+            } catch (err) {
+                console.error(err);
+                isRecording[id] = false;
+                btn.classList.remove('recording');
+            }
+        }
+
+        function stopAzureRecording(id) {
+            if (!isRecording[id]) return;
+            const btn = document.getElementById(`btn-rec-${id}`);
+            const recognizer = recognizers[id];
+            isRecording[id] = false;
+            btn.classList.remove('recording');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
+
+            if (recognizer) {
+                recognizer.stopContinuousRecognitionAsync(() => {
+                    if(recognizer.manualStopAction) recognizer.manualStopAction();
+                    recognizer.close();
+                    recognizers[id] = undefined;
+                    btn.innerHTML = '<i class="fas fa-microphone"></i>';
+                });
+            }
+        }
+
+        // --- Result Display with Phonemes ---
+        function displayScore(id, result, jsonResult) {
+            const container = document.getElementById(`scores-${id}`);
+            
+            const accuracy = Math.round(result.accuracyScore);
+            const fluency = Math.round(result.fluencyScore);
+            const completeness = Math.round(result.completenessScore);
+            const prosody = Math.round(result.prosodyScore);
+            const total = Math.round((accuracy * 0.4) + (fluency * 0.2) + (completeness * 0.2) + (prosody * 0.2));
+
+            // Generate Word Feedback with Phoneme Data
+            let wordsHtml = "";
+            let wordDataMap = {}; // store phoneme data by index
+
+            if (jsonResult && jsonResult.NBest && jsonResult.NBest[0] && jsonResult.NBest[0].Words) {
+                const words = jsonResult.NBest[0].Words;
+                
+                wordsHtml = words.map((w, idx) => {
+                    const wordText = w.Word;
+                    const errorType = w.PronunciationAssessment.ErrorType;
+                    const phonemes = w.Phonemes || [];
+                    
+                    // Store phoneme data for onclick event
+                    // Using encodeURIComponent to safely put JSON in HTML attribute is one way,
+                    // but storing in a temporary map is cleaner.
+                    const wordId = `w-${Date.now()}-${idx}`;
+                    wordDataMap[wordId] = { text: wordText, phonemes: phonemes };
+
+                    if (errorType === "None") {
+                        return `<span class="w-ok">${wordText}</span>`;
+                    } else if (errorType === "Mispronunciation") {
+                        // Pass the ID to the onclick function
+                        return `<span class="w-bad" onclick="showPhonemes(this, '${wordId}')">${wordText}</span>`;
+                    } else if (errorType === "Omission") {
+                        return `<span class="w-miss">${wordText}</span>`;
+                    } else if (errorType === "Insertion") {
+                        return `<span style="color:#d35400; font-style:italic">(${wordText})</span>`;
+                    } else {
+                        return `<span>${wordText}</span>`;
+                    }
+                }).join(" ");
+            }
+
+            const card = document.createElement('div');
+            card.className = 'score-card';
+            // We attach the data map to the card element for easy access
+            card.dataset.wordData = JSON.stringify(wordDataMap);
+
+            card.innerHTML = `
+                <div class="score-top-row">
+                    <div class="total-badge" style="background:${getColor(total)}">
+                        ${total}<span>Total</span>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-row"><span class="m-label">Accuracy</span><span class="m-val">${accuracy}</span></div>
+                        <div class="metric-row"><span class="m-label">Fluency</span><span class="m-val">${fluency}</span></div>
+                        <div class="metric-row"><span class="m-label">Complete</span><span class="m-val">${completeness}</span></div>
+                        <div class="metric-row"><span class="m-label">Prosody</span><span class="m-val">${prosody}</span></div>
+                    </div>
+                    <button class="btn-delete" onclick="this.closest('.score-card').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="feedback-detail">
+                    <div style="margin-bottom:5px; font-size:0.8rem; color:#aaa;">TAP RED WORDS FOR DETAILS:</div>
+                    ${wordsHtml}
+                </div>
+                
+                <div class="phoneme-analysis"></div>
+            `;
+            container.prepend(card);
+        }
+
+        // Show Phonemes
+        window.showPhonemes = function(el, wordId) {
+            // Find parent card
+            const card = el.closest('.score-card');
+            const analysisBox = card.querySelector('.phoneme-analysis');
+            const dataMap = JSON.parse(card.dataset.wordData);
+            const data = dataMap[wordId];
+
+            if(!data) return;
+
+            let badgesHtml = data.phonemes.map(p => {
+                const score = p.PronunciationAssessment.AccuracyScore;
+                const phText = p.Phoneme;
+                const isGood = score >= 60; // Threshold
+                const cls = isGood ? 'ph-good' : 'ph-bad';
+                return `<span class="ph-badge ${cls}">${phText} ${Math.floor(score)}</span>`;
+            }).join("");
+
+            analysisBox.innerHTML = `
+                <div class="ph-title">Sound Analysis for: <strong style="color:white">${data.text}</strong></div>
+                <div class="ph-badges">${badgesHtml}</div>
+                <div style="font-size:0.75rem; color:#888; margin-top:5px;">Scores < 60 are marked red.</div>
+            `;
+            analysisBox.style.display = 'block';
+        }
+
+        function getColor(score) {
+            if(score >= 85) return '#27ae60';
+            if(score >= 60) return '#f1c40f';
+            return '#e74c3c';
+        }
+    </script>
+</body>
+</html>

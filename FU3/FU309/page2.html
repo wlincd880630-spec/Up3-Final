@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Unit 3 - Travel Adventures | Page 2</title>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        /* --- 统一配色系统 (Aurora Theme) --- */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+            --nav-bg: rgba(255, 255, 255, 0.85);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --primary-color: #4a00e0;
+            --secondary-color: #8e2de2;
+            --accent-color: #ff6b6b;
+            --text-dark: #2d3436;
+            --text-light: #636e72;
+            --highlight-bg: rgba(255, 242, 0, 0.3);
+            --highlight-hover: rgba(255, 242, 0, 0.7);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-image: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 导航栏 --- */
+        nav {
+            background: var(--nav-bg);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .nav-links { display: flex; gap: 5px; flex-wrap: wrap; }
+
+        .nav-btn {
+            text-decoration: none;
+            color: var(--text-light);
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .nav-btn:hover { background-color: rgba(142, 45, 226, 0.1); color: var(--primary-color); }
+        .nav-btn.active {
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            color: white;
+            box-shadow: 0 4px 15px rgba(142, 45, 226, 0.4);
+        }
+
+        /* --- 主布局 --- */
+        .main-container {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .content-card {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 1200px;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        h2.page-title {
+            text-align: center;
+            background: -webkit-linear-gradient(var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            font-weight: 800;
+        }
+
+        /* --- 文章阅读区 --- */
+        .reading-section {
+            font-size: 1.3rem;
+            line-height: 1.8;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #fff;
+            border-radius: 20px;
+            border-left: 6px solid var(--accent-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .highlight-word {
+            background: var(--highlight-bg);
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 4px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .highlight-word:hover {
+            background: var(--highlight-hover);
+            border-bottom-color: var(--primary-color);
+            transform: translateY(-2px);
+            display: inline-block;
+        }
+
+        .read-btn {
+            float: right;
+            margin-top: 15px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+
+        .read-btn:hover { transform: scale(1.05); background: var(--secondary-color); }
+        .read-btn.playing { animation: pulse 1s infinite; background: var(--accent-color); }
+
+        /* --- 探险列表 --- */
+        .adventure-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .adventure-item {
+            background: white;
+            padding: 15px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .adventure-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border-color: rgba(142, 45, 226, 0.2);
+        }
+
+        .list-thumb {
+            width: 120px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-right: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .list-text-content { flex: 1; }
+
+        .list-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            cursor: pointer;
+            color: var(--text-dark);
+            transition: color 0.2s;
+            line-height: 1.3;
+        }
+
+        .list-title:hover { color: var(--primary-color); text-decoration: underline; }
+
+        /* 小喇叭按钮 */
+        .mini-audio-btn {
+            background: #f1f2f6;
+            color: var(--primary-color);
+            border: none;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .mini-audio-btn:hover { background: var(--primary-color); color: white; }
+        .mini-audio-btn.playing { background: var(--accent-color); color: white; animation: pulse 1s infinite; }
+
+        /* --- 模态框 (通用) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%; max-width: 800px; max-height: 90vh;
+            border-radius: 20px; padding: 30px;
+            position: relative; overflow-y: auto;
+            text-align: left;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            animation: zoomIn 0.3s ease;
+        }
+
+        .close-modal {
+            position: absolute; top: 15px; right: 20px;
+            font-size: 1.5rem; cursor: pointer; color: #aaa;
+            background: #f8f9fa; width: 40px; height: 40px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        }
+        .close-modal:hover { background: var(--accent-color); color: white; }
+
+        .modal-desc-container {
+            margin-top: 20px;
+            background: #f8f9fa; border-radius: 12px;
+            border-left: 4px solid var(--secondary-color);
+            padding: 20px;
+        }
+
+        .desc-en { font-size: 1.25rem; line-height: 1.7; color: #2d3436; margin-bottom: 15px; font-weight: 500; }
+        .desc-cn { font-size: 1.1rem; line-height: 1.6; color: #636e72; padding-top: 15px; border-top: 1px dashed #cbd5e1; }
+        
+        .modal-controls {
+            display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;
+        }
+        
+        /* 标题样式 */
+        .modal-title-en { color: var(--primary-color); font-size: 1.8rem; margin: 0; font-weight: 800; line-height: 1.2; }
+        .modal-title-cn { color: #636e72; font-size: 1.2rem; margin: 5px 0 15px 0; font-weight: 500; }
+
+        /* --- 单词卡片样式 --- */
+        .vocab-header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .vocab-word { font-size: 3.5rem; color: var(--primary-color); margin: 0; font-weight: 800; line-height: 1.2; }
+        .vocab-syllables { color: #888; font-size: 1.5rem; font-family: 'Courier New', monospace; margin: 5px 0; }
+        .vocab-cn { font-size: 2rem; color: var(--text-dark); margin: 10px 0; }
+        .vocab-def { background: #fff3cd; color: #856404; padding: 12px 20px; border-radius: 8px; display: inline-block; font-style: italic; font-size: 1.1rem; }
+        
+        .example-block {
+            background: #fff; border: 1px solid #e9ecef;
+            border-left: 5px solid var(--primary-color);
+            padding: 15px; margin-bottom: 15px; border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }
+        
+        .vocab-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .example-en { font-size: 1.25rem; font-weight: 600; color: #2d3436; margin-bottom: 5px; }
+        .example-cn { font-size: 1.1rem; color: #636e72; transition: opacity 0.3s; }
+        .hidden-text { opacity: 0; pointer-events: none; height: 0; overflow: hidden; margin: 0; padding: 0; }
+
+        .blind-btn {
+            background: white; border: 1px solid #ddd;
+            color: #666; padding: 5px 12px; border-radius: 15px;
+            font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 5px;
+            transition: 0.2s;
+        }
+        .blind-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .blind-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+
+        /* 动画 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        /* 响应式 */
+        @media (max-width: 900px) {
+            .adventure-list { grid-template-columns: 1fr; }
+            .nav-brand span { display: none; }
+            .nav-links { gap: 2px; }
+            .nav-btn { padding: 5px 10px; font-size: 0.85rem; }
+            .content-card { padding: 20px; }
+            .reading-section { padding: 20px; font-size: 1.1rem; }
+            .list-thumb { width: 90px; height: 70px; }
+            .vocab-word { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="main page.html" class="nav-brand">
+            <i class="fas fa-home"></i> <span>Unit 3</span>
+        </a>
+        <div class="nav-links">
+            <a href="main page.html" class="nav-btn">Menu</a>
+            <a href="page1.html" class="nav-btn">Page 1</a>
+            <a href="page2.html" class="nav-btn active">Page 2</a>
+            <a href="page3.html" class="nav-btn">Page 3</a>
+            <a href="page4.html" class="nav-btn">Page 4</a>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="content-card">
+            <h2 class="page-title">TRAVEL ADVENTURES</h2>
+            
+            <div class="reading-section">
+                 <div id="reading-full-text">
+                     <span class="highlight-word" onclick="openVocab('imagine')">Imagine</span> you could go anywhere in the world for a travel <span class="highlight-word" onclick="openVocab('adventure')">adventure</span>. Which place would you choose? A travel company asked this question to 5,500 <span class="highlight-word" onclick="openVocab('millennials')">millennials</span>—people born between the early 1980s and the early 2000s. The ten most popular choices <span class="highlight-word" onclick="openVocab('include')">included</span> famous places like the Egyptian pyramids, the Great Wall of China, and the Eiffel Tower. However, number one on the list was a trip to the Blue Lagoon in Iceland.
+                 </div>
+                 <div style="clear:both;"></div>
+                 <button class="read-btn" onclick="playAudio(document.getElementById('reading-full-text').innerText, this)">
+                    <i class="fas fa-volume-up"></i> Read Full Text
+                 </button>
+                 <div style="clear:both;"></div>
+            </div>
+
+            <ul class="adventure-list" id="adventure-list-container">
+                </ul>
+        </div>
+    </div>
+
+    <div id="generalModal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="close-modal" onclick="closeModalDirect('generalModal')">&times;</div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <div id="vocabModal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="close-modal" onclick="closeModalDirect('vocabModal')">&times;</div>
+            <div id="vocab-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Azure Speech SDK 配置 ---
+        const azureKey = ""; // 在此填入您的 Key
+        const azureRegion = ""; 
+        let synthesizer;
+
+        function initSpeechSDK() {
+            if (typeof SpeechSDK !== 'undefined' && azureKey && azureRegion) {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+                synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+            }
+        }
+
+        window.onload = function() {
+            initSpeechSDK();
+            renderDestinations();
+        };
+
+        function playAudio(text, btnElement) {
+            if(btnElement) btnElement.classList.add('playing');
+
+            if (synthesizer) {
+                synthesizer.speakTextAsync(
+                    text,
+                    result => {
+                        if(btnElement) btnElement.classList.remove('playing');
+                        synthesizer.close();
+                        synthesizer = undefined;
+                        initSpeechSDK();
+                    },
+                    error => {
+                        console.log("Azure error, fallback");
+                        browserSpeak(text, btnElement);
+                    }
+                );
+            } else {
+                browserSpeak(text, btnElement);
+            }
+        }
+
+        function browserSpeak(text, btnElement) {
+            window.speechSynthesis.cancel();
+            const ut = new SpeechSynthesisUtterance(text);
+            const voices = window.speechSynthesis.getVoices();
+            // 尝试寻找英音或美音
+            ut.voice = voices.find(v => v.lang.includes('GB') || v.name.includes('UK') || v.lang.includes('US')) || null;
+            ut.rate = 0.9;
+            ut.onend = () => { if(btnElement) btnElement.classList.remove('playing'); };
+            window.speechSynthesis.speak(ut);
+        }
+
+        // --- 2. 数据与渲染 (双语完整版) ---
+        const destinations = [
+            { 
+                id: 'blue_lagoon', 
+                title: "Bathe in the Blue Lagoon, Iceland", 
+                titleCN: "在冰岛蓝湖沐浴",
+                img: "images/Blue Lagoon, Iceland.jpg", 
+                desc: "The Blue Lagoon is a famous geothermal spa in southwestern Iceland. The milky blue water is rich in minerals like silica and sulfur, and bathing here is reputed to help some people suffering from skin diseases.",
+                descCN: "蓝湖是冰岛西南部著名的地热温泉。乳蓝色的湖水富含二氧化硅和硫磺等矿物质，据说在这里沐浴有助于治疗某些皮肤病。"
+            },
+            { 
+                id: 'pyramids', 
+                title: "See the Great Pyramids of Giza", 
+                titleCN: "参观吉萨大金字塔",
+                img: "images/Great Pyramids of Giza, Egypt.jpg", 
+                desc: "The Great Pyramids of Giza are the oldest of the Seven Wonders of the Ancient World. Built as tombs for pharaohs, these massive structures have stood for over 4,500 years.",
+                descCN: "吉萨大金字塔是古代世界七大奇迹中最古老的。作为法老的陵墓，这些巨大的建筑已经屹立了4500多年。"
+            },
+            { 
+                id: 'great_wall', 
+                title: "Walk the Great Wall of China", 
+                titleCN: "漫步中国长城",
+                img: "images/Great Wall of China.jpg", 
+                desc: "The Great Wall of China is a series of fortifications that were built across the historical northern borders of ancient Chinese states. It is the longest wall in the world, stretching thousands of kilometers.",
+                descCN: "中国长城是古代中国各诸侯国为抵御北部边境入侵而修建的一系列防御工事。它是世界上最长的墙，绵延数千公里。"
+            },
+            { 
+                id: 'byron_bay', 
+                title: "Relax on Byron Bay beach, Australia", 
+                titleCN: "在澳大利亚拜伦湾海滩放松",
+                img: "images/Byron Bay beach, Australia.jpg", 
+                desc: "Byron Bay is a coastal town in New South Wales, Australia. It is famous for its spectacular beaches, unique shopping and dining experiences, and world-class surfing conditions.",
+                descCN: "拜伦湾是澳大利亚新南威尔士州的一个沿海小镇。它以壮观的海滩、独特的购物和餐饮体验以及世界级的冲浪条件而闻名。"
+            },
+            { 
+                id: 'pizza', 
+                title: "Learn how to make pizza in Italy", 
+                titleCN: "在意大利学习制作披萨",
+                img: "images/Italy (Pizza Making).jpg", 
+                desc: "Experience the art of authentic pizza making in Italy. Use fresh ingredients like tomatoes, mozzarella cheese, and basil to create a delicious masterpiece in a traditional wood-fired oven.",
+                descCN: "体验意大利正宗披萨制作的艺术。使用新鲜食材，如西红柿、马苏里拉奶酪和罗勒，在传统的燃木烤箱中创造美味的杰作。"
+            },
+            { 
+                id: 'route66', 
+                title: "Drive along Route 66, U.S.A.", 
+                titleCN: "驾车行驶在美国66号公路",
+                img: "images/Route 66, U.S.A..jpg", 
+                desc: "Route 66 is one of the most famous roads in the United States, running from Chicago to Santa Monica. It represents freedom, migration, and the classic American road trip experience.",
+                descCN: "66号公路是美国最著名的公路之一，从芝加哥延伸至圣莫尼卡。它代表了自由、迁徙和经典的美国公路旅行体验。"
+            },
+            { 
+                id: 'venice', 
+                title: "Take a gondola ride in Venice, Italy", 
+                titleCN: "在意大利威尼斯乘坐贡多拉",
+                img: "images/Venice, Italy.jpg", 
+                desc: "Enjoy a romantic ride on a traditional gondola through the canals of Venice. Admire the historic buildings and bridges while gliding peacefully through the water.",
+                descCN: "享受乘坐传统贡多拉穿梭于威尼斯运河的浪漫之旅。在水面上平静滑行时，欣赏历史悠久的建筑和桥梁。"
+            },
+            { 
+                id: 'eiffel', 
+                title: "Climb the Eiffel Tower, Paris", 
+                titleCN: "攀登巴黎埃菲尔铁塔",
+                img: "images/Eiffel Tower, Paris.jpg", 
+                desc: "The Eiffel Tower is a wrought-iron lattice tower on the Champ de Mars in Paris. It is a global cultural icon of France and offers breathtaking panoramic views of the city.",
+                descCN: "埃菲尔铁塔是位于巴黎战神广场的锻铁格状塔。它是法国的全球文化象征，提供令人惊叹的城市全景。"
+            },
+            { 
+                id: 'turtles', 
+                title: "Watch sea turtles in Costa Rica", 
+                titleCN: "在哥斯达黎加观赏海龟",
+                img: "images/Costa Rica Sea Turtles.jpg", 
+                desc: "Costa Rica is one of the best places to see sea turtles nesting. Visit Tortuguero National Park to watch these magnificent creatures lay their eggs on the protected beaches.",
+                descCN: "哥斯达黎加是观赏海龟筑巢的最佳地点之一。前往托尔图格罗国家公园，在受保护的海滩上观看这些宏伟的生物产卵。"
+            },
+            { 
+                id: 'picnic', 
+                title: "Enjoy a picnic in the French countryside", 
+                titleCN: "在法国乡村享受野餐",
+                img: "images/Provence, France.jpg", 
+                desc: "Relax in the beautiful fields of Provence. Enjoy a traditional picnic with fresh baguettes, cheese, wine, and local fruits while surrounded by fragrant lavender fields.",
+                descCN: "在普罗旺斯美丽的田野中放松身心。享受传统的野餐，品尝新鲜的长棍面包、奶酪、葡萄酒和当地水果，周围环绕着芬芳的薰衣草田。"
+            }
+        ];
+
+        const vocabData = {
+            "imagine": { word: "imagine", syllables: "i · mag · ine", cn: "想象", def: "To form a mental image or concept of.", examples: [{ en: "I can't imagine life without music.", cn: "我无法想象没有音乐的生活。" }, { en: "Imagine that you just won a million dollars!", cn: "想象一下你刚刚赢了一百万美元！" }, { en: "It is hard to imagine how people lived before the internet.", cn: "很难想象互联网之前人们是如何生活的。" }] },
+            "adventure": { word: "adventure", syllables: "ad · ven · ture", cn: "冒险，奇遇", def: "An unusual and exciting experience.", examples: [{ en: "Our trip to the mountains was a great adventure.", cn: "我们的山中之旅是一次伟大的冒险。" }, { en: "She is looking for an adventure in a new country.", cn: "她正在一个新的国家寻找冒险。" }, { en: "Reading books can be an adventure for your mind.", cn: "读书对你的心灵来说可能是一场冒险。" }] },
+            "millennials": { word: "millennials", syllables: "mil · len · ni · als", cn: "千禧一代", def: "A person reaching young adulthood in the early 21st century.", examples: [{ en: "Many millennials prefer experiences over buying things.", cn: "许多千禧一代更喜欢体验而不是购买物品。" }, { en: "Technology is a very important part of life for millennials.", cn: "科技是千禧一代生活中非常重要的一部分。" }, { en: "Companies are trying new ways to sell products to millennials.", cn: "公司正在尝试向千禧一代销售产品的新方法。" }] },
+            "include": { word: "include", syllables: "in · clude", cn: "包括，包含", def: "Comprise or contain as part of a whole.", examples: [{ en: "The price of the hotel room includes breakfast.", cn: "酒店房费包含早餐。" }, { en: "Does your travel plan include a visit to the museum?", cn: "你的旅行计划包括参观博物馆吗？" }, { en: "Please include your phone number in the email.", cn: "请在邮件中附上你的电话号码。" }] }
+        };
+
+        function renderDestinations() {
+            const container = document.getElementById('adventure-list-container');
+            container.innerHTML = destinations.map(d => `
+                <li class="adventure-item">
+                    <img src="${d.img}" class="list-thumb">
+                    <div class="list-text-content">
+                        <div class="list-title" onclick="openDestination('${d.id}')">${d.title}</div>
+                    </div>
+                    <button class="mini-audio-btn" onclick="playAudio('${d.title.replace(/'/g, "\\'")}', this)">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                </li>
+            `).join('');
+        }
+
+        // --- 3. 模态框逻辑 ---
+        function closeModalDirect(id) {
+            document.getElementById(id).style.display = 'none';
+            window.speechSynthesis.cancel();
+        }
+
+        function closeModal(e) {
+            if(e.target.classList.contains('modal-overlay')) {
+                e.target.style.display='none';
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        function openDestination(id) {
+            const data = destinations.find(d => d.id === id);
+            const modal = document.getElementById('generalModal');
+            document.getElementById('modal-body').innerHTML = `
+                <h2 class="modal-title-en">${data.title}</h2>
+                <h3 class="modal-title-cn">${data.titleCN}</h3>
+                
+                <img src="${data.img}" style="width:100%; max-height:450px; object-fit:cover; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+                
+                <div class="modal-desc-container">
+                    <div class="modal-controls">
+                         <button class="read-btn" style="margin:0;" onclick="playAudio(\`${data.desc.replace(/'/g, "\\'")}\`, this)">
+                            <i class="fas fa-volume-up"></i> Listen
+                        </button>
+                        <button class="blind-btn" onclick="toggleDescBlind(this)">
+                            <i class="fas fa-eye-slash"></i> Hide CN
+                        </button>
+                    </div>
+                    <div class="desc-en">${data.desc}</div>
+                    <div class="desc-cn">${data.descCN}</div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function openVocab(key) {
+            const data = vocabData[key] || vocabData['include'];
+            const modal = document.getElementById('vocabModal');
+            const content = document.getElementById('vocab-content');
+            
+            const examplesHtml = data.examples.map((ex, i) => `
+                <div class="example-block">
+                    <div class="vocab-controls">
+                        <span style="font-weight:bold; color:var(--secondary-color);">Example ${i+1}:</span>
+                        <div style="display:flex; gap:10px;">
+                            <button class="blind-btn" onclick="toggleBlind(this)">
+                                <i class="fas fa-eye-slash"></i> Hide CN
+                            </button>
+                            <button class="mini-audio-btn" style="width:28px; height:28px; font-size:0.8rem;" onclick="playAudio(\`${ex.en.replace(/'/g, "\\'")}\`, this)">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="example-en">${ex.en}</div>
+                    <div class="example-cn">${ex.cn}</div>
+                </div>
+            `).join('');
+
+            content.innerHTML = `
+                <div class="vocab-header">
+                    <h2 class="vocab-word">${data.word}</h2>
+                    <div class="vocab-syllables">[ ${data.syllables} ]</div>
+                    <h3 class="vocab-cn">${data.cn}</h3>
+                    <div class="vocab-def">${data.def}</div>
+                </div>
+                <div style="margin-top:20px;">${examplesHtml}</div>
+            `;
+            modal.style.display = 'flex';
+            playAudio(data.word);
+        }
+
+        function toggleBlind(btn) {
+            const block = btn.closest('.example-block');
+            const cnText = block.querySelector('.example-cn');
+            cnText.classList.toggle('hidden-text');
+            const isHidden = cnText.classList.contains('hidden-text');
+            btn.innerHTML = isHidden ? '<i class="fas fa-eye"></i> Show CN' : '<i class="fas fa-eye-slash"></i> Hide CN';
+        }
+
+        function toggleDescBlind(btn) {
+            const container = btn.closest('.modal-desc-container');
+            const cnText = container.querySelector('.desc-cn');
+            cnText.classList.toggle('hidden-text');
+            const isHidden = cnText.classList.contains('hidden-text');
+            btn.innerHTML = isHidden ? '<i class="fas fa-eye"></i> Show CN' : '<i class="fas fa-eye-slash"></i> Hide CN';
+        }
+
+        // 初始化浏览器语音列表
+        window.speechSynthesis.onvoiceschanged = function() { window.speechSynthesis.getVoices(); };
+    </script>
+</body>
+</html>

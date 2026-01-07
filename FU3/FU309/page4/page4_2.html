@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Part 2: First Reading & Listening</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&family=Merriweather:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #27ae60; 
+            --accent-hover: #2ecc71;
+            --highlight: #f1c40f;
+            --glass: rgba(0, 0, 0, 0.6); 
+            --text-color: #ecf0f1;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Poppins', sans-serif;
+            background: url('img_alastair_portrait.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: var(--text-color);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 100px; 
+        }
+
+        .overlay-bg {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.5); 
+            z-index: -1;
+        }
+
+        .container {
+            width: 90%; max-width: 900px;
+            margin: 40px auto;
+            display: flex; flex-direction: column; gap: 30px;
+        }
+
+        /* 标题区 */
+        .header-section {
+            text-align: center;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(5px);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        h1 { margin: 0; font-size: 2rem; text-transform: uppercase; letter-spacing: 2px; }
+        .sub-text { font-family: 'Merriweather', serif; color: #bdc3c7; margin-top: 10px; }
+
+        /* 文章段落卡片 */
+        .passage-card {
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border-left: 5px solid var(--accent);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            font-size: 1.15rem;
+            line-height: 1.8;
+            position: relative;
+            transition: transform 0.3s;
+        }
+        .passage-card:hover { transform: translateX(5px); }
+
+        /* TTS 按钮 */
+        .tts-btn {
+            float: right;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            margin-left: 15px; margin-bottom: 10px;
+            transition: 0.3s;
+        }
+        .tts-btn:hover { background: var(--accent); border-color: var(--accent); transform: scale(1.1); }
+        .playing { animation: pulse 1.5s infinite; background: var(--accent); }
+
+        /* 挖空样式 (Cloze) */
+        .cloze-gap {
+            display: inline-block;
+            min-width: 80px;
+            border-bottom: 2px dashed var(--highlight);
+            color: transparent;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 0 5px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        .cloze-gap:hover { background: rgba(241, 196, 15, 0.2); }
+        
+        .cloze-revealed {
+            color: var(--highlight);
+            border-bottom: 2px solid var(--highlight);
+            background: rgba(241, 196, 15, 0.1);
+            animation: flash 0.5s;
+        }
+
+        /* 阅读理解区域 */
+        .quiz-section {
+            margin-top: 40px;
+            background: var(--glass);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .quiz-header {
+            font-size: 1.5rem; font-weight: bold; margin-bottom: 20px;
+            border-bottom: 2px solid var(--accent); padding-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .question-card {
+            display: none;
+            animation: fadeInRight 0.5s;
+        }
+        .question-active { display: block; }
+
+        .q-text { font-size: 1.3rem; margin-bottom: 20px; font-weight: 600; }
+
+        .answer-box {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+            border-left: 4px solid var(--highlight);
+        }
+        
+        .evidence-text {
+            font-family: 'Merriweather', serif;
+            font-style: italic;
+            color: #bdc3c7;
+            font-size: 0.95rem;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-action {
+            background: var(--accent); color: white;
+            border: none; padding: 10px 25px;
+            border-radius: 30px; cursor: pointer;
+            font-size: 1rem; font-weight: bold;
+            transition: 0.3s; margin-top: 10px;
+        }
+        .btn-action:hover { background: var(--accent-hover); transform: translateY(-2px); }
+
+        /* 底部导航 */
+        .nav-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            padding: 15px 5%;
+            display: flex; justify-content: space-between;
+            z-index: 100;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .nav-btn {
+            background: transparent; border: 1px solid white; color: white;
+            padding: 8px 20px; border-radius: 20px; cursor: pointer;
+            transition: 0.3s;
+        }
+        .nav-btn:hover { background: white; color: black; }
+
+        @media (max-width: 768px) {
+            .container { width: 95%; margin: 20px auto; }
+            .passage-card { font-size: 1rem; padding: 15px; }
+            h1 { font-size: 1.5rem; }
+            .tts-btn { width: 35px; height: 35px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="overlay-bg"></div>
+
+    <div class="container">
+        
+        <div class="header-section animate__animated animate__fadeInDown">
+            <h1>Part 2: First Reading</h1>
+            <div class="sub-text">Listen, Fill in the blanks, and Understand.</div>
+        </div>
+
+        <div class="passage-card animate__animated animate__fadeInUp">
+            <button class="tts-btn" onclick="readParagraph(this, 'p1-text')">🔊</button>
+            <div id="p1-text">
+                British adventurer Alastair Humphreys has 
+                <span class="cloze-gap" data-answer="ridden" onclick="revealWord(this)">______</span> 
+                his bike around the world, walked across 
+                <span class="cloze-gap" data-answer="India" onclick="revealWord(this)">______</span>, 
+                and rowed from Africa to South America. In 2011, however, Humphreys had some of the biggest adventures of his life—and he never even left the United Kingdom.
+            </div>
+        </div>
+
+        <div class="passage-card animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+            <button class="tts-btn" onclick="readParagraph(this, 'p2-text')">🔊</button>
+            <div id="p2-text">
+                For a year, Humphreys went on microadventures—small, 
+                <span class="cloze-gap" data-answer="low-cost" onclick="revealWord(this)">________</span> 
+                trips close to home. Why did he do this? “I started to think that it was to have an adventure anywhere,” he explains.
+            </div>
+        </div>
+
+        <div class="passage-card animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+            <button class="tts-btn" onclick="readParagraph(this, 'p3-text')">🔊</button>
+            <div id="p3-text">
+                For his first trip, he went hiking with a friend around the M25—a 
+                <span class="cloze-gap" data-answer="188-kilometer" onclick="revealWord(this)">_____________</span> 
+                road that goes all the way around London. Other adventures 
+                <span class="cloze-gap" data-answer="included" onclick="revealWord(this)">________</span> 
+                swimming in the River Thames, sleeping outside on a hill, and going on a mountain biking trip. Humphreys learned something important: We find adventure when we try something new.
+            </div>
+        </div>
+
+        <div class="passage-card animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
+            <button class="tts-btn" onclick="readParagraph(this, 'p4-text')">🔊</button>
+            <div id="p4-text">
+                Humphreys wanted other people to make this 
+                <span class="cloze-gap" data-answer="discovery" onclick="revealWord(this)">_________</span>, 
+                too, so he decided to share his idea. He challenged people to go on microadventures and send him four-minute videos of their trips. He asked them to do things like climb a hill, go away for a weekend, or choose a 
+                <span class="cloze-gap" data-answer="random" onclick="revealWord(this)">_______</span> 
+                place on a map and go there. People from all over the world accepted his challenge and posted their videos on Twitter (a social media, like Weibo).
+            </div>
+        </div>
+
+        <div class="quiz-section animate__animated animate__fadeIn" id="quiz-area">
+            <div class="quiz-header">
+                <span>🧠 Comprehension Check</span>
+                <span id="q-counter" style="font-size:0.9rem; opacity:0.7">Question 1 / 5</span>
+            </div>
+
+            <div class="question-card question-active" id="q1">
+                <div class="q-text">1. What was special about his adventures in 2011?</div>
+                <button class="btn-action" onclick="checkAnswer(this)">Check Answer</button>
+                <div class="answer-box">
+                    <div style="color:#2ecc71; font-weight:bold;">He had big adventures without leaving his own country (UK).</div>
+                    <div class="evidence-text">Evidence: "...Humphreys had some of the biggest adventures of his life—and he never even left the United Kingdom."</div>
+                    <div style="text-align:right"><button class="btn-action" style="background:#34495e; font-size:0.8rem;" onclick="nextQ(2)">Next Question ❯</button></div>
+                </div>
+            </div>
+
+            <div class="question-card" id="q2">
+                <div class="q-text">2. What is the definition of "microadventures"?</div>
+                <button class="btn-action" onclick="checkAnswer(this)">Check Answer</button>
+                <div class="answer-box">
+                    <div style="color:#2ecc71; font-weight:bold;">They are small, low-cost trips close to home.</div>
+                    <div class="evidence-text">Evidence: "...went on microadventures—small, low-cost trips close to home."</div>
+                    <div style="text-align:right"><button class="btn-action" style="background:#34495e; font-size:0.8rem;" onclick="nextQ(3)">Next Question ❯</button></div>
+                </div>
+            </div>
+
+            <div class="question-card" id="q3">
+                <div class="q-text">3. What was his first microadventure trip?</div>
+                <button class="btn-action" onclick="checkAnswer(this)">Check Answer</button>
+                <div class="answer-box">
+                    <div style="color:#2ecc71; font-weight:bold;">He went hiking around the M25 road in London.</div>
+                    <div class="evidence-text">Evidence: "For his first trip, he went hiking with a friend around the M25..."</div>
+                    <div style="text-align:right"><button class="btn-action" style="background:#34495e; font-size:0.8rem;" onclick="nextQ(4)">Next Question ❯</button></div>
+                </div>
+            </div>
+
+            <div class="question-card" id="q4">
+                <div class="q-text">4. What important lesson did Humphreys learn?</div>
+                <button class="btn-action" onclick="checkAnswer(this)">Check Answer</button>
+                <div class="answer-box">
+                    <div style="color:#2ecc71; font-weight:bold;">Adventure happens when we try new things.</div>
+                    <div class="evidence-text">Evidence: "Humphreys learned something important: We find adventure when we try something new."</div>
+                    <div style="text-align:right"><button class="btn-action" style="background:#34495e; font-size:0.8rem;" onclick="nextQ(5)">Next Question ❯</button></div>
+                </div>
+            </div>
+
+            <div class="question-card" id="q5">
+                <div class="q-text">5. How did he encourage others to join him?</div>
+                <button class="btn-action" onclick="checkAnswer(this)">Check Answer</button>
+                <div class="answer-box">
+                    <div style="color:#2ecc71; font-weight:bold;">He challenged people to send him 4-minute videos of their trips.</div>
+                    <div class="evidence-text">Evidence: "He challenged people to go on microadventures and send him four-minute videos of their trips."</div>
+                    <div style="text-align:center; margin-top:10px; color:#f1c40f">✨ Great Job! Section Complete.</div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="nav-bar">
+        <button class="nav-btn" onclick="window.location.href='page4_1.html'">❮ Previous</button>
+        <button class="nav-btn" onclick="window.location.href='page4_3.html'">Next Step ❯</button>
+    </div>
+
+    <script>
+        // 1. TTS 朗读功能 (Smooth Reading FIX V2)
+        function readParagraph(btn, textId) {
+            window.speechSynthesis.cancel();
+            
+            // 重置按钮
+            document.querySelectorAll('.tts-btn').forEach(b => {
+                b.classList.remove('playing');
+                b.innerText = '🔊';
+            });
+
+            // 获取容器
+            let container = document.getElementById(textId);
+            
+            // --- 核心修复 ---
+            // 1. 克隆以避免影响显示
+            let clone = container.cloneNode(true);
+            
+            // 2. 替换所有填空为答案
+            let gaps = clone.querySelectorAll('.cloze-gap');
+            gaps.forEach(gap => {
+                let answer = gap.getAttribute('data-answer');
+                gap.innerText = answer; 
+            });
+
+            // 3. 获取纯文本
+            let textToRead = clone.textContent;
+
+            // 4. 【关键步骤】清理文本：将所有换行符和连续空格替换为单个空格
+            // HTML源码里的换行符会被 textContent 保留，导致 TTS 停顿。必须去除。
+            textToRead = textToRead.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+            let msg = new SpeechSynthesisUtterance(textToRead);
+            msg.lang = 'en-GB'; 
+            msg.rate = 0.9;
+            
+            msg.onstart = function() {
+                btn.classList.add('playing');
+                btn.innerText = '⏸';
+            };
+            msg.onend = function() {
+                btn.classList.remove('playing');
+                btn.innerText = '🔊';
+            };
+
+            window.speechSynthesis.speak(msg);
+        }
+
+        // 2. 填空揭晓功能
+        function revealWord(el) {
+            if (!el.classList.contains('cloze-revealed')) {
+                let answer = el.getAttribute('data-answer');
+                el.innerText = answer;
+                el.classList.add('cloze-revealed');
+                
+                let msg = new SpeechSynthesisUtterance(answer);
+                msg.lang = 'en-GB';
+                window.speechSynthesis.speak(msg);
+            }
+        }
+
+        // 3. 阅读理解问答逻辑
+        function checkAnswer(btn) {
+            let answerBox = btn.nextElementSibling;
+            answerBox.style.display = 'block';
+            answerBox.classList.add('animate__animated', 'animate__fadeIn');
+            btn.style.display = 'none'; 
+        }
+
+        function nextQ(nextIdNum) {
+            document.querySelectorAll('.question-card').forEach(el => el.classList.remove('question-active'));
+            let nextQ = document.getElementById('q' + nextIdNum);
+            if(nextQ) {
+                nextQ.classList.add('question-active');
+                document.getElementById('q-counter').innerText = 'Question ' + nextIdNum + ' / 5';
+            }
+        }
+    </script>
+</body>
+</html>

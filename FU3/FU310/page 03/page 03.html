@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page 03: Intensive Reading Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-red: #C8102E;
+            --royal-blue: #003399;
+            --gold: #D4AF37;
+            --text-bg: #000000;
+        }
+
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Nunito', sans-serif; overflow: hidden; background: #000; color: #fff; }
+
+        .main-container { display: grid; grid-template-columns: 40% 60%; height: 100vh; }
+
+        /* 左侧面板 */
+        .left-panel {
+            background: var(--text-bg); padding: 40px; display: flex; flex-direction: column;
+            border-right: 1px solid #333; overflow-y: auto; z-index: 10;
+        }
+        .left-panel::-webkit-scrollbar { width: 6px; }
+        .left-panel::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+        .lesson-title { 
+            font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: #fff; 
+            border-bottom: 2px solid var(--primary-red); padding-bottom: 15px; margin-bottom: 20px;
+        }
+
+        .pre-reading-q {
+            background: rgba(255,255,255,0.05); border: 1px solid #444; padding: 20px; border-radius: 8px; margin-bottom: 30px;
+        }
+        .pre-reading-q h4 { color: var(--gold); margin-top: 0; display:flex; align-items:center; gap:10px; }
+        .q-block { margin-bottom: 15px; }
+        .q-main { font-weight: bold; font-size: 1.05rem; margin-bottom: 5px; color: #fff; }
+        .q-hint { color: #aaa; font-style: italic; font-size: 0.95rem; border-left: 2px solid var(--royal-blue); padding-left: 10px; margin-left: 5px; }
+
+        /* 段落样式 */
+        .para-block { margin-bottom: 30px; padding: 15px; border-left: 3px solid #333; transition: 0.3s; }
+        .para-block:hover, .para-block.active { border-left-color: var(--gold); background: rgba(255,255,255,0.05); }
+        .para-block.topic-para p { color: var(--gold); font-weight: bold; }
+        .para-block.topic-para { border-left-color: var(--primary-red); }
+
+        .para-tools { margin-bottom: 10px; display: flex; gap: 10px; }
+        .tool-btn {
+            background: #222; border: 1px solid #444; color: #ccc; 
+            padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 0.85rem;
+            display: flex; align-items: center; gap: 6px; transition: 0.2s;
+        }
+        .tool-btn:hover { border-color: var(--gold); color: #fff; }
+        .tool-btn.playing { background: var(--primary-red); color: #fff; border-color: var(--primary-red); }
+        .tool-btn.analyze-btn { background: var(--royal-blue); color: #fff; border:none; }
+        .tool-btn.analyze-btn:hover { background: var(--gold); color: #000; }
+
+        .para-text { font-family: 'Playfair Display', serif; font-size: 1.15rem; line-height: 1.7; color: #ddd; text-align: justify; margin: 0; }
+
+        /* 右侧面板 */
+        .right-panel { position: relative; background: #111; overflow: hidden; }
+        #map { width: 100%; height: 100%; z-index: 1; transition: opacity 0.5s; }
+        
+        /* Analysis Overlay */
+        #analysis-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 100;
+            display: none; align-items: center; justify-content: center;
+            padding: 20px; box-sizing: border-box; backdrop-filter: blur(8px);
+        }
+        .interaction-card {
+            background: #1a1a1a; border: 1px solid #444; border-radius: 12px;
+            padding: 30px; width: 100%; max-width: 900px; max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); animation: scaleIn 0.4s ease; display: flex; flex-direction: column;
+        }
+        .card-title { color: var(--gold); font-size: 1.5rem; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px; display: flex; justify-content: space-between; flex-shrink: 0; }
+        .close-analysis { cursor: pointer; color: #fff; font-size: 1.2rem; }
+        
+        .instruction { color: #aaa; margin-bottom: 15px; font-style: italic; line-height: 1.4; }
+        .input-group { margin-bottom: 20px; }
+        input[type="text"] { background: #333; border: 1px solid #555; color: #fff; padding: 12px; border-radius: 6px; width: 100%; font-size: 1rem; }
+
+        .checkbox-group { display: grid; gap: 10px; margin-bottom: 20px; }
+        .checkbox-item { background: #2a2a2a; padding: 12px; border-radius: 6px; border: 1px solid #444; cursor: pointer; display: flex; justify-content: space-between; transition: 0.2s; }
+        .checkbox-item.checked { border-color: var(--royal-blue); background: rgba(0, 51, 153, 0.2); }
+        .icon-check { color: #2ecc71; display: none; }
+        .checkbox-item.checked .icon-check { display: inline; }
+
+        .dynamic-table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; }
+        .dynamic-table th { background: var(--royal-blue); color: #fff; padding: 12px; border: 1px solid #555; text-align: left; vertical-align: top; }
+        .dynamic-table td { border: 1px solid #555; padding: 12px; background: #222; vertical-align: top; line-height: 1.5; color: #ddd; }
+
+        .action-btn { background: var(--gold); color: #000; border: none; padding: 10px 25px; font-size: 1rem; border-radius: 25px; cursor: pointer; font-weight: bold; margin-top: 15px; align-self: flex-start; }
+        .action-btn:hover { background: #fff; transform: scale(1.05); }
+
+        .answer-reveal { margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.05); border-left: 3px solid var(--gold); display: none; animation: fadeIn 0.5s; }
+        .critical-box { background: rgba(200, 16, 46, 0.1); border: 1px solid var(--primary-red); padding: 15px; border-radius: 6px; margin-top: 20px; }
+
+        /* Summary List */
+        .summary-item { background: #252525; padding: 15px; margin-bottom: 10px; border-radius: 6px; border-left: 3px solid var(--royal-blue); cursor: pointer; display: flex; gap: 15px; align-items: center; transition: 0.3s; }
+        .summary-item-title, .summary-item-desc { filter: blur(5px); opacity: 0.5; transition: 0.5s; }
+        .summary-item.revealed .summary-item-title, .summary-item.revealed .summary-item-desc { filter: blur(0); opacity: 1; }
+        .summary-item.revealed { border-left-color: #2ecc71; }
+
+        /* --- Drag & Drop Game Styles --- */
+        #sorting-game-container { display: flex; flex-direction: column; height: 100%; }
+        
+        .drop-zone-container { 
+            display: flex; gap: 10px; overflow-x: auto; padding: 20px 0; 
+            border-bottom: 1px dashed #444; min-height: 250px; align-items: flex-start;
+        }
+        /* 美化滚动条 */
+        .drop-zone-container::-webkit-scrollbar { height: 8px; }
+        .drop-zone-container::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+        
+        .step-wrapper { display: flex; align-items: center; gap: 5px; flex-direction: column; min-width: 130px; position: relative; }
+        
+        .signal-drop-zone {
+            width: 120px; height: 40px; border: 2px dashed #555; border-radius: 4px;
+            display: none; /* Initially hidden */
+            align-items: center; justify-content: center; background: rgba(0,0,0,0.3);
+            font-size: 0.8rem; color: #666; transition: 0.3s;
+        }
+        .signal-drop-zone.active-phase { display: flex; margin-bottom: 5px; }
+        .signal-drop-zone.drag-over { border-color: var(--gold); background: rgba(212, 175, 55, 0.2); }
+        .signal-drop-zone.filled { border-style: solid; border-color: #2ecc71; color: #fff; background: #27ae60; font-weight: bold; }
+
+        .img-drop-zone {
+            width: 130px; height: 195px; border: 2px dashed #666; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.05); color: #aaa; font-weight: bold;
+            position: relative; transition: 0.3s; flex-shrink: 0;
+        }
+        .img-drop-zone.drag-over { border-color: var(--gold); background: rgba(212, 175, 55, 0.2); transform: scale(1.02); }
+        .img-drop-zone.filled { border-style: solid; border-color: var(--royal-blue); background: transparent; }
+        
+        .zone-number { position: absolute; top: -10px; left: -10px; width: 25px; height: 25px; background: var(--royal-blue); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; z-index: 5; }
+
+        .source-container { 
+            flex: 1; padding: 20px; background: #111; margin-top: 10px; border-radius: 8px;
+            display: flex; flex-wrap: wrap; gap: 15px; align-content: flex-start; justify-content: center;
+        }
+        
+        .draggable-img {
+            width: 100px; height: 150px; object-fit: cover; border-radius: 6px; cursor: grab;
+            border: 2px solid #444; transition: 0.2s;
+        }
+        .draggable-img:hover { transform: scale(1.1); border-color: var(--gold); z-index: 10; }
+        .draggable-img:active { cursor: grabbing; }
+
+        .draggable-word {
+            background: var(--primary-red); color: #fff; padding: 8px 15px; border-radius: 4px;
+            cursor: grab; font-weight: bold; font-size: 0.9rem; border: 1px solid #ff5555;
+        }
+
+        /* Final Table Overlay */
+        #final-table-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #111; z-index: 2000; overflow-y: auto; padding: 40px; display: none;
+        }
+        .final-header { text-align: center; margin-bottom: 30px; margin-top: 50px; }
+        .final-title { font-family: 'Bebas Neue'; font-size: 3rem; color: var(--gold); margin: 0; }
+        .final-subtitle { font-size: 1.2rem; color: #fff; font-style: italic; margin-top: 10px; }
+
+        @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="lesson-title">INTENSIVE READING</div>
+
+            <div class="pre-reading-q">
+                <h4><i class="fas fa-clipboard-list"></i> Pre-reading Questions</h4>
+                <div class="q-block">
+                    <div class="q-main">1. If you want to introduce a famous place, what information should you include?</div>
+                    <div class="q-hint">Think: What key details are mentioned about each place?</div>
+                </div>
+                <div class="q-block">
+                    <div class="q-main">2. How do you know the order of the visit based on the passage?</div>
+                    <div class="q-hint">Think: Look for words that show the order of the tour.</div>
+                </div>
+            </div>
+
+            <button class="action-btn" onclick="revealArticle()" id="btn-show-art" style="margin-bottom:20px;">
+                <i class="fas fa-book-open"></i> Show Article
+            </button>
+
+            <div id="content-list" style="display:none;"></div>
+            
+            <div id="end-of-analysis-area" style="display:none; margin-top:40px; border-top:1px solid #333; padding-top:20px; text-align:center;">
+                <button class="action-btn" style="background:var(--royal-blue); color:#fff;" onclick="showReviewSummary()">
+                    Finish Analysis & Review Questions
+                </button>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div id="map"></div>
+            <div id="analysis-overlay">
+                <div id="analysis-card-container" class="interaction-card"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="final-table-page">
+        <button class="action-btn" onclick="document.getElementById('final-table-page').style.display='none'" style="position:fixed; top:20px; right:30px; background:var(--primary-red); color:#fff;">Close</button>
+        <div style="max-width:1200px; margin: 0 auto;">
+            <div class="final-header">
+                <h1 class="final-title">A Guide in London for Movie Lovers</h1>
+                <div class="final-subtitle">Fun Fact: Many movies are filmed in London.</div>
+            </div>
+            <table class="dynamic-table" id="final-summary-table">
+                <thead>
+                    <tr>
+                        <th style="width:15%">Place</th>
+                        <th style="width:20%">Location</th>
+                        <th style="width:25%">Features / What to see</th>
+                        <th style="width:20%">Practical Info</th>
+                        <th style="width:20%">Fun Facts / Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="final-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const paragraphs = [
+            { text: "London has been the setting for many popular movies—from James Bond to Harry Potter. So if you are visiting the UK’s capital, why not follow this walking tour and explore some interesting movie locations?", isP1: true, analysis: { place: "London", titleResult: "A Guide in London for Movie Lovers", subResult: "Many movies are filmed in London" } },
+
+            { text: "Start at the London Film Museum. Here, you can see a collection of items from many famous movies. The museum is near Covent Garden—a famous market. And while you’re there, you should check out some of the amazing street performers.", analysis: { place: "London Film Museum", loc: "Located near Covent Garden market.", feat: "See a collection of items from famous movies.", prac: "Check out amazing street performers nearby.", fun: "-" }, compQ: { q: "What can you do near the museum?", a: "Watch street performers at Covent Garden." } },
+
+            { text: "Next, walk down King Street, then along New Row to J Sheekey. This restaurant is a great place to see TV and movie stars. And it’s not too expensive; you can get a great meal for under £25.", analysis: { place: "J. Sheekey", loc: "Walk down King Street, then along New Row.", feat: "Spot TV and movie stars at the restaurant.", prac: "Enjoy a great meal for under £25.", fun: "-" }, compQ: { q: "Why is this restaurant popular?", a: "You can see stars and it's not too expensive." } },
+
+            { text: "Nearby is Leicester Square, known as London’s “Theatreland.” Many famous movie premieres are held in the square, and it is also home to the London Film Festival. One of the exits of the Leicester Square underground station appears in the movie Harry Potter and the Half-Blood Prince.", analysis: { place: "Leicester Square", loc: "Located nearby J. Sheekey and Covent Garden.", feat: "Attend famous movie premieres and the Film Festival.", prac: "Known as London's 'Theatreland'.", fun: "The station exit appears in Harry Potter." }, compQ: { q: "What major event happens in Leicester Square?", a: "The London Film Festival and movie premieres." } },
+
+            { text: "To get away from the crowds, you should spend some time in Leicester Square Gardens. Here, you’ll see a statue of William Shakespeare. Shakespeare wrote his most famous plays while he was living in London. Many of his plays, such as Macbeth, were later made into movies.", analysis: { place: "Leicester Square Gardens", loc: "Located within Leicester Square.", feat: "See a statue of William Shakespeare.", prac: "Visit here to get away from the crowds.", fun: "Shakespeare wrote famous plays while living in London." }, compQ: { q: "Why is the Gardens a good place to visit?", a: "It helps you get away from the crowds." } },
+
+            { text: "From Leicester Square, walk down to Charing Cross Road and then to the National Gallery. Here, you can see famous paintings by artists like Vincent van Gogh and Leonardo da Vinci. This museum was also a location in the James Bond movie Skyfall.", analysis: { place: "The National Gallery", loc: "Walk down to Charing Cross Road.", feat: "View famous paintings by Van Gogh and Da Vinci.", prac: "It is a famous art museum.", fun: "Recognize the location from the movie Skyfall." }, compQ: { q: "What famous movie was filmed here?", a: "James Bond: Skyfall." } },
+
+            { text: "Finally, go south on Charing Cross Road, past the underground station—which appears in Thor: The Dark World—and follow the Mall. At the end of the Mall, you’ll see Buckingham Palace, the home of the British royal family. The palace appears in several movies, such as The BFG and The King’s Speech.", analysis: { place: "Buckingham Palace", loc: "Go south on Charing Cross Road to the end of the Mall.", feat: "See the home of the British royal family.", prac: "-", fun: "Appears in movies like The BFG and The King's Speech." }, compQ: { q: "Who lives in Buckingham Palace?", a: "The British royal family." } }
+        ];
+
+        // --- SORTING GAME CONFIG ---
+        // New Order: 
+        // 1. Film Museum (Start)
+        // 2. Covent Garden (no signal)
+        // 3. J. Sheekey (Next)
+        // 4. Leicester Sq (Nearby)
+        // 5. Leicester Sq Gardens (no signal)
+        // 6. National Gallery (Then)
+        // 7. Buckingham Palace (Finally)
+        const sortData = [
+            { id: "mus", img: "loc_film_museum.jpg", label: "Film Museum", signal: "Start" },
+            { id: "cov", img: "loc_covent_garden.jpg", label: "Covent Garden", signal: null },
+            { id: "she", img: "loc_j_sheekey.jpg", label: "J. Sheekey", signal: "Next" },
+            { id: "lei", img: "loc_leicester_square.jpg", label: "Leicester Sq", signal: "Nearby" },
+            { id: "gar", img: "loc_leicester_square_gardens.jpg", label: "Leicester Sq Gdns", signal: null }, // Added Gardens
+            { id: "gal", img: "loc_national_gallery.jpg", label: "National Gallery", signal: "Then" },
+            { id: "buc", img: "loc_buckingham_palace.jpg", label: "Buckingham Palace", signal: "Finally" }
+        ];
+
+        // --- INITIALIZATION ---
+        const map = L.map('map', {zoomControl: false}).setView([51.508, -0.128], 14);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB' }).addTo(map);
+
+        function revealArticle() {
+            document.getElementById('btn-show-art').style.display = 'none';
+            const container = document.getElementById('content-list');
+            container.style.display = 'block';
+            paragraphs.forEach((p, index) => {
+                const div = document.createElement('div');
+                div.className = `para-block ${p.isP1 ? 'topic-para' : ''}`;
+                div.id = `para-${index}`;
+                div.innerHTML = `
+                    <div class="para-tools">
+                        <button class="tool-btn" onclick="playText(this, '${p.text.replace(/'/g, "\\'")}')"><i class="fas fa-volume-up"></i> Play</button>
+                        <button class="tool-btn analyze-btn" onclick="startAnalysis(${index})"><i class="fas fa-microscope"></i> Analyze</button>
+                    </div>
+                    <p class="para-text">${p.text}</p>
+                `;
+                container.appendChild(div);
+            });
+            document.getElementById('end-of-analysis-area').style.display = 'block';
+            anime({ targets: container, opacity: [0, 1], translateY: [20, 0] });
+        }
+
+        // --- ANALYSIS WIZARD ---
+        function startAnalysis(index) {
+            document.querySelectorAll('.para-block').forEach(b => b.classList.remove('active'));
+            document.getElementById(`para-${index}`).classList.add('active');
+            const pData = paragraphs[index];
+            const overlay = document.getElementById('analysis-overlay');
+            const card = document.getElementById('analysis-card-container');
+            overlay.style.display = 'flex';
+            card.innerHTML = ''; 
+
+            card.innerHTML = `
+                <div class="card-title">Analysis: Paragraph ${index + 1} <span class="close-analysis" onclick="document.getElementById('analysis-overlay').style.display='none'"><i class="fas fa-times"></i></span></div>
+                <div id="wiz-content" style="flex:1;"></div>
+            `;
+            const content = card.querySelector('#wiz-content');
+
+            if (pData.isP1) {
+                // P1 Logic (Full 5 Checkboxes)
+                content.innerHTML = `
+                    <div class="step-indicator" style="color:var(--gold); margin-bottom:10px;">Step 1: Identify Place</div>
+                    <div class="instruction">What place does this paragraph introduce to us?</div>
+                    <div class="input-group"><input type="text" id="p1-place" placeholder="..."></div>
+                    <button class="action-btn" id="btn-p1-s1">Next Step</button>
+                `;
+                content.querySelector('#btn-p1-s1').onclick = function() {
+                    const val = document.getElementById('p1-place').value;
+                    if (!val) return alert("Please enter 'London'.");
+                    content.innerHTML = `
+                        <div class="step-indicator" style="color:var(--gold);">Step 2: Information Check</div>
+                        <div class="instruction">Place: <strong>London</strong>. What info does the passage tell us? (Select all that apply)</div>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item" onclick="this.classList.toggle('checked')">Name <i class="fas fa-check icon-check"></i></div>
+                            <div class="checkbox-item" onclick="this.classList.toggle('checked')">Location <i class="fas fa-check icon-check"></i></div>
+                            <div class="checkbox-item" onclick="this.classList.toggle('checked')">Features (What to see) <i class="fas fa-check icon-check"></i></div>
+                            <div class="checkbox-item" onclick="this.classList.toggle('checked')">Practical Info <i class="fas fa-check icon-check"></i></div>
+                            <div class="checkbox-item" onclick="this.classList.toggle('checked')">Fun Facts <i class="fas fa-check icon-check"></i></div>
+                        </div>
+                        <button class="action-btn" id="btn-p1-s2">Next Step</button>
+                    `;
+                    content.querySelector('#btn-p1-s2').onclick = function() {
+                        content.innerHTML = `
+                            <div class="step-indicator" style="color:var(--gold);">Step 3: Critical Thinking</div>
+                            <div class="critical-box">
+                                <div class="instruction" style="color:#fff;">Why does the writer <strong>not</strong> introduce the location of London?</div>
+                                <button class="action-btn" style="background:#444; color:#fff; font-size:0.9rem;" onclick="document.getElementById('p1-crit-ans').style.display='block'">Show Answer</button>
+                                <div id="p1-crit-ans" class="answer-reveal">Because London is a world-famous capital city.</div>
+                            </div>
+                            <button class="action-btn" style="margin-top:20px;" id="btn-p1-s3">Generate Header</button>
+                        `;
+                        content.querySelector('#btn-p1-s3').onclick = function() {
+                            content.innerHTML = `
+                                <div class="step-indicator" style="color:var(--gold);">Step 4: Table Header</div>
+                                <div style="background:#222; padding:20px; border:1px dashed #555; text-align:center; margin-bottom:20px;">
+                                    <h2 style="color:var(--gold); margin:0;">${pData.analysis.titleResult}</h2>
+                                    <p style="color:#aaa; font-style:italic;">${pData.analysis.subResult}</p>
+                                </div>
+                                <div class="step-indicator" style="color:var(--gold);">Step 5: Reflection</div>
+                                <div class="instruction">Why does the writer choose the fun fact (movies) in the first paragraph?</div>
+                                <button class="action-btn" style="background:#444; color:#fff; font-size:0.9rem;" onclick="document.getElementById('p1-ref-ans').style.display='block'">Show Answer</button>
+                                <div id="p1-ref-ans" class="answer-reveal">To catch the reader's interest immediately.</div>
+                                <button class="action-btn" style="width:100%; margin-top:20px;" onclick="document.getElementById('analysis-overlay').style.display='none'">Finish P1 Analysis</button>
+                            `;
+                        };
+                    };
+                };
+            } else {
+                // P2-P7 Logic (Full 5 Checkboxes)
+                content.innerHTML = `
+                    <div class="step-indicator" style="color:var(--gold);">Step 1: Identify Place</div>
+                    <div class="input-group"><input type="text" id="wiz-place" placeholder="What place is mentioned here?"></div>
+                    <button class="action-btn" id="btn-s1">Next</button>
+                `;
+                content.querySelector('#btn-s1').onclick = function() {
+                    if(!document.getElementById('wiz-place').value) return alert("Enter place name.");
+                    content.innerHTML = `
+                        <div class="step-indicator" style="color:var(--gold);">Step 2: Check Information</div>
+                        <div class="instruction">Select info found in this paragraph:</div>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item" onclick="this.classList.toggle('checked')">Name <i class="fas fa-check icon-check"></i></div>
+                            <div class="checkbox-item" onclick="this.classList.toggle('checked')">Location <i class="fas fa-check icon-check"></i></div>
+                            <div class="checkbox-item" onclick="this.classList.toggle('checked')">Features (What to see) <i class="fas fa-check icon-check"></i></div>
+                            <div class="checkbox-item" onclick="this.classList.toggle('checked')">Practical Info <i class="fas fa-check icon-check"></i></div>
+                            <div class="checkbox-item" onclick="this.classList.toggle('checked')">Fun Facts <i class="fas fa-check icon-check"></i></div>
+                        </div>
+                        <button class="action-btn" id="btn-s2">Generate Table Row</button>
+                    `;
+                    content.querySelector('#btn-s2').onclick = function() {
+                        const a = pData.analysis;
+                        content.innerHTML = `
+                            <div class="step-indicator" style="color:var(--gold);">Step 3: Extracted Data</div>
+                            <table class="dynamic-table">
+                                <tr><th>Place</th><td>${a.place}</td></tr>
+                                <tr><th>Location</th><td>${a.loc}</td></tr>
+                                <tr><th>Features</th><td>${a.feat}</td></tr>
+                            </table>
+                            <hr style="border:0; border-top:1px dashed #444; margin:20px 0;">
+                            <div class="step-indicator" style="color:var(--gold);">Step 4: Comprehension Check</div>
+                            <div class="instruction">${pData.compQ.q}</div>
+                            <button class="action-btn" style="background:#444; color:#fff; font-size:0.9rem;" onclick="document.getElementById('comp-ans').style.display='block'">Check Answer</button>
+                            <div id="comp-ans" class="answer-reveal">${pData.compQ.a}</div>
+                            <button class="action-btn" style="width:100%; margin-top:20px;" onclick="document.getElementById('analysis-overlay').style.display='none'">Done</button>
+                        `;
+                    };
+                };
+            }
+        }
+
+        // --- SUMMARY & SORTING GAME ENTRY ---
+        function showReviewSummary() {
+            const overlay = document.getElementById('analysis-overlay');
+            const card = document.getElementById('analysis-card-container');
+            overlay.style.display = 'flex';
+            card.innerHTML = '';
+
+            const points = [{t:"Name", d:"The official name"}, {t:"Location", d:"Where it is"}, {t:"Features", d:"Highlights/Activities"}, {t:"Practical Info", d:"Prices/Hours"}, {t:"Fun Facts", d:"Movies/Trivia"}];
+            let listHtml = points.map((p,i) => `
+                <div class="summary-item" onclick="this.classList.add('revealed')">
+                    <div style="font-weight:bold; color:var(--gold); width:20px;">${i+1}</div>
+                    <div style="flex:1;">
+                        <div class="summary-item-title">${p.t}</div>
+                        <div class="summary-item-desc" style="font-size:0.9rem; color:#aaa;">${p.d}</div>
+                    </div>
+                    <i class="fas fa-hand-pointer" style="color:#666;"></i>
+                </div>
+            `).join('');
+
+            card.innerHTML = `
+                <div class="card-title">Review: Summary of First Reading <span class="close-analysis" onclick="document.getElementById('analysis-overlay').style.display='none'"><i class="fas fa-times"></i></span></div>
+                <div class="instruction">Recall what information we looked for. Click to reveal:</div>
+                <div style="display:flex; flex-direction:column; gap:10px;">${listHtml}</div>
+                <button class="action-btn" style="width:100%; margin-top:20px; background:#e67e22; color:#fff;" onclick="startSortingGame()">
+                    Next: Order of Visit Activity <i class="fas fa-random"></i>
+                </button>
+            `;
+        }
+
+        // --- SORTING GAME LOGIC ---
+        function startSortingGame() {
+            const card = document.getElementById('analysis-card-container');
+            // Render Game Shell
+            card.innerHTML = `
+                <div class="card-title">Activity: Order of Visit</div>
+                <div class="instruction" id="game-instruction">Step 1: Drag the pictures to the correct order (1-7).</div>
+                
+                <div id="sorting-game-container">
+                    <div class="drop-zone-container">
+                        ${sortData.map((d, i) => `
+                            <div class="step-wrapper">
+                                <div class="signal-drop-zone" data-target-signal="${d.signal || ''}" id="sig-zone-${i}">
+                                    ${d.signal ? 'Signal Word?' : '<span style="opacity:0.3">-</span>'}
+                                </div>
+                                <div class="img-drop-zone" data-target-id="${d.id}" ondragover="allowDrop(event)" ondrop="dropImage(event)">
+                                    <div class="zone-number">${i+1}</div>
+                                    Drop Here
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="source-container" id="source-container">
+                        </div>
+                </div>
+                <div id="game-success-msg" style="display:none; color:#2ecc71; margin-top:15px; font-weight:bold; text-align:center;"></div>
+            `;
+
+            // Inject Scrambled Images
+            const sourceCont = document.getElementById('source-container');
+            const scrambled = [...sortData].sort(() => Math.random() - 0.5);
+            
+            scrambled.forEach(d => {
+                const img = document.createElement('img');
+                img.src = d.img;
+                img.id = `drag-${d.id}`;
+                img.className = 'draggable-img';
+                img.draggable = true;
+                img.ondragstart = dragStart;
+                // Error fallback: if garden image missing, show text card
+                img.onerror = function() {
+                    this.src = `https://via.placeholder.com/100x150/333/D4AF37?text=${d.label.replace(/ /g,'+')}`;
+                };
+                sourceCont.appendChild(img);
+            });
+        }
+
+        // Drag & Drop Handlers
+        function allowDrop(ev) { ev.preventDefault(); ev.currentTarget.classList.add('drag-over'); }
+        function dragStart(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+
+        function dropImage(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove('drag-over');
+            const data = ev.dataTransfer.getData("text");
+            // Only allow dropping images in Phase 1
+            if(!data.startsWith('drag-')) return; 
+            
+            const draggedElement = document.getElementById(data);
+            const dropZone = ev.currentTarget;
+            
+            // Check if correct
+            const targetId = dropZone.getAttribute('data-target-id');
+            const dragId = data.replace('drag-', '');
+            
+            if(targetId === dragId) {
+                dropZone.innerHTML = ''; // Clear "Drop Here"
+                dropZone.appendChild(draggedElement);
+                dropZone.classList.add('filled');
+                draggedElement.draggable = false; // Lock it
+                draggedElement.style.border = "none";
+                draggedElement.style.width = "100%";
+                draggedElement.style.height = "100%";
+                checkPhase1Completion();
+            } else {
+                alert("Incorrect location order. Try again!");
+            }
+        }
+
+        function checkPhase1Completion() {
+            const filled = document.querySelectorAll('.img-drop-zone.filled');
+            if(filled.length === sortData.length) {
+                // Phase 1 Done -> Trigger Phase 2
+                document.getElementById('game-success-msg').innerText = "Great job! The order is correct.";
+                document.getElementById('game-success-msg').style.display = 'block';
+                
+                setTimeout(() => {
+                    initPhase2();
+                }, 1500);
+            }
+        }
+
+        function initPhase2() {
+            document.getElementById('game-success-msg').style.display = 'none';
+            document.getElementById('game-instruction').innerText = "Step 2: Drag the signal words to the front of the pictures.";
+            
+            // Reveal Signal Zones
+            document.querySelectorAll('.signal-drop-zone').forEach(el => {
+                if(el.getAttribute('data-target-signal')) {
+                    el.classList.add('active-phase');
+                    el.setAttribute('ondragover', 'allowDrop(event)');
+                    el.setAttribute('ondrop', 'dropSignal(event)');
+                }
+            });
+
+            // Add Signal Words to Source
+            const sourceCont = document.getElementById('source-container');
+            sourceCont.innerHTML = ''; // Clear remaining images if any
+            
+            const signals = ["Start", "Next", "Nearby", "Then", "Finally"];
+            
+            signals.sort(() => Math.random() - 0.5).forEach(txt => {
+                const div = document.createElement('div');
+                div.className = 'draggable-word';
+                div.innerText = txt;
+                div.id = `word-${txt}`;
+                div.draggable = true;
+                div.ondragstart = (ev) => ev.dataTransfer.setData("text", ev.target.id);
+                sourceCont.appendChild(div);
+            });
+        }
+
+        function dropSignal(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove('drag-over');
+            const data = ev.dataTransfer.getData("text");
+            if(!data.startsWith('word-')) return;
+            
+            const draggedElement = document.getElementById(data);
+            const dropZone = ev.currentTarget;
+            const targetSignal = dropZone.getAttribute('data-target-signal');
+            const dragWord = data.replace('word-', '');
+
+            if(targetSignal === dragWord) {
+                dropZone.innerHTML = '';
+                dropZone.appendChild(draggedElement);
+                dropZone.classList.add('filled');
+                draggedElement.draggable = false;
+                checkPhase2Completion();
+            } else {
+                alert("Incorrect signal word for this position.");
+            }
+        }
+
+        function checkPhase2Completion() {
+            // Count zones that need signals vs filled ones
+            const totalNeeded = document.querySelectorAll('.signal-drop-zone[data-target-signal]:not([data-target-signal=""])').length;
+            const totalFilled = document.querySelectorAll('.signal-drop-zone.filled').length;
+            
+            if(totalNeeded === totalFilled) {
+                const msg = document.getElementById('game-success-msg');
+                msg.innerHTML = `
+                    Excellent! You've mastered the structure.<br>
+                    <button class="action-btn" style="background:#27ae60; margin-top:15px;" onclick="showFinalTable()">
+                        Go to Final Summary Table <i class="fas fa-arrow-right"></i>
+                    </button>
+                `;
+                msg.style.display = 'block';
+            }
+        }
+
+        function showFinalTable() {
+            const tbody = document.getElementById('final-table-body');
+            tbody.innerHTML = '';
+            paragraphs.filter(p => !p.isP1).forEach(p => {
+                const a = p.analysis;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="color:var(--gold); font-weight:bold;">${a.place}</td>
+                    <td>${a.loc}</td>
+                    <td>${a.feat}</td>
+                    <td>${a.prac}</td>
+                    <td>${a.fun}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('final-table-page').style.display = 'block';
+            document.getElementById('analysis-overlay').style.display = 'none';
+        }
+
+        // --- TTS ---
+        const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const speechRegion = "eastus2";
+        let synthesizer; let currentBtn = null;
+        function playText(btn, text) {
+            if (synthesizer) { synthesizer.close(); synthesizer = undefined; }
+            if (currentBtn) { currentBtn.innerHTML = '<i class="fas fa-volume-up"></i> Play'; currentBtn.classList.remove('playing'); }
+            if (currentBtn === btn) { currentBtn = null; return; }
+            const config = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+            config.speechSynthesisVoiceName = "en-GB-RyanNeural";
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            synthesizer = new SpeechSDK.SpeechSynthesizer(config, audioConfig);
+            btn.classList.add('playing'); btn.innerHTML = '<i class="fas fa-stop"></i> Stop'; currentBtn = btn;
+            synthesizer.speakTextAsync(text, 
+                () => { btn.classList.remove('playing'); btn.innerHTML = '<i class="fas fa-volume-up"></i> Play'; synthesizer.close(); currentBtn = null; },
+                err => { console.error(err); btn.classList.remove('playing'); btn.innerHTML = '<i class="fas fa-volume-up"></i> Play'; synthesizer.close(); currentBtn = null; }
+            );
+        }
+    </script>
+</body>
+</html>
