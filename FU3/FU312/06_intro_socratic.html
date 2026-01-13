@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chengdu: City Profile</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Ma+Shan+Zheng&display=swap');
+
+        :root {
+            --bg-paper: #f4f1e8;
+            --ink-black: #2b2b2b;
+            --ink-light: #666666;
+            --seal-red: #b93a3a;
+            --border-color: #dcd6c8;
+            --btn-reveal: #556b2f; /* Bamboo Green for Reveal */
+        }
+
+        body {
+            background-color: var(--bg-paper);
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            color: var(--ink-black);
+            font-family: 'Noto Serif', serif;
+            margin: 0; padding: 40px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 800px; max-width: 95%;
+            background: #fffdf9;
+            border: 1px solid #ccc;
+            padding: 50px;
+            box-shadow: 
+                0 10px 30px rgba(0,0,0,0.05),
+                inset 0 0 60px rgba(220, 214, 200, 0.3);
+            position: relative;
+            border-radius: 4px;
+        }
+
+        .container::before, .container::after {
+            content: ""; display: block; height: 4px; width: 100%;
+            background: var(--ink-black); position: absolute; left: 0; opacity: 0.8;
+        }
+        .container::before { top: 0; border-bottom: 1px solid var(--border-color); }
+        .container::after { bottom: 0; border-top: 1px solid var(--border-color); }
+
+        .header {
+            text-align: center; margin-bottom: 40px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+        .header h1 { 
+            margin: 0; font-size: 36px; letter-spacing: 1px; color: var(--ink-black);
+            font-family: 'Ma Shan Zheng', cursive;
+        }
+        .step-indicator {
+            margin-top: 15px; font-size: 12px; color: var(--seal-red); font-weight: bold;
+            display: inline-block; border: 1px solid var(--seal-red); padding: 2px 8px;
+            border-radius: 2px; text-transform: uppercase;
+        }
+
+        .step { display: none; opacity: 0; transition: opacity 0.8s ease-in-out; }
+        .step.active { display: block; opacity: 1; animation: inkFlow 0.8s ease-out; }
+
+        .comparison-box { display: flex; gap: 30px; margin-bottom: 30px; }
+        .img-card {
+            flex: 1; text-align: center; cursor: pointer; position: relative;
+            transition: transform 0.3s ease;
+        }
+        .img-card:hover { transform: translateY(-5px); }
+        
+        .img-frame {
+            padding: 8px; border: 1px solid #ddd; background: #fff;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        .img-frame img { 
+            width: 100%; height: 220px; object-fit: cover; 
+            filter: sepia(0.2) contrast(0.9);
+            transition: filter 0.3s;
+        }
+        .img-card:hover img { filter: sepia(0) contrast(1); }
+        
+        .caption { 
+            margin-top: 12px; font-size: 13px; color: var(--ink-light); 
+            font-style: italic; letter-spacing: 0.5px;
+        }
+
+        .question { 
+            font-size: 20px; margin-bottom: 20px; line-height: 1.6; text-align: center;
+            color: var(--ink-black);
+        }
+        .highlight { color: var(--seal-red); font-weight: bold; display: block; font-size: 14px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 2px; }
+
+        /* --- Think & Reveal Section --- */
+        .think-overlay {
+            text-align: center; margin: 30px 0;
+        }
+        .btn-reveal {
+            background: var(--ink-black); color: #fff; border: none;
+            padding: 15px 40px; font-size: 16px; font-family: 'Noto Serif', serif;
+            cursor: pointer; border-radius: 50px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        .btn-reveal:hover { transform: scale(1.05); background: #444; }
+
+        .options-container {
+            display: none; /* Initially Hidden */
+            animation: fadeIn 0.5s ease;
+        }
+
+        .options-grid { 
+            display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; /* 4 Columns */
+            gap: 15px; 
+        }
+        
+        .btn-opt {
+            background: transparent; 
+            border: 2px solid var(--ink-black); 
+            color: var(--ink-black);
+            padding: 12px 10px; 
+            font-family: 'Noto Serif', serif; font-size: 15px; font-weight: bold;
+            cursor: pointer; position: relative; overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .btn-opt::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--ink-black); z-index: -1;
+            transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease-out;
+        }
+        .btn-opt:hover { color: #fff; }
+        .btn-opt:hover::before { transform: scaleX(1); }
+
+        .btn-opt.correct {
+            background: var(--seal-red); border-color: var(--seal-red); color: #fff;
+            box-shadow: 0 0 15px rgba(185, 58, 58, 0.4);
+        }
+        .btn-opt.wrong {
+            background: #999; border-color: #999; color: #fff;
+            animation: shake 0.4s;
+        }
+
+        /* --- Final Result --- */
+        .final-result {
+            text-align: center; padding: 40px;
+            background: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1h2v2H1V1zm4 0h2v2H5V1zm4 0h2v2H9V1zm4 0h2v2h-2V1zm4 0h2v2h-2V1z' fill='%23dcd6c8' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
+            border: 2px double var(--border-color);
+            margin-top: 20px;
+        }
+        .final-text { 
+            font-size: 22px; line-height: 2; margin-bottom: 30px; 
+            color: var(--ink-black);
+        }
+        .keyword-stamp {
+            display: inline-block; border-bottom: 2px solid var(--seal-red);
+            padding: 0 5px; color: var(--seal-red); font-weight: bold;
+        }
+
+        @keyframes inkFlow { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>Chengdu Impressions</h1>
+            <div class="step-indicator">Chapter <span id="stepNum">1</span> / 5</div>
+        </div>
+
+        <div class="step active" id="step1">
+            <div class="question">
+                <span class="highlight">I. Lifestyle Analysis</span>
+                Locals say "Ba Shi De Hen". Look at the images.<br>
+                <strong>Think first:</strong> Which adjective best describes Chengdu?
+            </div>
+            <div class="comparison-box">
+                <div class="img-card">
+                    <div class="img-frame"><img src="images/hk_office_busy.jpg" alt="Busy Office"></div>
+                    <div class="caption">A: Fast Paced</div>
+                </div>
+                <div class="img-card">
+                    <div class="img-frame"><img src="images/chengdu_park_relax.jpg" alt="Chengdu Tea"></div>
+                    <div class="caption">B: Slow Life</div>
+                </div>
+            </div>
+            
+            <div class="think-overlay" id="think1">
+                <button class="btn-reveal" onclick="revealOptions(1)">🤔 I have an idea! (Show Choices)</button>
+            </div>
+
+            <div class="options-container" id="opt1">
+                <div class="options-grid">
+                    <button class="btn-opt" onclick="checkAnswer(1, false)">Stressful</button>
+                    <button class="btn-opt" onclick="checkAnswer(1, true)">Relaxed</button>
+                    <button class="btn-opt" onclick="checkAnswer(1, false)">Rushed</button>
+                    <button class="btn-opt" onclick="checkAnswer(1, true)">Laid-back</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="step" id="step2">
+            <div class="question">
+                <span class="highlight">II. Confirmation</span>
+                To describe a <strong>"Laid-back"</strong> (Relaxed) city,<br>
+                which scenario is the best example?
+            </div>
+            
+            <div class="think-overlay" id="think2">
+                <button class="btn-reveal" onclick="revealOptions(2)">🤔 Let me think...</button>
+            </div>
+
+            <div class="options-container" id="opt2">
+                <div style="display: flex; flex-direction: column; gap: 20px; align-items: center;">
+                    <button class="btn-opt" style="width: 100%; text-align: left; border: 1px solid #ccc;" onclick="checkAnswer(2, false)">
+                        [A] Drinking coffee while running to catch the subway.
+                    </button>
+                    <button class="btn-opt" style="width: 100%; text-align: left; border: 1px solid #ccc;" onclick="checkAnswer(2, true)">
+                        [B] Sitting in a bamboo chair, sipping tea for hours.
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="step" id="step3">
+            <div class="question">
+                <span class="highlight">III. Gastronomy</span>
+                Chengdu is a UNESCO City of Gastronomy.<br>
+                How would you describe the food? (Find a positive word!)
+            </div>
+            <div class="comparison-box">
+                <div class="img-card">
+                    <div class="img-frame"><img src="images/food_plain_sandwich.jpg" alt="Plain Food"></div>
+                    <div class="caption">A: Plain</div>
+                </div>
+                <div class="img-card">
+                    <div class="img-frame"><img src="images/food_chengdu_hotpot.jpg" alt="Chengdu Hotpot"></div>
+                    <div class="caption">B: Spicy Hotpot</div>
+                </div>
+            </div>
+
+            <div class="think-overlay" id="think3">
+                <button class="btn-reveal" onclick="revealOptions(3)">🤔 Ready to Choose</button>
+            </div>
+
+            <div class="options-container" id="opt3">
+                <div class="options-grid">
+                    <button class="btn-opt" onclick="checkAnswer(3, false)">Bland</button>
+                    <button class="btn-opt" onclick="checkAnswer(3, true)">Delicious</button>
+                    <button class="btn-opt" onclick="checkAnswer(3, true)">Tasty</button>
+                    <button class="btn-opt" onclick="checkAnswer(3, false)">Tasteless</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="step" id="step4">
+            <div class="question">
+                <span class="highlight">IV. City Icon</span>
+                Who is the superstar of Chengdu?<br>
+                Choose an adjective to describe them.
+            </div>
+            <div class="comparison-box">
+                <div class="img-card">
+                    <div class="img-frame"><img src="images/animal_brown_bear.jpg" alt="Generic Bear"></div>
+                    <div class="caption">A: Wild Bear</div>
+                </div>
+                <div class="img-card">
+                    <div class="img-frame"><img src="images/animal_panda_cute.jpg" alt="Cute Panda"></div>
+                    <div class="caption">B: National Treasure</div>
+                </div>
+            </div>
+
+            <div class="think-overlay" id="think4">
+                <button class="btn-reveal" onclick="revealOptions(4)">🤔 Show Adjectives</button>
+            </div>
+
+            <div class="options-container" id="opt4">
+                <div class="options-grid">
+                    <button class="btn-opt" onclick="checkAnswer(4, true)">Cute</button>
+                    <button class="btn-opt" onclick="checkAnswer(4, false)">Scary</button>
+                    <button class="btn-opt" onclick="checkAnswer(4, true)">Adorable</button>
+                    <button class="btn-opt" onclick="checkAnswer(4, false)">Fierce</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="step" id="step5">
+            <div class="question">
+                <span class="highlight">V. Final Synthesis</span>
+                Based on your analysis, here is your introduction paragraph:
+            </div>
+
+            <div class="final-result">
+                <div class="final-text" id="finalText">
+                    Chengdu is famous for its <span class="keyword-stamp">relaxed (laid-back) lifestyle</span>, <span class="keyword-stamp">delicious (tasty) food</span>, and <span class="keyword-stamp">cute (adorable) pandas</span>.<br><br>
+                    Follow this short walking tour to explore three amazing places in the city center!
+                </div>
+                <button class="btn-opt" style="background: var(--ink-black); color: #fff;" onclick="copyText()">
+                    ✒️ Copy Paragraph
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 1. Show Options Logic
+        function revealOptions(stepId) {
+            document.getElementById(`think${stepId}`).style.display = 'none';
+            document.getElementById(`opt${stepId}`).style.display = 'block';
+        }
+
+        // 2. Check Answer Logic (Works for ANY of the correct buttons)
+        function checkAnswer(currentStep, isCorrect) {
+            const clickedBtn = event.target;
+
+            if (isCorrect) {
+                clickedBtn.classList.add('correct');
+                // Auto-advance after delay
+                setTimeout(() => {
+                    document.getElementById(`step${currentStep}`).style.display = 'none';
+                    const next = currentStep + 1;
+                    if(document.getElementById(`step${next}`)) {
+                        document.getElementById(`step${next}`).classList.add('active');
+                        document.getElementById('stepNum').innerText = next;
+                    }
+                }, 800);
+            } else {
+                clickedBtn.classList.add('wrong');
+                setTimeout(() => clickedBtn.classList.remove('wrong'), 500);
+            }
+        }
+
+        function copyText() {
+            const text = document.getElementById('finalText').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Copied! Please paste it into your report.");
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Week 17: Italy 2026 Master Class</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="global-score">
+        Score: <span id="global-score-num">0</span>
+    </div>
+
+    <header>
+        <div class="container" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="logo">
+                <i class="fas fa-medal"></i> Italy 2026
+            </div>
+            <div class="user-badge" id="user-display">Guest</div>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <div id="sec-login" class="page-section intro-card">
+            <h1 style="color:var(--gold); margin-bottom:10px;">Winter Olympics Master Class</h1>
+            <p style="color:var(--text-dim); margin-bottom:20px;">Week 17 • Interactive Journey</p>
+            
+            <div id="intro-carousel" class="intro-carousel"></div>
+            <p style="font-size:0.8rem; color:#666; margin-top:5px;">(Swipe to explore gallery)</p>
+
+            <div class="rules-box">
+                <h3 style="color:#fff; margin-bottom:10px;">📜 Instructions & Scoring</h3>
+                <ul>
+                    <li><strong>Vocab:</strong> Study >10s = <strong>2 pts</strong>/word.</li>
+                    <li><strong>Quiz:</strong> Select difficulty (30%-100%).<br>Correct: <strong>+2 pts</strong> / Wrong: <strong>-1 pt</strong>.</li>
+                    <li><strong>Video:</strong> Watch & answer pop-up questions.<br>Correct: <strong>+2 pts</strong>. No skipping allowed.</li>
+                </ul>
+            </div>
+
+            <div style="margin-top:30px;">
+                <input type="text" id="inp-name" class="input-field" placeholder="Enter Your Name">
+                <br>
+                <div style="display:flex; justify-content:center; gap:15px; flex-wrap:wrap;">
+                    <button id="btn-resume" class="btn btn-gold hidden">Resume Progress</button>
+                    <button class="btn" onclick="App.startNew()">Start New Assignment</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-vocab" class="page-section hidden">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2>Core Vocabulary</h2>
+                <button class="btn-outline" onclick="App.exportList()">
+                    <i class="fas fa-file-pdf"></i> Save PDF
+                </button>
+            </div>
+            <div id="vocab-card"></div>
+        </div>
+
+        <div id="sec-quiz-sel" class="page-section hidden">
+            <h2 style="text-align:center; margin-bottom:30px; color:var(--gold);">Select Challenge Level</h2>
+            <div class="quiz-grid">
+                <div class="quiz-card-select" onclick="App.startQuiz(0)">
+                    <h3>30% Quiz</h3>
+                    <p>Base: 30 pts</p>
+                </div>
+                <div class="quiz-card-select" onclick="App.startQuiz(1)">
+                    <h3>50% Quiz</h3>
+                    <p>Base: 60 pts</p>
+                </div>
+                <div class="quiz-card-select" onclick="App.startQuiz(2)">
+                    <h3>80% Quiz</h3>
+                    <p>Base: 100 pts</p>
+                </div>
+                <div class="quiz-card-select" style="border-color:var(--gold)" onclick="App.startQuiz(3)">
+                    <h3>100% Quiz</h3>
+                    <p>Base: 140 pts</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-quiz-run" class="page-section hidden">
+            <h2 style="margin-bottom:20px;">Vocabulary Checkpoint</h2>
+            <div id="quiz-box"></div>
+        </div>
+
+        <div id="sec-reading" class="page-section hidden">
+            <div class="intro-card" style="text-align:left;">
+                <h2 style="color:var(--gold); margin-bottom:20px;">Introduction</h2>
+                <div id="read-text" style="line-height:1.8; color:#e2e8f0;"></div>
+                <div style="text-align:right; margin-top:30px;">
+                    <button class="btn btn-gold" style="width:100%;" onclick="App.goTo(5)">
+                        Start Video Part 1 <i class="fas fa-play"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-video" class="page-section hidden">
+            <h2 id="vid-title" style="color:var(--blue); margin-bottom:15px;">Video</h2>
+            
+            <div class="video-wrapper">
+                <video id="main-video" playsinline webkit-playsinline></video>
+                
+                <div id="vid-subs" class="video-subs"></div>
+                
+                <div class="video-ctrl">
+                    <button class="btn-sm" onclick="document.getElementById('main-video').play()"><i class="fas fa-play"></i></button>
+                    <button class="btn-sm" onclick="document.getElementById('main-video').pause()"><i class="fas fa-pause"></i></button>
+                    
+                    <input type="range" id="vid-prog" class="locked" value="0" min="0" max="100">
+                    
+                    <select onchange="App.setSpeed(this.value)" style="background:#333; color:white; border:none; padding:5px; border-radius:4px;">
+                        <option value="1">1.0x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="0.75">0.75x</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="text-align:right; margin-top:20px;">
+                <button class="btn" onclick="App.vidNext()">
+                    Next Section <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="sec-report" class="page-section hidden">
+            <div id="rep-box" class="report-card"></div>
+            <div style="text-align:center; margin-top:20px;">
+                <button class="btn btn-gold" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Certificate
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="vid-modal" class="modal-overlay hidden">
+        <div id="vm-content" class="modal-box"></div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

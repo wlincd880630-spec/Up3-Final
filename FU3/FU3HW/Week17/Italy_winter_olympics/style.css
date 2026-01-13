@@ -1,0 +1,476 @@
+/* * Week 17: Italy 2026 Master Class - Style V7.1 (Fixes: Layout, Carousel, PDF) */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,700;1,400&display=swap');
+
+/* --- 1. 全局重置与变量 --- */
+:root {
+    /* 核心色板 (Dark Mode) */
+    --bg-dark: #020617;
+    --card-bg: #1e293b;
+    --gold: #D4AF37;       /* 奥运金 */
+    --gold-hover: #F4C430;
+    --blue: #00458B;       /* 意大利蓝 */
+    --text: #F8FAFC;
+    --text-dim: #94A3B8;
+    
+    /* 状态色 */
+    --green: #10B981;
+    --red: #EF4444;
+}
+
+/* ★★★ 关键修复：防止 padding 撑破布局 ★★★ */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px; /* 给底部留空 */
+    overflow-x: hidden;   /* 防止横向滚动条 */
+}
+
+.hidden { display: none !important; }
+
+/* --- 2. 容器与通用组件 --- */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+}
+
+/* 页面部分淡入动画 */
+.page-section {
+    animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 顶部 Header */
+header {
+    background: rgba(2, 6, 23, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 900;
+}
+
+.logo {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--gold);
+}
+
+.user-badge {
+    background: rgba(255,255,255,0.1);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+}
+
+/* 悬浮计分板 */
+.global-score {
+    position: fixed;
+    top: 70px; /* 避开 Header */
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--gold);
+    padding: 8px 16px;
+    border-radius: 30px;
+    color: var(--gold);
+    font-weight: bold;
+    z-index: 800;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    font-family: 'Inter', monospace;
+    pointer-events: none; /* 让点击穿透 */
+}
+
+/* --- 3. 按钮系统 --- */
+.btn {
+    background: var(--blue);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+.btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; filter: grayscale(1); }
+
+.btn-gold {
+    background: var(--gold);
+    color: #020617; /* 深色文字增加对比度 */
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    padding: 8px 16px;
+}
+.btn-outline:hover { background: rgba(212, 175, 55, 0.1); }
+
+/* 小图标按钮 (TTS, Toggle) */
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    margin-left: 6px;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    color: var(--gold);
+    transition: 0.2s;
+}
+.btn-sm:hover { background: var(--blue); color: white; border-color: var(--blue); }
+
+/* --- 4. 首页 (Introduction) --- */
+.intro-card {
+    background: var(--card-bg);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 25px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+/* ★★★ 轮播图修复 (Carousel) ★★★ */
+.intro-carousel {
+    display: flex;
+    overflow-x: auto;
+    gap: 15px;
+    padding: 20px 0;
+    scroll-snap-type: x mandatory; /* 强制对齐 */
+    -webkit-overflow-scrolling: touch; /* iOS顺滑滚动 */
+    /* 隐藏滚动条 */
+    scrollbar-width: none; 
+}
+.intro-carousel::-webkit-scrollbar { display: none; }
+
+.intro-slide {
+    /* 关键布局：手机端显示80%，让用户看到还有下一张 */
+    flex: 0 0 80%;
+    height: 200px;
+    border-radius: 12px;
+    background-size: cover;
+    background-position: center;
+    scroll-snap-align: center; /* 居中对齐 */
+    border: 2px solid rgba(255,255,255,0.1);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative;
+}
+
+@media (min-width: 600px) {
+    /* 平板/电脑端宽度固定 */
+    .intro-slide { flex: 0 0 300px; height: 220px; }
+}
+
+/* 规则框 */
+.rules-box {
+    text-align: left;
+    background: rgba(0,0,0,0.3);
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+    border-left: 4px solid var(--gold);
+    font-size: 0.95rem;
+}
+.rules-box li { margin-bottom: 8px; color: #cbd5e1; }
+
+.input-field {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 12px;
+    width: 100%;
+    max-width: 300px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    text-align: center;
+    margin-bottom: 20px;
+    outline: none;
+}
+.input-field:focus { border-color: var(--blue); background: rgba(0, 69, 139, 0.2); }
+
+/* --- 5. 单词卡 (Flashcard) --- */
+.flashcard {
+    background: linear-gradient(160deg, #1e293b, #0f172a);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 25px;
+    margin-bottom: 20px;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    overflow: hidden; /* 防止计时条溢出 */
+}
+
+.word-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    color: var(--gold);
+    text-align: center;
+    margin: 10px 0;
+    text-shadow: 0 2px 10px rgba(212, 175, 55, 0.2);
+    line-height: 1.2;
+}
+
+.vocab-row {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.vocab-row:last-of-type { border-bottom: none; margin-bottom: 0; }
+
+.vocab-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.vocab-text {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #e2e8f0;
+    flex: 1;
+}
+
+.label {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-right: 6px;
+    transform: translateY(-2px);
+}
+
+/* 隐藏的中文释义 */
+.trans-box {
+    margin-top: 8px;
+    padding: 10px;
+    background: rgba(212, 175, 55, 0.15);
+    border-left: 3px solid var(--gold);
+    color: #fce7f3; /* 浅色字适配深色底 */
+    border-radius: 0 6px 6px 0;
+    font-size: 1rem;
+    animation: slideDown 0.2s ease;
+}
+@keyframes slideDown { 
+    from { opacity: 0; transform: translateY(-5px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+.timer-bar {
+    height: 4px;
+    background: var(--green);
+    width: 0%;
+    position: absolute;
+    bottom: 0; left: 0;
+    transition: width 0.1s linear; /* JS控制宽度 */
+}
+
+/* --- 6. 测验 (Quiz) --- */
+.quiz-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+@media (max-width: 480px) {
+    .quiz-grid { grid-template-columns: 1fr; } /* 手机端单列 */
+}
+
+.quiz-card-select {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.quiz-card-select:hover {
+    border-color: var(--gold);
+    background: rgba(255,255,255,0.1);
+    transform: translateY(-3px);
+}
+
+.quiz-opt {
+    width: 100%;
+    text-align: left;
+    padding: 16px;
+    margin-bottom: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
+    line-height: 1.4;
+}
+.quiz-opt:hover { border-color: var(--gold); background: rgba(255,255,255,0.1); }
+.quiz-opt.correct { background: rgba(16, 185, 129, 0.2); border-color: var(--green); color: var(--green); font-weight: bold; }
+.quiz-opt.wrong { background: rgba(239, 68, 68, 0.2); border-color: var(--red); color: var(--red); opacity: 0.7; }
+
+/* --- 7. 阅读 (Reading) --- */
+.read-segment {
+    background: rgba(255,255,255,0.03);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 2px solid var(--blue);
+}
+.read-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #cbd5e1;
+}
+
+/* --- 8. 视频播放器 (Video) --- */
+.video-wrapper {
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    margin-bottom: 20px;
+}
+video {
+    width: 100%;
+    display: block;
+    max-height: 70vh; /* 防止竖屏视频过高 */
+}
+
+.video-subs {
+    position: absolute;
+    bottom: 60px; /* 抬高一点，别被控制条挡住 */
+    left: 2%; 
+    width: 96%;
+    text-align: center;
+    background: rgba(0,0,0,0.6); /* 半透明黑底，保证文字清晰 */
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    line-height: 1.4;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    text-shadow: 1px 1px 2px #000;
+}
+
+.video-ctrl {
+    background: #111;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 进度条样式 */
+input[type=range].locked {
+    -webkit-appearance: none;
+    background: rgba(255,255,255,0.1);
+    height: 6px;
+    border-radius: 3px;
+    flex-grow: 1;
+    cursor: not-allowed;
+}
+input[type=range].locked::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 12px; width: 12px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    border: 2px solid #000;
+}
+
+/* --- 9. 弹窗 (Modal) --- */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 2000;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    padding: 20px;
+}
+.modal-box {
+    background: #1e293b;
+    padding: 30px;
+    width: 100%; max-width: 500px;
+    border-radius: 16px;
+    border: 1px solid var(--blue);
+    box-shadow: 0 0 50px rgba(0, 69, 139, 0.3);
+    animation: zoomIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+@keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.quiz-input {
+    width: 100%; padding: 14px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    border-radius: 8px;
+    margin: 15px 0;
+    font-size: 1.1rem;
+    outline: none;
+}
+.quiz-input:focus { border-color: var(--blue); }
+
+/* --- 10. PDF 导出/打印专用样式 (Fix for Blank PDF) --- */
+/* 当 JS 调用 html2pdf 或用户按 Ctrl+P 时生效 */
+
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    .flashcard, .intro-card, .report-card {
+        background: white !important;
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+        color: black !important;
+    }
+    .word-title { color: #000 !important; text-shadow: none !important; }
+    .vocab-text, .read-text { color: #333 !important; }
+    .label { color: #555 !important; border-color: #ccc !important; }
+    .btn, .video-ctrl, .intro-carousel, header, .global-score, .add-btn {
+        display: none !important; /* 打印时隐藏按钮和多余元素 */
+    }
+    .trans-box {
+        display: block !important; /* 打印时强制显示中文 */
+        background: #f0f0f0 !important;
+        color: #000 !important;
+        border-color: #333 !important;
+    }
+}
+
+/* 这是一个辅助类，JS 生成 PDF 时会把内容包裹在这个类里 */
+.pdf-export-view {
+    background: white;
+    color: black;
+    padding: 20px;
+    font-family: 'Times New Roman', serif;
+}
+.pdf-export-view h2 { color: black; border-bottom: 2px solid black; }
+.pdf-export-view p { color: #333; margin-bottom: 10px; }
+.pdf-export-view hr { border-color: #eee; }

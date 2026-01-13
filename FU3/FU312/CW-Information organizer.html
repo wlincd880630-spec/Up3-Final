@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Report: Full Dossier</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Noto+Serif+SC:wght@400;700&display=swap');
+
+        :root {
+            --bg-dark: #2c3e50;
+            --paper: #ffffff;
+            --ink: #222;
+            --accent: #b83b3b;
+            --subtle: #f0f0f0;
+            --input-color: #00008b; /* 填写的字是深蓝色 */
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            margin: 0; padding: 40px;
+            font-family: 'Courier Prime', 'Noto Serif SC', monospace;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* --- A4 Page Logic --- */
+        .page {
+            background: var(--paper);
+            width: 210mm; height: 297mm; /* Exact A4 */
+            padding: 15mm 20mm;
+            box-sizing: border-box;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+            position: relative;
+            display: flex; flex-direction: column;
+        }
+
+        /* --- Header --- */
+        .header-bar {
+            border-bottom: 2px solid var(--ink);
+            padding-bottom: 10px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: flex-end;
+        }
+        .header-title h1 { margin: 0; font-size: 20px; color: var(--ink); text-transform: uppercase; }
+        .header-title .subtitle { font-size: 10px; color: var(--accent); letter-spacing: 2px; font-weight: bold; }
+        
+        .student-field { font-size: 12px; text-align: right; }
+        .student-field span { 
+            border-bottom: 1px dashed var(--ink); display: inline-block; 
+            min-width: 100px; color: var(--input-color); text-align: center; font-weight: bold;
+        }
+
+        /* --- Card Design --- */
+        .mission-entry {
+            border: 2px solid var(--ink);
+            border-radius: 6px;
+            margin-bottom: 20px; /* Space between cards */
+            background: #fff;
+            flex-grow: 0;
+        }
+
+        .entry-header {
+            background: var(--ink); color: white;
+            padding: 5px 12px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .cn-name { font-family: 'Noto Serif SC', serif; font-size: 16px; font-weight: bold; }
+        .en-input { 
+            background: white; color: var(--input-color); font-family: 'Courier Prime';
+            border: none; padding: 2px 8px; width: 65%; font-size: 14px; font-weight: bold; border-radius: 2px;
+        }
+        .en-input:empty::before { content: 'Translate to English...'; color: #ccc; font-style: italic; font-size: 11px; }
+
+        .entry-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+            background: #ddd; border-top: 1px solid #ddd;
+        }
+        .grid-cell { background: white; padding: 8px; display: flex; flex-direction: column; }
+        .cell-full { grid-column: span 2; }
+
+        .label {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 9px; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 2px;
+        }
+        .label svg { width: 12px; height: 12px; fill: var(--accent); }
+
+        .editable {
+            flex: 1; min-height: 18px; border-bottom: 1px dotted #ccc;
+            color: var(--input-color); font-size: 12px; line-height: 1.3; outline: none;
+        }
+        .editable:focus { background: #f0f8ff; }
+
+        /* --- Footer --- */
+        .footer {
+            margin-top: auto; text-align: center;
+            font-size: 9px; color: #aaa; border-top: 1px solid #eee; padding-top: 10px;
+        }
+
+        /* --- Controls --- */
+        .controls { position: fixed; top: 30px; right: 30px; display: flex; flex-direction: column; gap: 10px; }
+        .btn {
+            background: var(--accent); color: white; border: none; padding: 12px 25px;
+            font-family: 'Courier Prime'; font-weight: bold; cursor: pointer; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-radius: 4px;
+        }
+        .btn:hover { background: #d64545; transform: translateY(-2px); }
+
+        /* Print Fixes */
+        @media print {
+            body { background: none; padding: 0; }
+            .page { box-shadow: none; margin: 0; break-after: always; }
+            .controls { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button class="btn" onclick="exportPDF()">🖨️ SAVE FULL REPORT</button>
+    </div>
+
+    <div id="report-container"></div>
+
+    <script>
+        // Icons
+        const icons = {
+            loc: '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>',
+            star: '<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>',
+            eye: '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>',
+            walk: '<path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7z"/>',
+            money: '<path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>',
+            bulb: '<path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/>'
+        };
+
+        // All 13 Spots
+        const allSpots = [
+            "成都大熊猫繁育研究基地",
+            "文殊院",
+            "东郊记忆",
+            "望平街",
+            "太古里",
+            "玉林路",
+            "武侯祠",
+            "锦里古街",
+            "杜甫草堂",
+            "金沙遗址博物馆",
+            "府青路片区",
+            "宽窄巷子",
+            "人民公园"
+        ];
+
+        // 核心逻辑：分页生成器
+        // 每页放3个，一共需要 Math.ceil(13/3) = 5页
+        window.onload = function() {
+            const container = document.getElementById('report-container');
+            const itemsPerPage = 3;
+            
+            for (let i = 0; i < allSpots.length; i += itemsPerPage) {
+                // 1. 创建新页面
+                const pageNum = Math.floor(i / itemsPerPage) + 1;
+                const totalPages = Math.ceil(allSpots.length / itemsPerPage);
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'page';
+                
+                // 2. 页眉 (只在第一页显示学生名字输入框，其他页简略)
+                let headerHTML = '';
+                if (i === 0) {
+                    headerHTML = `
+                        <div class="header-bar">
+                            <div class="header-title">
+                                <div class="subtitle">MISSION DIRECTIVE: 03</div>
+                                <h1>Target Analysis Log</h1>
+                            </div>
+                            <div class="student-field">
+                                AGENT: <span contenteditable="true" id="agentName">Unknown</span><br>
+                                DATE: <span contenteditable="true">202X/XX/XX</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    headerHTML = `
+                        <div class="header-bar">
+                            <div class="header-title">
+                                <div class="subtitle">CONTINUATION SHEET</div>
+                                <h1>Analysis Log (Page ${pageNum})</h1>
+                            </div>
+                        </div>
+                    `;
+                }
+                pageDiv.innerHTML = headerHTML;
+
+                // 3. 插入 3 个景点卡片
+                const pageSpots = allSpots.slice(i, i + itemsPerPage);
+                pageSpots.forEach(spotName => {
+                    const card = document.createElement('div');
+                    card.className = 'mission-entry';
+                    card.innerHTML = `
+                        <div class="entry-header">
+                            <div class="cn-name">${spotName}</div>
+                            <div class="en-input" contenteditable="true"></div>
+                        </div>
+                        <div class="entry-grid">
+                            <div class="grid-cell">
+                                <div class="label"><svg viewBox="0 0 24 24">${icons.loc}</svg> LOCATION</div>
+                                <div class="editable" contenteditable="true"></div>
+                            </div>
+                            <div class="grid-cell">
+                                <div class="label"><svg viewBox="0 0 24 24">${icons.money}</svg> EXPENSES</div>
+                                <div class="editable" contenteditable="true"></div>
+                            </div>
+                            <div class="grid-cell cell-full">
+                                <div class="label"><svg viewBox="0 0 24 24">${icons.star}</svg> FEATURE</div>
+                                <div class="editable" contenteditable="true"></div>
+                            </div>
+                            <div class="grid-cell">
+                                <div class="label"><svg viewBox="0 0 24 24">${icons.eye}</svg> SEE</div>
+                                <div class="editable" contenteditable="true"></div>
+                            </div>
+                            <div class="grid-cell">
+                                <div class="label"><svg viewBox="0 0 24 24">${icons.walk}</svg> DO</div>
+                                <div class="editable" contenteditable="true"></div>
+                            </div>
+                            <div class="grid-cell cell-full">
+                                <div class="label"><svg viewBox="0 0 24 24">${icons.bulb}</svg> FUN FACT</div>
+                                <div class="editable" contenteditable="true"></div>
+                            </div>
+                        </div>
+                    `;
+                    pageDiv.appendChild(card);
+                });
+
+                // 4. 页脚
+                const footer = document.createElement('div');
+                footer.className = 'footer';
+                footer.innerText = `CONFIDENTIAL // CHENGDU FIELD GUIDE // PAGE ${pageNum} OF ${totalPages}`;
+                pageDiv.appendChild(footer);
+
+                // 5. 添加到主容器
+                container.appendChild(pageDiv);
+            }
+        };
+
+        function exportPDF() {
+            const element = document.getElementById('report-container');
+            const agentName = document.getElementById('agentName') ? document.getElementById('agentName').innerText : 'Agent';
+            
+            const opt = {
+                margin: 0,
+                filename: `Mission_Report_${agentName}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>

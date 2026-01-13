@@ -129,7 +129,7 @@
         /* --- Homework/Mission Cards --- */
         .mission-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 25px;
             margin-top: 20px;
         }
@@ -151,9 +151,10 @@
         }
 
         .mission-img {
-            width: 140px;
+            width: 120px;
             background-size: cover;
             background-position: center;
+            flex-shrink: 0;
         }
 
         .mission-info {
@@ -161,7 +162,7 @@
             flex-grow: 1;
         }
 
-        .mission-info h4 { margin: 0 0 5px 0; font-size: 1.1rem; }
+        .mission-info h4 { margin: 0 0 5px 0; font-size: 1.1rem; color: var(--accent-gold); }
         .mission-info p { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
 
         /* --- Career Section Specifics --- */
@@ -183,14 +184,12 @@
             <h1>Interactive Learning Portal</h1>
         </header>
 
-        <!-- SECTION 1: UNIT 3 ADVENTURE -->
         <div class="section-header">
             <h2>Unit 3: Adventure</h2>
             <div class="line"></div>
         </div>
 
         <div class="module-grid">
-            <!-- FU301 -->
             <a href="FU3/FU301/FU301.html" class="card">
                 <div class="card-icon"><i class="fas fa-link"></i></div>
                 <h3>Hook</h3>
@@ -198,7 +197,6 @@
                 <div class="card-footer">Vocabulary Lab</div>
             </a>
 
-            <!-- FU302 -->
             <a href="FU3/FU302/FU302.html" class="card">
                 <div class="card-icon"><i class="fas fa-infinity"></i></div>
                 <h3>Mille</h3>
@@ -206,7 +204,6 @@
                 <div class="card-footer">Root Word Lab</div>
             </a>
 
-            <!-- FU303 -->
             <a href="FU3/FU303/FU303Main.html" class="card">
                 <div class="card-icon"><i class="fas fa-globe-americas"></i></div>
                 <h3>World Map</h3>
@@ -214,7 +211,6 @@
                 <div class="card-footer">Geography Lab</div>
             </a>
 
-            <!-- FU304 -->
             <a href="FU3/FU304/FU304.html" class="card">
                 <div class="card-icon"><i class="fas fa-leaf"></i></div>
                 <h3>Restoration</h3>
@@ -222,7 +218,6 @@
                 <div class="card-footer">Topic Lab</div>
             </a>
 
-            <!-- FU305 -->
             <a href="FU3/FU305/FU305.html" class="card">
                 <div class="card-icon"><i class="fas fa-search-plus"></i></div>
                 <h3>Micro / Macro</h3>
@@ -230,7 +225,6 @@
                 <div class="card-footer">Prefix Lab</div>
             </a>
 
-            <!-- FU306 -->
             <a href="FU3/FU306/FU306.html" class="card">
                 <div class="card-icon"><i class="fas fa-hiking"></i></div>
                 <h3>Adventure</h3>
@@ -238,7 +232,6 @@
                 <div class="card-footer">Definition Lab</div>
             </a>
 
-            <!-- FU307 -->
             <a href="FU3/FU307/FU307.html" class="card">
                 <div class="card-icon"><i class="fas fa-brain"></i></div>
                 <h3>Imagine</h3>
@@ -246,16 +239,51 @@
                 <div class="card-footer">Word Family Lab</div>
             </a>
 
-            <!-- NEW: Movie Goer's Guide in London -->
-            <a href="FU3/Movie Goers Guide in London/index.html" class="card">
+            <a href="FU3/FU308/include.html" class="card">
+                <div class="card-icon"><i class="fas fa-box-open"></i></div>
+                <h3>Include</h3>
+                <p>Essentials packing list: What does your backpack include?</p>
+                <div class="card-footer">Scene Lab</div>
+            </a>
+
+            <a href="FU3/FU311/01.html" class="card">
+                <div class="card-icon"><i class="fas fa-map-marked-alt"></i></div>
+                <h3>Global Tour Guide</h3>
+                <p>Lead international travelers through world-famous landmarks.</p>
+                <div class="card-footer">Speaking Lab</div>
+            </a>
+
+            <a href="FU3/FU309/main page.html" class="card">
+                <div class="card-icon"><i class="fas fa-bicycle"></i></div>
+                <h3>Adventure Anywhere</h3>
+                <p>Microadventures with Alastair Humphreys.</p>
+                <div class="card-footer">Video & Reading</div>
+            </a>
+
+            <a href="FU3/FU310/index.html" class="card">
                 <div class="card-icon"><i class="fas fa-film"></i></div>
-                <h3>Movie Goer's Guide in London</h3>
-                <p>Reading comprehension and related activities.</p>
+                <h3>Movie Goer's Guide</h3>
+                <p>A guide to cinemas in London. Reading & Comprehension.</p>
                 <div class="card-footer">Reading Lab</div>
             </a>
         </div>
 
-        <!-- Homework Sub-section -->
+        <div style="margin-top: 25px;">
+            <a href="FU3/Unit 3 words study V1.html" class="card career-box" style="flex-direction: row; align-items: center; gap: 20px; border-left-color: var(--accent-gold);">
+                <i class="fas fa-book" style="font-size: 1.5rem; color: var(--accent-gold);"></i>
+                <div>
+                    <h3 style="margin:0; font-size: 1.1rem;">Unit 3 Master Dictionary (V9)</h3>
+                    <p>Full vocabulary list with AI Speech Assessment.</p>
+                </div>
+                <i class="fas fa-chevron-right" style="margin-left: auto; opacity: 0.5;"></i>
+            </a>
+        </div>
+
+        <div class="section-header" style="margin-top: 40px; margin-bottom: 20px;">
+            <h3 style="font-size: 1.4rem; color: var(--text-muted);"><i class="fas fa-tasks"></i> Weekly Missions</h3>
+            <div class="line" style="background: rgba(255,255,255,0.05);"></div>
+        </div>
+
         <div class="mission-grid">
             <a href="FU3/FU3HW/week15/Tower_Bridge/Tower_Bridge.html" class="mission-card">
                 <div class="mission-img" style="background-image: url('https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=400&q=80');"></div>
@@ -264,7 +292,7 @@
                     <p>Tower Bridge history & structure tasks.</p>
                 </div>
             </a>
-            <!-- Updated Boston Image and confirmed link -->
+            
             <a href="FU3/FU3HW/Week15/Boston_tour/Boston_Tour.html" class="mission-card">
                 <div class="mission-img" style="background-image: url('https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=400&q=80');"></div>
                 <div class="mission-info">
@@ -272,28 +300,31 @@
                     <p>Virtual city tour & local culture exploration.</p>
                 </div>
             </a>
-        </div>
 
-        <!-- Unit 3 Dictionary Link -->
-        <div style="margin-top: 25px;">
-            <a href="FU3/Unit 3 words study V1.html" class="card career-box" style="flex-direction: row; align-items: center; gap: 20px; border-left-color: var(--accent-gold);">
-                <i class="fas fa-book" style="font-size: 1.5rem; color: var(--accent-gold);"></i>
-                <div>
-                    <h3 style="margin:0; font-size: 1.1rem;">Unit 3 Master Dictionary</h3>
-                    <p>Full vocabulary list for Adventure & Unusual Destinations.</p>
+            <a href="FU3/FU3HW/Week16/Lost civilization - Sanxingdui/Week_16-HW.html" class="mission-card">
+                <div class="mission-img" style="background-image: url('FU3/FU3HW/Week16/Lost civilization - Sanxingdui/gold_mask.jpg');"></div>
+                <div class="mission-info">
+                    <h4>Operation: Sanxingdui</h4>
+                    <p>Uncover the mysteries of the Lost Civilization.</p>
+                </div>
+            </a>
+
+            <a href="FU3/FU3HW/Week17/Italy_winter_olympics/Week_17-HW.html" class="mission-card">
+                <div class="mission-img" style="background-image: url('https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=400&q=80');"></div>
+                <div class="mission-info">
+                    <h4>Operation: Italy 2026</h4>
+                    <p>Winter Olympics Master Class & Interactive Journey.</p>
                 </div>
             </a>
         </div>
 
 
-        <!-- SECTION 2: UNIT 2 CAREER -->
         <div class="section-header">
             <h2>Unit 2: Career</h2>
             <div class="line"></div>
         </div>
 
         <div class="module-grid">
-            <!-- Updated Unit 2 file name link -->
             <a href="FU2/Unit 2 words study V1.html" class="card career-box" style="grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 20px;">
                 <div class="card-icon" style="margin:0;"><i class="fas fa-briefcase"></i></div>
                 <div>
@@ -303,7 +334,6 @@
                 <i class="fas fa-chevron-right" style="margin-left: auto; opacity: 0.5;"></i>
             </a>
 
-            <!-- NEW: Interview with Fitz Cahall -->
             <a href="FU2/An Interview with Fitz Cahall/index.html" class="card career-box">
                 <div class="card-icon"><i class="fas fa-microphone-alt"></i></div>
                 <h3>Interview with Fitz Cahall</h3>

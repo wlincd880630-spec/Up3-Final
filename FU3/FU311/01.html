@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tour Guide V29 - Complete Expedition</title>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&family=Special+Elite&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #2d3436;
+            --accent: #ff7675;
+            --blue: #48dbfb;
+            --card-bg: rgba(255, 255, 255, 0.96);
+            --border-radius: 25px;
+            --correct: #00b894;
+            --wrong: #d63031;
+            --warning: #fdcb6e;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif; margin: 0; padding: 20px;
+            background-color: #48dbfb;
+            background-image: radial-gradient(#fff 20%, transparent 20%), radial-gradient(#fff 20%, transparent 20%);
+            background-size: 50px 50px; background-position: 0 0, 25px 25px;
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+        }
+
+        .container {
+            width: 100%; max-width: 950px;
+            background: var(--card-bg); border: 8px solid #fff; border-radius: var(--border-radius);
+            box-shadow: 0 20px 0px rgba(0,0,0,0.1); padding: 0; overflow: hidden; display: flex; flex-direction: column;
+            min-height: 900px; position: relative;
+        }
+
+        .page { display: none; padding: 40px; flex: 1; flex-direction: column; animation: slideUp 0.6s ease; overflow-y: auto; }
+        .page.active { display: flex; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1, h2 { font-family: 'Fredoka One', cursive; text-align: center; color: var(--primary); margin-top: 0; }
+
+        .btn {
+            background: #0984e3; color: white; border: none; padding: 15px 35px; border-radius: 50px;
+            font-family: 'Fredoka One'; font-size: 1.2rem; cursor: pointer; box-shadow: 0 8px 0 #074f87;
+            transition: all 0.1s; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn:hover { transform: translateY(-4px); box-shadow: 0 12px 0 #074f87; }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0 0 #074f87; }
+        .btn-green { background: #00b894; box-shadow: 0 8px 0 #006e58; }
+
+        .mic-btn { 
+            width: 70px; height: 70px; border-radius: 50%; border:none; background: #3b82f6; 
+            color:white; font-size:2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; 
+            box-shadow: 0 6px 0 #1e40af; margin: 0 auto; transition:0.2s; 
+        }
+        .mic-btn.active { background: #ef4444; box-shadow: 0 6px 0 #991b1b; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% {transform:scale(1);} 50% {transform:scale(1.1);} 100% {transform:scale(1);} }
+
+        /* P1: JOB AD */
+        .job-poster { background: #fff; border: 5px dashed #fab1a0; border-radius: 20px; padding: 30px; margin: 10px auto; max-width: 800px; }
+        .job-paper { background: #fdfbf7; border: 1px solid #e0e0e0; padding: 25px; border-radius: 5px; font-family: 'Nunito', sans-serif; text-align: left; position: relative; }
+        .job-paper::before { content: ""; position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 120px; height: 30px; background: rgba(255, 234, 167, 0.6); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .jd-section { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
+        .jd-title { font-family: 'Special Elite', cursive; font-size: 1.2rem; color: #d35400; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
+        .highlight { background: #ffeaa7; padding: 0 4px; font-weight: bold; border-radius: 3px; }
+
+        /* P2: CHAT */
+        .chat-ui { flex: 1; display: flex; flex-direction: column; background: #f1f2f6; border-radius: 20px; border: 4px solid #dfe4ea; overflow: hidden; margin-bottom:10px; }
+        .chat-history { flex: 1; overflow-y: auto; padding: 20px; display:flex; flex-direction:column; gap: 15px; }
+        .bubble { padding: 15px 20px; border-radius: 20px; max-width: 80%; font-size: 1.1rem; animation: popIn 0.3s; }
+        .bubble.ai { background: #fff; align-self: flex-start; border-bottom-left-radius: 2px; box-shadow: 2px 2px 5px rgba(0,0,0,0.05); }
+        .bubble.user { background: #74b9ff; align-self: flex-end; border-bottom-right-radius: 2px; color: white; }
+
+        /* P3: WHEEL */
+        .wheel-box { width: 100%; max-width: 600px; height: 350px; margin: 20px auto; border: 8px solid #feca57; border-radius: 20px; overflow: hidden; position: relative; background: #2d3436; display: none; }
+        .wheel-strip { display: flex; flex-direction: column; transition: transform 0.1s linear; }
+        .wheel-item { height: 350px; display: flex; align-items: center; justify-content: center; }
+        .wheel-img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* P4: IDENTIFY & P5: GUIDE */
+        .photo-frame { border: 10px solid #fff; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); transform: rotate(-2deg); margin: 20px auto; max-width: 500px; }
+        .p4-img { width: 100%; max-height: 300px; display: block; border-radius: 5px; }
+        .eval-display-box { background: #f8fafc; border: 2px solid #b2bec3; border-radius: 10px; padding: 15px; margin-top: 15px; min-height: 50px; font-size: 1.1rem; line-height: 1.6; text-align: center; }
+        
+        .script-card { background: #fff; padding: 25px; border-radius: 15px; border: 2px solid #e0e0e0; font-size: 1.4rem; line-height: 2; color: #2d3436; margin-bottom: 20px; text-align: left; }
+        .word-interactive { cursor: pointer; display: inline-block; padding: 0 2px; border-radius: 3px; transition: 0.2s; border-bottom: 1px dotted #ccc; }
+        .word-interactive:hover { background-color: #ffeaa7; color: #d35400; transform: scale(1.1); }
+        
+        .w-ok { color: var(--correct); font-weight: bold; }
+        .w-err { color: var(--wrong); text-decoration: underline; }
+        .w-miss { color: var(--warning); border-bottom: 2px dashed var(--warning); opacity: 0.7; }
+
+        /* CHEQUE */
+        .cheque-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.5s; z-index: 200; }
+        .cheque-overlay.show { opacity: 1; pointer-events: auto; }
+        .cheque-paper { background: #f0fdf4; width: 80%; padding: 40px; border: 10px double #16a34a; transform: scale(0.5); transition: 0.5s; text-align: center; }
+        .cheque-overlay.show .cheque-paper { transform: scale(1); }
+
+        @keyframes popIn { 0%{transform:scale(0.9);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div id="p1" class="page active">
+        <h1>Global Tour Center</h1>
+        <div class="job-poster">
+            <div class="job-paper">
+                <div class="jd-section"><div class="jd-title">Role</div><strong>Experienced Tour Leader</strong></div>
+                <div class="jd-section">
+                    <div class="jd-title">Responsibilities</div>
+                    • Lead international travelers through world-famous landmarks.<br>
+                    • Provide engaging and clear descriptions of scenery.<br>
+                    • <span class="highlight">ACCEPT</span> assigned locations without hesitation.
+                </div>
+                <div class="jd-section">
+                    <div class="jd-title">The Challenge</div>
+                    • Destinations are assigned <span class="highlight">RANDOMLY</span>.<br>
+                    • You must be ready for any environment!
+                </div>
+                <div class="jd-section"><div class="jd-title">Salary</div><strong>Negotiable!</strong> Earn up to 500 UP Stars per tour!</div>
+            </div>
+            <div style="text-align: center; margin-top:30px;">
+                <button class="btn btn-green" onclick="startInterview()">APPLY FOR THE JOB NOW <i class="fas fa-paper-plane"></i></button>
+            </div>
+            <div style="text-align:center; margin-top:20px;">
+                <button class="btn" style="background:#636e72; font-size:1rem;" onclick="location.href='02.html'">Summary & Review <i class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="p2" class="page">
+        <h2><i class="fas fa-robot"></i> AI Interview Room</h2>
+        <div class="chat-ui"><div class="chat-history" id="chatBox"></div></div>
+        <div style="text-align:center; margin-top:15px;">
+            <p id="micText" style="color:#666; font-weight:bold; margin-bottom:5px;">Click to Speak</p>
+            <button class="mic-btn" id="interviewMic" onclick="toggleMic()"><i class="fas fa-microphone"></i></button>
+        </div>
+        <div id="interviewNext" style="text-align:center; display:none; margin-top:20px;">
+            <button class="btn btn-green" onclick="goToPage('p3'); initWheel();">Proceed to Destiny Wheel <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <div id="p3" class="page">
+        <h1>Destiny Wheel</h1>
+        <div style="background: #fff3cd; padding: 15px; border-radius: 15px; margin-bottom: 20px; border-left: 5px solid #ffc107; font-weight: bold; color: #856404;">
+            <i class="fas fa-info-circle"></i> Instructions: You will <span style="text-decoration: underline;">RANDOMLY</span> choose a landmark to introduce. Click the button to start!
+        </div>
+        <div class="wheel-box" id="wheelContainer"><div class="wheel-strip" id="wheelTrack"></div></div>
+        <div style="text-align:center; height:100px; display:flex; align-items:center; justify-content:center;">
+            <button class="btn" id="spinBtn" onclick="spinRoulette()" style="font-size:1.4rem;">CLICK TO RANDOMLY SELECT <i class="fas fa-sync-alt"></i></button>
+            <div id="nextDestBtn" style="display:none;"><button class="btn btn-green" onclick="goToPage('p4'); setupP4()">START MISSION <i class="fas fa-flag-checkered"></i></button></div>
+        </div>
+    </div>
+
+    <div id="p4" class="page">
+        <h2>Identify Location</h2>
+        <div class="photo-frame"><img id="p4-img" class="p4-img" src=""></div>
+        <div style="text-align:center;">
+            <p style="font-size:1.2rem; font-weight:bold; color:#636e72;">What is this place? Say it!</p>
+            <button class="mic-btn" id="evalMic" onclick="toggleEvalMic()"><i class="fas fa-microphone-alt"></i></button>
+            <div id="evalResult" class="eval-display-box"></div>
+        </div>
+        <div style="text-align:center; margin-top:20px;">
+            <button class="btn btn-green" id="p4Next" style="display:none;" onclick="goToPage('p5'); setupP5()">Enter Guide Mode <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <div id="p5" class="page">
+        <h2><i class="fas fa-map-marked-alt"></i> Guide Mode</h2>
+        <p style="text-align:center; color:#666;">Click any word to hear it. Record your introduction when ready!</p>
+        <div class="script-card" id="guideScript"></div>
+        <div style="text-align:center;">
+            <button class="mic-btn" id="guideMic" onclick="toggleGuideMic()"><i class="fas fa-microphone"></i></button>
+            <p id="guideStatus" style="font-weight:bold; margin-top:5px; color:#636e72;">Click to Start Recording</p>
+        </div>
+        <div id="guideFeedback" style="display:none;">
+            <div class="eval-display-box" id="guideResultBox"></div>
+            <div style="text-align:center; margin-top:20px;">
+                <h1 style="color:#2d3436; margin:0;">Score: <span id="finalScore" style="color:#00b894;">0</span></h1>
+                <button class="btn" style="margin-top:10px;" onclick="showCheque()">Finish Mission & Get Paid</button>
+            </div>
+        </div>
+        <div class="cheque-overlay" id="payOverlay">
+            <div class="cheque-paper">
+                <h2 style="color:#00b894; font-family:'Courier New'; margin:0;">PAYCHECK</h2>
+                <div style="margin:20px 0; font-size:1.2rem;">Pay to: <strong id="payName">Captain</strong></div>
+                <h1 style="color:#2d3436; font-size:3.5rem;"><span id="salaryAmt">0</span> <span style="font-size:1.5rem;">UP Stars</span></h1>
+                <button class="btn btn-green" onclick="location.href='01.html'">Back to Home</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const AZURE_KEY = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const AZURE_REGION = "eastus2";
+    const DEEPSEEK_KEY = "sk-daa16008e81843deba6fefe9dce51465";
+
+    const destinations = [
+        { name: "Statue of Liberty", img: "dest1.jpg", script: "Welcome to New York! Look up at the massive Statue of Liberty. She stands 93 meters tall! She was a gift of friendship from France. Did you know her skin is made of copper? It turned green because of the weather!" },
+        { name: "Golden Gate Bridge", img: "dest2.jpg", script: "Welcome to San Francisco! You are looking at the famous Golden Gate Bridge. The towers stand 227 meters high! Here is a secret: It is painted 'International Orange' so ships can see it in the fog." },
+        { name: "Tower Bridge", img: "dest3.jpg", script: "Here we are at Tower Bridge, the icon of London. It looks like a stone castle floating on the river. The towers are 65 meters tall. Guess what? The road opens up 800 times a year to let big ships pass!" },
+        { name: "Eiffel Tower", img: "dest4.jpg", script: "Bonjour! This is the Eiffel Tower, the symbol of Paris. It is made of iron and stands 330 meters tall. Believe it or not, when it was built in 1889, many artists hated it! Now, everyone loves it." },
+        { name: "London National Gallery", img: "dest5.jpg", script: "We are now in Trafalgar Square, standing in front of the National Gallery. This huge museum has over 2300 paintings! You can see works by Van Gogh here. Best of all, you don't need a ticket. It is free!" },
+        { name: "Buckingham Palace", img: "dest6.jpg", script: "This is Buckingham Palace, the home of the British King. It is huge, with 775 rooms inside! We are here to watch the Changing of the Guard. Look at the flag! If it is flying, the King is home." },
+        { name: "London Film Museum", img: "dest7.jpg", script: "Hello movie fans! Welcome to the London Film Museum. This place is full of original costumes and props. Here is the cool part: It has the biggest collection of James Bond vehicles. You can stand right next to the real cars driven by 007!" },
+        { name: "Leicester Square", img: "dest8.jpg", script: "Feel the energy! We are in Leicester Square, the heart of London entertainment. It hosts red-carpet premieres. Look around for the statues! You might find a bronze Harry Potter or Mr. Bean sitting on a bench." },
+        { name: "Arctic Ocean", img: "dest9.jpg", script: "Brrr! Wrap up warm. We are at the Arctic Ocean, near the North Pole. It is the coldest ocean on Earth. But look at the sky! If we are lucky, we can see the Aurora Borealis dancing above us. The best time to see them is during the winter, from October to March, when the nights are very long and dark. Even though it is freezing, life survives here. Look closely, you might see a polar bear hunting on the ice!" },
+        { name: "Atlantic Ocean", img: "dest10.jpg", script: "This is the Atlantic Ocean, the second-largest ocean on Earth. It is so huge that it covers about 20% of the Earth's surface! It is also very deep. Did you know the ocean is actually getting wider? The continents move apart by about 2 centimeters every year, making the Atlantic grow just a little bit bigger while we speak!"}
+    ];
+
+    let state = { name: "Candidate", dest: null, isRec: false, salary: 0, guideResults: [] };
+    let recognizer, synthesizer;
+
+    function initAzure() {
+        if(typeof SpeechSDK !== 'undefined') {
+            const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+            sc.speechSynthesisVoiceName = "en-US-JennyNeural";
+            sc.speechRecognitionLanguage = "en-US";
+            synthesizer = new SpeechSDK.SpeechSynthesizer(sc);
+        }
+    }
+
+    // SLOWER SPEECH (0.9 rate)
+    function speak(text) {
+        if(!synthesizer) initAzure();
+        const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+            <voice name="en-US-JennyNeural"><prosody rate="0.9">${text.replace(/UP Stars/g, "U P Stars")}</prosody></voice>
+        </speak>`;
+        synthesizer.speakSsmlAsync(ssml);
+    }
+
+    function goToPage(pid) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pid).classList.add('active');
+        document.querySelector('.container').scrollTop = 0;
+    }
+
+    // --- P2: INTERVIEW ---
+    function startInterview() {
+        goToPage('p2');
+        document.getElementById('chatBox').innerHTML = "";
+        state.chatHistory = [{role: "system", content: "You are a Manager. Rules: 1.Ask name. 2.Ask travel passion. 3.Explain: 'Destinations are RANDOM. Do you ACCEPT?'. 4.Negotiate Salary (Max 500). 5.Only when agreed, say: 'Deal! [Amt] UP Stars. You are hired. Click the button.'"}];
+        const msg = "Hello! I am the Hiring Manager. Welcome! First, what is your name?";
+        addChat(msg, 'ai'); speak(msg);
+        state.chatHistory.push({role: "assistant", content: msg});
+    }
+
+    function toggleMic() { state.isRec ? stopRec() : startRec(handleReply); }
+    function startRec(cb) {
+        if(!synthesizer) initAzure();
+        const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+        const ac = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+        recognizer = new SpeechSDK.SpeechRecognizer(sc, ac);
+        document.getElementById('interviewMic').classList.add('active');
+        document.getElementById('micText').innerText = "Listening...";
+        state.isRec = true;
+        recognizer.startContinuousRecognitionAsync();
+        recognizer.recognized = (s, e) => { if(e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) { stopRec(); cb(e.result.text); } };
+    }
+    function stopRec() {
+        document.getElementById('interviewMic').classList.remove('active');
+        document.getElementById('micText').innerText = "Thinking...";
+        state.isRec = false;
+        if(recognizer) recognizer.stopContinuousRecognitionAsync(() => { recognizer.close(); recognizer=undefined; });
+    }
+
+    function addChat(t, type) {
+        const box = document.getElementById('chatBox');
+        const d = document.createElement('div'); d.className = `bubble ${type}`; d.innerText = t;
+        box.appendChild(d); box.scrollTop = box.scrollHeight;
+    }
+
+    async function handleReply(text) {
+        addChat(text, 'user');
+        state.chatHistory.push({role: "user", content: text});
+        try {
+            const res = await fetch("https://api.deepseek.com/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${DEEPSEEK_KEY}` },
+                body: JSON.stringify({ model: "deepseek-chat", messages: state.chatHistory })
+            });
+            const data = await res.json();
+            const aiText = data.choices[0].message.content;
+            addChat(aiText, 'ai'); speak(aiText);
+            state.chatHistory.push({role: "assistant", content: aiText});
+            if(aiText.toLowerCase().includes("deal") && aiText.toLowerCase().includes("hired")) {
+                const m = aiText.match(/(\d+)/); state.salary = m ? m[0] : 300;
+                confetti(); document.getElementById('interviewNext').style.display = 'block';
+            }
+        } catch (e) { addChat("Sorry, I had a connection issue. Say that again?", 'ai'); }
+        document.getElementById('micText').innerText = "Click to Speak";
+    }
+
+    // --- P3: WHEEL ---
+    function initWheel() { document.getElementById('wheelContainer').style.display = 'none'; document.getElementById('spinBtn').style.display = 'block'; }
+    function spinRoulette() {
+        const track = document.getElementById('wheelTrack');
+        document.getElementById('wheelContainer').style.display = 'block';
+        document.getElementById('spinBtn').style.display = 'none';
+        track.innerHTML = "";
+        let list = [...destinations, ...destinations, ...destinations];
+        list.forEach(d => {
+            const el = document.createElement('div'); el.className = 'wheel-item';
+            el.innerHTML = `<img src="${d.img}" class="wheel-img">`;
+            track.appendChild(el);
+        });
+        speak("Spinning for a random destination...");
+        const itemH = 350;
+        const rand = Math.floor(Math.random() * destinations.length) + destinations.length;
+        state.dest = list[rand];
+        setTimeout(() => {
+            track.style.transition = "transform 4s cubic-bezier(0.1, 0.7, 0.1, 1)";
+            track.style.transform = `translateY(-${rand * itemH}px)`;
+        }, 50);
+        setTimeout(() => { confetti(); speak("Destination selected!"); document.getElementById('nextDestBtn').style.display = 'block'; }, 4500);
+    }
+
+    // --- P4: IDENTIFY ---
+    function setupP4() { document.getElementById('p4-img').src = state.dest.img; document.getElementById('evalResult').innerHTML = ""; }
+    function toggleEvalMic() {
+        if(!state.isRec) {
+            document.getElementById('evalMic').classList.add('active'); state.isRec = true;
+            const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+            const ac = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+            recognizer = new SpeechSDK.SpeechRecognizer(sc, ac);
+            recognizer.recognizeOnceAsync(res => {
+                document.getElementById('evalMic').classList.remove('active'); state.isRec = false;
+                const said = res.text.toLowerCase(); const target = state.dest.name.toLowerCase();
+                const isMatch = said.includes(target.split(' ')[0]);
+                document.getElementById('evalResult').innerHTML = `<span style="color:${isMatch?'green':'red'}">${res.text}</span>`;
+                if(isMatch) { speak("Correct!"); document.getElementById('p4Next').style.display = 'block'; }
+            });
+        }
+    }
+
+    // --- P5: GUIDE MODE ---
+    function setupP5() {
+        const box = document.getElementById('guideScript'); box.innerHTML = "";
+        state.dest.script.split(" ").forEach(w => {
+            const s = document.createElement('span'); s.className="word-interactive"; s.innerText = w + " ";
+            s.onclick = () => speak(w.replace(/[^a-zA-Z]/g, ""));
+            box.appendChild(s);
+        });
+        document.getElementById('guideFeedback').style.display = 'none';
+        state.guideResults = [];
+    }
+
+    function toggleGuideMic() {
+        const btn = document.getElementById('guideMic');
+        if(!state.isRec) {
+            btn.classList.add('active'); state.isRec = true;
+            const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+            recognizer = new SpeechSDK.SpeechRecognizer(sc, SpeechSDK.AudioConfig.fromDefaultMicrophoneInput());
+            const pc = new SpeechSDK.PronunciationAssessmentConfig(state.dest.script, SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, SpeechSDK.PronunciationAssessmentGranularity.Word, true);
+            pc.applyTo(recognizer);
+            recognizer.startContinuousRecognitionAsync();
+            recognizer.recognized = (s, e) => {
+                const j = JSON.parse(e.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult));
+                if(j.NBest) state.guideResults.push(...j.NBest[0].Words);
+            };
+            document.getElementById('guideStatus').innerText = "Recording... Click to Stop";
+        } else {
+            btn.classList.remove('active'); state.isRec = false;
+            recognizer.stopContinuousRecognitionAsync(() => { recognizer.close(); generateReport(); });
+        }
+    }
+
+    function generateReport() {
+        const box = document.getElementById('guideResultBox'); let html = ""; let score = 0;
+        state.guideResults.forEach(w => {
+            let c = "w-ok"; if(w.PronunciationAssessment.ErrorType==="Mispronunciation") c="w-err";
+            else if(w.PronunciationAssessment.ErrorType==="Omission") c="w-miss";
+            html += `<span class="${c}">${w.Word}</span> `;
+            score += w.PronunciationAssessment.AccuracyScore || 0;
+        });
+        document.getElementById('finalScore').innerText = Math.round(score/(state.guideResults.length||1));
+        box.innerHTML = html; document.getElementById('guideFeedback').style.display = 'block';
+    }
+
+    function showCheque() {
+        document.getElementById('salaryAmt').innerText = state.salary;
+        document.getElementById('payOverlay').classList.add('show');
+        speak("Here is your pay check! Great job.");
+    }
+
+    window.onload = initAzure;
+</script>
+</body>
+</html>

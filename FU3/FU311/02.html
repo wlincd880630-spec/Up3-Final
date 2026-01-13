@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Summary V28.2: Final Fix</title>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&family=Poppins:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --text-dark: #2d3436;
+            --success: #00b894;
+            --error: #d63031;
+            --warning: #fdcb6e;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif; margin: 0; padding: 20px;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%; animation: gradientBG 15s ease infinite;
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+        }
+        @keyframes gradientBG { 0% {background-position:0% 50%} 50% {background-position:100% 50%} 100% {background-position:0% 50%} }
+
+        .container {
+            width: 100%; max-width: 950px; background: var(--glass-bg);
+            backdrop-filter: blur(20px); border-radius: 30px; box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            overflow: hidden; display: flex; flex-direction: column; min-height: 950px;
+        }
+
+        .page { display: none; padding: 40px; flex: 1; animation: fadeInUp 0.6s ease; overflow-y: auto; }
+        .page.active { display: block; }
+        @keyframes fadeInUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+
+        h1, h2 { font-family: 'Poppins', sans-serif; color: #4a4e69; text-align: center; margin-top: 0; }
+
+        /* NAV */
+        .nav-bar { display: flex; justify-content: space-between; padding: 25px 40px; background: rgba(255,255,255,0.6); border-top: 1px solid #eee; }
+        .btn { 
+            background: var(--primary-grad); color: white; border: none; padding: 12px 30px; border-radius: 50px; 
+            font-weight: 700; cursor: pointer; transition: 0.3s; font-family: 'Poppins'; box-shadow: 0 4px 15px rgba(118, 75, 162, 0.4);
+        }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(118, 75, 162, 0.6); }
+        .btn:disabled { background: #cbd5e0; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* P1 SOCRATIC */
+        .chat-box { height: 600px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; padding: 20px; background: #f8fafc; border-radius: 20px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        .bubble { padding: 18px 25px; border-radius: 20px; max-width: 80%; line-height: 1.6; font-size: 1.1rem; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .t-msg { background: #fff; border-left: 5px solid #764ba2; align-self: flex-start; color: var(--text-dark); padding-right: 50px; }
+        .s-msg { background: var(--primary-grad); align-self: flex-end; color: white; border-bottom-right-radius: 2px; }
+        .chat-tts-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); width: 35px; height: 35px; border-radius: 50%; border: none; background: #f1f5f9; color: #764ba2; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .opt-box { text-align: right; }
+        .opt-btn { background: white; border: 2px solid #764ba2; color: #764ba2; padding: 10px 20px; border-radius: 25px; margin: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .opt-btn:hover { background: #764ba2; color: white; }
+
+        /* P2 CONCEPT */
+        .tab-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; }
+        .tab-btn { background: #e2e8f0; border: none; padding: 12px 30px; border-radius: 15px; cursor: pointer; font-weight: 800; font-family: 'Poppins'; color: #64748b; transition: 0.3s; }
+        .tab-btn.active { background: var(--primary-grad); color: white; box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3); }
+        .concept-card { display: none; animation: fadeInUp 0.4s; }
+        .concept-card.active { display: block; }
+        .def-block { background: #fff; padding: 30px; border-radius: 20px; border-left: 6px solid #fecfef; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .def-word { font-size: 2rem; font-weight: 800; background: -webkit-linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Poppins'; }
+        
+        .dialogue-card { background: #fff; border-radius: 20px; padding: 25px; margin-bottom: 20px; border: 1px solid #f1f5f9; }
+        .line { display: flex; gap: 15px; margin-bottom: 12px; align-items: flex-start; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
+        .line-text { background: #f8fafc; padding: 12px 18px; border-radius: 0 15px 15px 15px; flex: 1; color: #334155; cursor: pointer; position: relative; transition:0.2s; }
+        .line-text:hover { background: #e0f2fe; color: #0369a1; }
+        .scene-badge { display: inline-block; padding: 4px 12px; background: #e0e7ff; color: #4338ca; border-radius: 20px; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; }
+        .highlight { color: #d63031; font-weight: 800; border-bottom: 2px dashed #d63031; }
+
+        /* P3 PRACTICE */
+        .practice-wrapper { background: #fff; border-radius: 25px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        .task-title { font-size: 1.2rem; font-weight: 800; color: #475569; }
+        
+        /* Task 1: Image & AI */
+        .img-task { display: flex; flex-direction: column; align-items: center; }
+        .img-task img { width: 100%; max-width: 400px; border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        
+        .ai-feedback-container { width: 100%; text-align: left; margin-top: 15px; background: #f8fafc; border-radius: 15px; padding: 15px; border: 1px solid #e2e8f0; display: none; }
+        .fb-label { font-size: 0.8rem; font-weight: bold; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; }
+        .user-speech-text { font-size: 1.1rem; color: #334155; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #cbd5e1; font-style: italic; }
+        .ai-suggestion { font-size: 1.1rem; color: #764ba2; font-weight: 500; }
+
+        /* Task 2 */
+        .scramble-area { background: #f8fafc; padding: 20px; border-radius: 15px; border: 2px dashed #cbd5e1; min-height: 80px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+        .word-tile { background: white; padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        /* Task 3 (Echo) */
+        .echo-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 15px; text-align: center; }
+        .echo-text-container { min-height: 60px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; }
+        .echo-sentence { font-size: 1.2rem; font-weight: bold; color: #2d3436; display: none; animation: fadeInUp 0.4s; }
+        .reveal-btn { background: #fff; border: 1px solid #764ba2; color: #764ba2; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition:0.2s; }
+        .reveal-btn:hover { background: #764ba2; color: white; }
+        
+        /* Mic Buttons */
+        .mic-btn { width: 65px; height: 65px; border-radius: 50%; background: #6366f1; color: white; font-size: 1.5rem; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); display: inline-flex; align-items: center; justify-content: center; transition: 0.3s; }
+        .mic-btn.active { background: #ef4444; animation: pulse 1s infinite; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4); }
+        .echo-fb { margin-top: 10px; font-weight: bold; font-size: 1rem; color: #64748b; min-height: 20px; }
+
+        /* Assessment Coloring */
+        .w-good { color: var(--success); font-weight: bold; }
+        .w-bad { color: var(--error); text-decoration: underline; }
+        .w-miss { color: var(--warning); border-bottom: 2px dashed var(--warning); opacity: 0.7; }
+        .score-pill { display: inline-block; padding: 3px 8px; border-radius: 5px; font-size: 0.8rem; background: #e2e8f0; margin-right: 5px; }
+
+        /* P4 QUIZ */
+        .quiz-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .q-card { background: #fff; padding: 20px; border-radius: 15px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #cbd5e1; }
+        .q-num { font-weight: 800; color: #cbd5e1; font-size: 1.2rem; }
+        .q-text { font-size: 1.1rem; flex: 1; line-height: 1.6; }
+        .q-input { border: none; border-bottom: 2px solid #94a3b8; background: transparent; font-size: 1.1rem; width: 140px; text-align: center; color: #475569; font-weight: bold; font-family: 'Nunito'; padding: 0 5px; transition: 0.3s; }
+        .q-input:focus { outline: none; border-color: #764ba2; }
+        .q-input.correct { border-color: var(--success); color: var(--success); background: #f0fdf4; }
+        .q-input.wrong { border-color: var(--error); color: var(--error); background: #fef2f2; }
+
+        @keyframes pulse { 0%{transform:scale(1);} 50%{transform:scale(1.1);} 100%{transform:scale(1);} }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div id="p1" class="page active">
+        <h2><i class="fas fa-brain"></i> Concept Awakening</h2>
+        <div class="chat-box" id="socChat"></div>
+        <div id="socStatus" style="text-align: center; margin-top: 10px; color: #94a3b8; font-size: 0.9rem; font-weight:bold;">Deep Dive: Concept 1 of 3</div>
+    </div>
+
+    <div id="p2" class="page">
+        <h2><i class="fas fa-layer-group"></i> Context Master</h2>
+        <div class="tab-container">
+            <button class="tab-btn active" onclick="showConcept('apply')">APPLY</button>
+            <button class="tab-btn" onclick="showConcept('random')">RANDOM</button>
+            <button class="tab-btn" onclick="showConcept('accept')">ACCEPT</button>
+        </div>
+
+        <div id="card-apply" class="concept-card active">
+            <div class="def-block"><div class="def-word">APPLY (v.)</div><p>To make a formal request, usually in writing, for a job, university, or official permission.</p></div>
+            <div class="dialogue-card">
+                <div class="scene-badge">Job Hunting</div>
+                <div class="line"><div class="avatar" style="background:#6366f1">A</div><div class="line-text" onclick="speak('I finally decided to apply for that senior marketing position.')">I finally decided to <span class="highlight">apply</span> for that senior marketing position.</div></div>
+                <div class="line"><div class="avatar" style="background:#ec4899">B</div><div class="line-text" onclick="speak('That is great! Make sure you update your CV first.')">That is great! Make sure you update your CV first.</div></div>
+            </div>
+            <div class="dialogue-card">
+                <div class="scene-badge">Visa Application</div>
+                <div class="line"><div class="avatar" style="background:#10b981">A</div><div class="line-text" onclick="speak('Do you know when I should apply for the student visa?')">Do you know when I should <span class="highlight">apply</span> for the student visa?</div></div>
+                <div class="line"><div class="avatar" style="background:#f59e0b">B</div><div class="line-text" onclick="speak('You need to apply at least three months before your course.')">You need to <span class="highlight">apply</span> at least three months before your course.</div></div>
+            </div>
+        </div>
+
+        <div id="card-random" class="concept-card">
+            <div class="def-block"><div class="def-word">RANDOM (adj.)</div><p>Happening, done, or chosen by chance rather than according to a plan.</p></div>
+            <div class="dialogue-card">
+                <div class="scene-badge">Music Playlist</div>
+                <div class="line"><div class="avatar" style="background:#6366f1">A</div><div class="line-text" onclick="speak('Why is the music jumping from jazz to heavy metal?')">Why is the music jumping from jazz to heavy metal?</div></div>
+                <div class="line"><div class="avatar" style="background:#ec4899">B</div><div class="line-text" onclick="speak('I put my playlist on random shuffle to discover new songs.')">I put my playlist on <span class="highlight">random</span> shuffle to discover new songs.</div></div>
+            </div>
+            <div class="dialogue-card">
+                <div class="scene-badge">Prize Draw</div>
+                <div class="line"><div class="avatar" style="background:#10b981">A</div><div class="line-text" onclick="speak('How did you win the concert tickets? Was it a competition?')">How did you win the concert tickets? Was it a competition?</div></div>
+                <div class="line"><div class="avatar" style="background:#f59e0b">B</div><div class="line-text" onclick="speak('No, the winner was picked at random from a list.')">No, the winner was picked at <span class="highlight">random</span> from a list.</div></div>
+            </div>
+        </div>
+        <div id="card-accept" class="concept-card">
+            <div class="def-block"><div class="def-word">ACCEPT (v.)</div><p>To agree to take something; to say yes to an offer or invitation.</p></div>
+            <div class="dialogue-card">
+                <div class="scene-badge">Apology</div>
+                <div class="line"><div class="avatar" style="background:#6366f1">A</div><div class="line-text" onclick="speak('I am so sorry for being late. The traffic was terrible.')">I am so sorry for being late. The traffic was terrible.</div></div>
+                <div class="line"><div class="avatar" style="background:#ec4899">B</div><div class="line-text" onclick="speak('I accept your apology, but please try to be on time.')">I <span class="highlight">accept</span> your apology, but please try to be on time.</div></div>
+            </div>
+            <div class="dialogue-card">
+                <div class="scene-badge">Job Offer</div>
+                <div class="line"><div class="avatar" style="background:#10b981">A</div><div class="line-text" onclick="speak('Did you accept the job offer, or are you thinking about it?')">Did you <span class="highlight">accept</span> the job offer, or are you thinking about it?</div></div>
+                <div class="line"><div class="avatar" style="background:#f59e0b">B</div><div class="line-text" onclick="speak('I accepted it this morning! I start next Monday.')">I <span class="highlight">accepted</span> it this morning! I start next Monday.</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="p3" class="page">
+        <h2><i class="fas fa-dumbbell"></i> Advanced Skill Gym</h2>
+        <div class="tab-container">
+            <button class="tab-btn active" onclick="showPractice('apply')">Train: APPLY</button>
+            <button class="tab-btn" onclick="showPractice('random')">Train: RANDOM</button>
+            <button class="tab-btn" onclick="showPractice('accept')">Train: ACCEPT</button>
+        </div>
+
+        <div id="prac-apply" class="concept-card active">
+            <div class="practice-wrapper">
+                <div class="task-header"><div class="task-title">1. Visual Context (AI Coach)</div></div>
+                <div class="img-task">
+                    <img src="img_apply.jpg" alt="Apply Image">
+                    <p style="margin-top:10px; color:#666;">Describe using "APPLY". Click to Start/Stop.</p>
+                    <button class="mic-btn" id="mic-img-apply" onclick="toggleVisualRec('apply')"><i class="fas fa-microphone"></i></button>
+                    <div class="echo-fb" id="stat-img-apply">Ready</div>
+                    <div class="ai-feedback-container" id="fb-img-apply">
+                        <div class="fb-label">You Said:</div><div class="user-speech-text" id="user-txt-apply">...</div>
+                        <div class="fb-label">AI Coach:</div><div class="ai-suggestion" id="ai-txt-apply">Thinking...</div>
+                    </div>
+                </div>
+                
+                <div class="task-header" style="margin-top:30px;"><div class="task-title">2. Sentence Builder (11 Words)</div></div>
+                <div class="scramble-area drop-zone" id="drop-apply"></div><div class="scramble-area" id="src-apply" style="border:none; padding:0;"></div>
+                <button class="btn" style="margin-top:10px; font-size:0.9rem;" onclick="checkOrder('apply', 'She decided to apply for the scholarship to study in London.')">Check Order</button><div id="fb-order-apply" class="echo-fb"></div>
+
+                <div class="task-header" style="margin-top:30px;"><div class="task-title">3. Blind Echo (Assessment)</div></div>
+                <div class="echo-box">
+                    <button class="btn" style="background:#475569; margin-bottom:15px;" onclick="speak('I applied for a new passport last week.')"><i class="fas fa-volume-up"></i> Listen First</button>
+                    <div class="echo-text-container">
+                        <button id="rev-apply" class="reveal-btn" onclick="revealEcho('apply')"><i class="fas fa-eye"></i> Reveal Text</button>
+                        <p id="txt-apply" class="echo-sentence">"I <strong>applied</strong> for a new passport last week."</p>
+                    </div>
+                    <button class="mic-btn" id="mic-echo-apply" onclick="handleEcho('apply', 'I applied for a new passport last week.')"><i class="fas fa-microphone"></i></button><div class="echo-fb" id="stat-echo-apply">Click to Record</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="prac-random" class="concept-card">
+            <div class="practice-wrapper">
+                <div class="task-header"><div class="task-title">1. Visual Context (AI Coach)</div></div>
+                <div class="img-task">
+                    <img src="img_random.jpg">
+                    <p style="margin-top:10px; color:#666;">Describe using "RANDOM". Click to Start/Stop.</p>
+                    <button class="mic-btn" id="mic-img-random" onclick="toggleVisualRec('random')"><i class="fas fa-microphone"></i></button>
+                    <div class="echo-fb" id="stat-img-random">Ready</div>
+                    <div class="ai-feedback-container" id="fb-img-random">
+                        <div class="fb-label">You Said:</div><div class="user-speech-text" id="user-txt-random">...</div>
+                        <div class="fb-label">AI Coach:</div><div class="ai-suggestion" id="ai-txt-random">Thinking...</div>
+                    </div>
+                </div>
+                
+                <div class="task-header" style="margin-top:30px;"><div class="task-title">2. Sentence Builder (11 Words)</div></div>
+                <div class="scramble-area drop-zone" id="drop-random"></div><div class="scramble-area" id="src-random" style="border:none; padding:0;"></div>
+                <button class="btn" style="margin-top:10px; font-size:0.9rem;" onclick="checkOrder('random', 'The computer generates a random password for every new user account.')">Check Order</button><div id="fb-order-random" class="echo-fb"></div>
+
+                <div class="task-header" style="margin-top:30px;"><div class="task-title">3. Blind Echo (Assessment)</div></div>
+                <div class="echo-box">
+                    <button class="btn" style="background:#475569; margin-bottom:15px;" onclick="speak('We chose a random restaurant for dinner tonight.')"><i class="fas fa-volume-up"></i> Listen First</button>
+                    <div class="echo-text-container">
+                        <button id="rev-random" class="reveal-btn" onclick="revealEcho('random')"><i class="fas fa-eye"></i> Reveal Text</button>
+                        <p id="txt-random" class="echo-sentence">"We chose a <strong>random</strong> restaurant for dinner tonight."</p>
+                    </div>
+                    <button class="mic-btn" id="mic-echo-random" onclick="handleEcho('random', 'We chose a random restaurant for dinner tonight.')"><i class="fas fa-microphone"></i></button><div class="echo-fb" id="stat-echo-random">Click to Record</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="prac-accept" class="concept-card">
+            <div class="practice-wrapper">
+                <div class="task-header"><div class="task-title">1. Visual Context (AI Coach)</div></div>
+                <div class="img-task">
+                    <img src="img_accept.jpg">
+                    <p style="margin-top:10px; color:#666;">Describe using "ACCEPT". Click to Start/Stop.</p>
+                    <button class="mic-btn" id="mic-img-accept" onclick="toggleVisualRec('accept')"><i class="fas fa-microphone"></i></button>
+                    <div class="echo-fb" id="stat-img-accept">Ready</div>
+                    <div class="ai-feedback-container" id="fb-img-accept">
+                        <div class="fb-label">You Said:</div><div class="user-speech-text" id="user-txt-accept">...</div>
+                        <div class="fb-label">AI Coach:</div><div class="ai-suggestion" id="ai-txt-accept">Thinking...</div>
+                    </div>
+                </div>
+                
+                <div class="task-header" style="margin-top:30px;"><div class="task-title">2. Sentence Builder (11 Words)</div></div>
+                <div class="scramble-area drop-zone" id="drop-accept"></div><div class="scramble-area" id="src-accept" style="border:none; padding:0;"></div>
+                <button class="btn" style="margin-top:10px; font-size:0.9rem;" onclick="checkOrder('accept', 'He happily accepted the invitation to the wedding ceremony next month.')">Check Order</button><div id="fb-order-accept" class="echo-fb"></div>
+
+                <div class="task-header" style="margin-top:30px;"><div class="task-title">3. Blind Echo (Assessment)</div></div>
+                <div class="echo-box">
+                    <button class="btn" style="background:#475569; margin-bottom:15px;" onclick="speak('Please accept this small gift as a thank you.')"><i class="fas fa-volume-up"></i> Listen First</button>
+                    <div class="echo-text-container">
+                        <button id="rev-accept" class="reveal-btn" onclick="revealEcho('accept')"><i class="fas fa-eye"></i> Reveal Text</button>
+                        <p id="txt-accept" class="echo-sentence">"Please <strong>accept</strong> this small gift as a thank you."</p>
+                    </div>
+                    <button class="mic-btn" id="mic-echo-accept" onclick="handleEcho('accept', 'Please accept this small gift as a thank you.')"><i class="fas fa-microphone"></i></button><div class="echo-fb" id="stat-echo-accept">Click to Record</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="p4" class="page">
+        <h2><i class="fas fa-trophy"></i> Ultimate Challenge</h2>
+        <p style="text-align:center; color:#666; margin-bottom:30px;">Complete the sentences (10-12 words). Watch your grammar!</p>
+        <div class="quiz-grid">
+            <div class="q-card"><div class="q-num">01</div><div class="q-text">She <input class="q-input" data-ans="applied"> for a manager position at the new tech company.</div></div>
+            <div class="q-card"><div class="q-num">02</div><div class="q-text">The teacher picks students <input class="q-input" data-ans="randomly"> to answer questions in class.</div></div>
+            <div class="q-card"><div class="q-num">03</div><div class="q-text">It is difficult to <input class="q-input" data-ans="accept"> criticism when you have worked very hard.</div></div>
+            <div class="q-card"><div class="q-num">04</div><div class="q-text">It was just a <input class="q-input" data-ans="random"> meeting on the street, not planned.</div></div>
+            <div class="q-card"><div class="q-num">05</div><div class="q-text">They <input class="q-input" data-ans="accepted"> our offer to buy the house yesterday afternoon.</div></div>
+            <div class="q-card"><div class="q-num">06</div><div class="q-text">Are you thinking about <input class="q-input" data-ans="applying"> for the summer internship program?</div></div>
+            <div class="q-card"><div class="q-num">07</div><div class="q-text">Please <input class="q-input" data-ans="accept"> my apologies for the delay in replying to you.</div></div>
+            <div class="q-card"><div class="q-num">08</div><div class="q-text">You must submit your <input class="q-input" data-ans="application"> form before the deadline on Friday.</div></div>
+            <div class="q-card"><div class="q-num">09</div><div class="q-text">I love exploring the city and walking down <input class="q-input" data-ans="random"> streets.</div></div>
+            <div class="q-card"><div class="q-num">10</div><div class="q-text">The songs on the radio seem to be played <input class="q-input" data-ans="randomly"> today.</div></div>
+        </div>
+        <div style="text-align:center; margin-top:40px;">
+            <button class="btn" style="font-size:1.3rem; padding:15px 40px;" onclick="checkFinalQuiz()">Submit & Finish</button>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <button class="btn" id="prevBtn" onclick="changePage(-1)" disabled>Previous</button>
+        <div style="font-weight:bold; color:#64748b; font-family:'Poppins';">Part <span id="pageInd">1</span> of 4</div>
+        <button class="btn" id="nextBtn" onclick="changePage(1)">Next Step</button>
+    </div>
+
+</div>
+
+<script>
+    // --- CONFIG ---
+    const AZURE_KEY = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9"; 
+    const AZURE_REGION = "eastus2";
+    const DEEPSEEK_KEY = "sk-daa16008e81843deba6fefe9dce51465";
+    
+    let synthesizer, recognizer, currPage = 1;
+    let visualTextBuffer = "";
+    let isRec = false;
+
+    const imgPrompts = {
+        'apply': "A student sitting at a desk filling out a paper application form.",
+        'random': "A colorful spinning fortune wheel.",
+        'accept': "A person happily receiving a wrapped gift box."
+    };
+
+    window.onload = () => { initAzure(); startSocraticFlow(); initScramble(); };
+
+    function initAzure() {
+        if(typeof SpeechSDK !== 'undefined') {
+            const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+            sc.speechSynthesisVoiceName = "en-US-JennyNeural"; 
+            synthesizer = new SpeechSDK.SpeechSynthesizer(sc);
+        }
+    }
+
+    // --- SMART TTS (Filters Underscores & Azure Force) ---
+    function speak(text) {
+        const cleanText = text.replace(/_+/g, "blank");
+        if(synthesizer) {
+            synthesizer.speakTextAsync(cleanText, 
+                res => { if(res.reason !== SpeechSDK.ResultReason.SynthesizingAudioCompleted) speakNative(cleanText); },
+                err => speakNative(cleanText)
+            );
+        } else speakNative(cleanText);
+    }
+    function speakNative(text) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        window.speechSynthesis.speak(u);
+    }
+
+    function changePage(dir) {
+        document.getElementById(`p${currPage}`).classList.remove('active');
+        currPage += dir;
+        document.getElementById(`p${currPage}`).classList.add('active');
+        document.getElementById('prevBtn').disabled = (currPage === 1);
+        document.getElementById('nextBtn').disabled = (currPage === 4);
+        document.getElementById('pageInd').innerText = currPage;
+    }
+
+    // --- P1 SOCRATIC ---
+    const socraticDeep = [
+        [ {q: "Imagine you want to join a university. Can you just walk in?", opts:["Yes", "No"], a:"No"}, {q: "Correct. You must send a form. Is this 'playing' or 'applying'?", opts:["Playing", "Applying"], a:"Applying"}, {q: "Right. Making a formal request means to _______.", opts:["Reject", "Apply"], a:"Apply"} ],
+        [ {q: "Look at a dice. If I roll it, do I know the number?", opts:["Yes", "No"], a:"No"}, {q: "Exactly. Did I 'plan' it, or was it 'chance'?", opts:["Plan", "Chance"], a:"Chance"}, {q: "When things happen by chance, we call them _______.", opts:["Specific", "Random"], a:"Random"} ],
+        [ {q: "Imagine I offer you a gift. If you want it, do you say YES?", opts:["Yes", "No"], a:"Yes"}, {q: "You say YES. Are you 'refusing' the gift?", opts:["Yes", "No"], a:"No"}, {q: "You are taking it. The word for 'agreeing to take' is _______.", opts:["Accept", "Decline"], a:"Accept"} ]
+    ];
+    let wIdx = 0, qIdx = 0;
+
+    function startSocraticFlow() { wIdx=0; qIdx=0; document.getElementById('socChat').innerHTML=""; askDeepQ(); }
+    function askDeepQ() {
+        if(wIdx>=socraticDeep.length) { addMsg("Concepts Unlocked! Click 'Next Step'.", "t-msg"); return; }
+        document.getElementById('socStatus').innerText = `Concept ${wIdx+1}/3 - Q${qIdx+1}`;
+        const data = socraticDeep[wIdx][qIdx];
+        addMsg(data.q, "t-msg");
+        const d = document.createElement('div'); d.className = "opt-box";
+        data.opts.forEach(o => {
+            const b = document.createElement('button'); b.className="opt-btn"; b.innerText=o;
+            b.onclick=()=>{ d.remove(); addMsg(o,"s-msg"); if(o===data.a){ qIdx++; if(qIdx>=3){wIdx++;qIdx=0;} setTimeout(askDeepQ,800); } else { speak("Try again."); setTimeout(askDeepQ,1000); } };
+            d.appendChild(b);
+        });
+        document.getElementById('socChat').appendChild(d);
+        document.getElementById('socChat').scrollTop = 9999;
+    }
+    function addMsg(txt, cls) {
+        const d=document.createElement('div'); d.className=`bubble ${cls}`; d.innerHTML=txt;
+        if(cls==='t-msg') {
+            const b=document.createElement('button'); b.className='chat-tts-btn'; b.innerHTML='<i class="fas fa-volume-up"></i>';
+            b.onclick=()=>speak(txt); d.appendChild(b); speak(txt);
+        }
+        document.getElementById('socChat').appendChild(d);
+    }
+
+    // --- P2 & P3 TABS ---
+    function showConcept(w) { toggleTabs('p2', w, 'card'); }
+    function showPractice(w) { toggleTabs('p3', w, 'prac'); }
+    function toggleTabs(pid, w, pre) {
+        document.querySelectorAll(`#${pid} .concept-card`).forEach(e=>e.classList.remove('active'));
+        document.getElementById(`${pre}-${w}`).classList.add('active');
+        document.querySelectorAll(`#${pid} .tab-btn`).forEach(b=>{
+            b.classList.toggle('active', b.innerText.toLowerCase().includes(w));
+        });
+    }
+
+    // --- TASK 1: VISUAL REC (MANUAL CONTROL FIX) ---
+    function toggleVisualRec(word) {
+        const btn = document.getElementById(`mic-img-${word}`);
+        const stat = document.getElementById(`stat-img-${word}`);
+        
+        if (btn.classList.contains('active')) {
+            stopVisualRec(btn, stat, word);
+        } else {
+            // New Rec Logic (Independent instance)
+            if(recognizer) { recognizer.close(); recognizer = undefined; }
+            visualTextBuffer = "";
+            startVisualRec(btn, stat);
+        }
+    }
+
+    function startVisualRec(btn, stat) {
+        if (!synthesizer) initAzure();
+        btn.classList.add('active');
+        stat.innerText = "Recording... Click to Finish";
+        const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+        const ac = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+        recognizer = new SpeechSDK.SpeechRecognizer(sc, ac);
+        
+        recognizer.startContinuousRecognitionAsync();
+        recognizer.recognized = (s, e) => {
+            if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                visualTextBuffer += e.result.text + " ";
+                stat.innerText = "Heard: " + visualTextBuffer.substring(0, 20) + "...";
+            }
+        };
+    }
+
+    function stopVisualRec(btn, stat, word) {
+        btn.classList.remove('active');
+        stat.innerText = "Analyzing...";
+        if (recognizer) {
+            recognizer.stopContinuousRecognitionAsync(() => {
+                recognizer.close(); recognizer = undefined;
+                if(visualTextBuffer.length > 0) callDeepSeekVisual(visualTextBuffer, word);
+                else stat.innerText = "No speech detected.";
+            });
+        }
+    }
+
+    async function callDeepSeekVisual(text, word) {
+        document.getElementById(`user-txt-${word}`).innerText = `"${text}"`;
+        document.getElementById(`ai-txt-${word}`).innerText = "Generating Feedback...";
+        document.getElementById(`fb-img-${word}`).style.display = 'block';
+
+        const prompt = `You are an English teacher. The student looks at an image described as: "${imgPrompts[word]}". 
+        The student must make a sentence using the word "${word}". 
+        Student said: "${text}". 
+        Task: 
+        1. Does it match the image? 
+        2. Correct the grammar. 
+        3. Suggest a natural B1+ sentence.
+        Output: Plain text, concise.`;
+
+        try {
+            const res = await fetch("https://api.deepseek.com/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${DEEPSEEK_KEY}` },
+                body: JSON.stringify({ model: "deepseek-chat", messages: [{role:"user", content: prompt}] })
+            });
+            const data = await res.json();
+            document.getElementById(`ai-txt-${word}`).innerText = data.choices[0].message.content;
+        } catch (e) {
+            document.getElementById(`ai-txt-${word}`).innerText = "Good sentence! (AI Connection Error)";
+        }
+    }
+
+    // --- TASK 2: SCRAMBLE ---
+    function initScramble() {
+        setupScramble("apply", ["for", "scholarship", "apply", "decided", "London.", "study", "the", "in", "to", "She"]);
+        setupScramble("random", ["computer", "The", "password", "user", "generates", "account.", "new", "every", "for", "random", "a"]);
+        setupScramble("accept", ["wedding", "the", "happily", "to", "He", "month.", "next", "invitation", "accepted", "the", "ceremony"]);
+    }
+    function setupScramble(id, words) {
+        const src=document.getElementById(`src-${id}`), drop=document.getElementById(`drop-${id}`);
+        words.sort(()=>Math.random()-0.5);
+        words.forEach(w=>{
+            const t=document.createElement('div'); t.className="word-tile"; t.innerText=w;
+            t.onclick=function(){ (this.parentNode===src?drop:src).appendChild(this); }; src.appendChild(t);
+        });
+    }
+    function checkOrder(id, ans) {
+        const user=Array.from(document.getElementById(`drop-${id}`).children).map(c=>c.innerText).join(" ");
+        const fb=document.getElementById(`fb-order-${id}`);
+        if(user===ans) { fb.innerHTML="<span style='color:var(--success)'>Correct!</span>"; speak("Correct!"); }
+        else { fb.innerHTML="<span style='color:var(--error)'>Try again.</span>"; }
+    }
+
+    // --- TASK 3: BLIND ECHO (AZURE ASSESSMENT FIX) ---
+    function revealEcho(id) {
+        document.getElementById(`rev-${id}`).style.display = 'none';
+        document.getElementById(`txt-${id}`).style.display = 'block';
+    }
+
+    function handleEcho(word, refText) {
+        const btn = document.getElementById(`mic-echo-${word}`);
+        const stat = document.getElementById(`stat-echo-${word}`);
+        
+        if(!btn.classList.contains('rec')) {
+            // Start Rec with Assessment
+            if(!synthesizer) initAzure();
+            if(recognizer) { recognizer.close(); recognizer=undefined; } // Safety clean
+
+            btn.classList.add('rec');
+            stat.innerText = "Listening...";
+            
+            const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+            sc.speechRecognitionLanguage = "en-US";
+            const ac = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+            recognizer = new SpeechSDK.SpeechRecognizer(sc, ac);
+
+            // Pronunciation Config
+            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
+                refText, 
+                SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, 
+                SpeechSDK.PronunciationAssessmentGranularity.Word, 
+                true
+            );
+            pronConfig.applyTo(recognizer);
+
+            recognizer.recognizeOnceAsync(res => {
+                btn.classList.remove('rec');
+                if(res.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                    const json = JSON.parse(res.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult));
+                    if(json.NBest && json.NBest[0].PronunciationAssessment) {
+                        const score = json.NBest[0].PronunciationAssessment.AccuracyScore;
+                        // Color words logic
+                        let html = "";
+                        json.NBest[0].Words.forEach(w => {
+                            let cls = "w-good";
+                            if(w.PronunciationAssessment.ErrorType === "Mispronunciation") cls = "w-bad";
+                            html += `<span class="${cls}">${w.Word}</span> `;
+                        });
+                        stat.innerHTML = `<div>Score: ${score}</div><div>${html}</div>`;
+                    } else {
+                        stat.innerText = "Analysis Failed.";
+                    }
+                } else stat.innerText = "Silence/Error";
+                recognizer.close(); recognizer=undefined;
+            });
+        }
+    }
+
+    // --- P4 QUIZ ---
+    function checkFinalQuiz() {
+        const inputs=document.querySelectorAll('.q-input');
+        let score=0;
+        inputs.forEach(i=>{
+            if(i.value.trim().toLowerCase()===i.dataset.ans) { i.className="q-input correct"; score++; }
+            else i.className="q-input wrong";
+        });
+        if(score===inputs.length) { confetti(); speak("Perfect score!"); }
+        else speak(`You got ${score} out of 10.`);
+    }
+
+</script>
+</body>
+</html>

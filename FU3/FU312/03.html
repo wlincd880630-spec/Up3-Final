@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Phase 3: Tactical Navigation</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    
+    <script src="chengdu_data.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap');
+
+        :root {
+            --bg-dark: #050505;
+            --neon-green: #00ff41;
+            --neon-blue: #00f3ff;
+            --neon-red: #ff003c;
+            --panel-bg: #0a0f14;
+            --border: #1a2530;
+        }
+
+        body { margin: 0; padding: 0; height: 100vh; display: flex; background: var(--bg-dark); font-family: 'Courier Prime', monospace; color: #fff; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 33%; height: 100%; background: var(--panel-bg);
+            border-right: 2px solid var(--neon-blue); display: flex; flex-direction: column;
+            padding: 20px; box-sizing: border-box; z-index: 1000;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        /* Map */
+        .map-container { width: 67%; height: 100%; position: relative; }
+        #map { width: 100%; height: 100%; z-index: 0; }
+        .leaflet-layer { filter: saturate(1.1) contrast(1.1) brightness(0.95); }
+        .leaflet-routing-container { display: none !important; }
+
+        /* UI */
+        .header {
+            font-size: 18px; color: var(--neon-blue); border-bottom: 2px solid var(--border);
+            padding-bottom: 15px; margin-bottom: 20px; letter-spacing: 2px; font-weight: bold;
+        }
+
+        .route-slots { display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px; }
+        .slot {
+            background: rgba(255,255,255,0.05); border: 1px dashed #444; padding: 15px;
+            border-radius: 4px; transition: all 0.3s; position: relative; padding-left: 25px;
+        }
+        .slot::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
+        .slot-start::before { background: var(--neon-green); }
+        .slot-end::before { background: var(--neon-red); }
+        .slot.active { border: 1px solid var(--neon-blue); background: rgba(0, 243, 255, 0.1); }
+        .slot.filled { border-style: solid; border-color: #555; }
+        .slot-label { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        .slot-val { font-size: 16px; font-weight: bold; color: #fff; }
+
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn {
+            flex: 1; padding: 15px; background: transparent; border: 1px solid var(--neon-blue);
+            color: var(--neon-blue); font-family: inherit; font-weight: bold; cursor: pointer;
+            text-transform: uppercase; transition: 0.2s; font-size: 14px;
+        }
+        .btn:hover { background: var(--neon-blue); color: #000; }
+        .btn:disabled { border-color: #444; color: #444; cursor: not-allowed; }
+        .btn-reset { border-color: #666; color: #aaa; flex: 0.4; }
+        .btn-reset:hover { background: #333; color: #fff; }
+
+        .result-panel {
+            flex: 1; border-top: 2px solid var(--border); padding-top: 20px;
+            display: none; flex-direction: column; overflow: hidden;
+        }
+        .stats-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .stat-card {
+            flex: 1; background: rgba(0, 255, 65, 0.05); border: 1px solid var(--neon-green);
+            padding: 15px; text-align: center;
+        }
+        .stat-val { font-size: 24px; color: var(--neon-green); font-weight: bold; }
+        .stat-lbl { font-size: 10px; color: #888; margin-top: 5px; }
+
+        .ai-box {
+            flex: 1; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid #333;
+            padding: 15px; border-left: 3px solid var(--neon-blue);
+        }
+        .ai-title { font-size: 11px; color: var(--neon-blue); margin-bottom: 10px; font-weight: bold; }
+        .ai-content { font-size: 13px; line-height: 1.6; color: #ddd; white-space: pre-wrap; }
+
+        .btn-audio { margin-top: 15px; border-color: #ffd700; color: #ffd700; width: 100%; }
+        .btn-audio:hover { background: #ffd700; color: #000; }
+        .btn-audio.playing { animation: pulse 1s infinite; background: #ffd700; color: #000; }
+
+        .custom-pin-icon { filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); transition: transform 0.2s; }
+        .custom-pin-icon:hover { transform: scale(1.2); }
+        
+        .loading-overlay {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7); z-index: 2000; display: none;
+            justify-content: center; align-items: center; flex-direction: column;
+        }
+        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top: 4px solid var(--neon-blue); border-radius: 50%; animation: spin 1s linear infinite; }
+        .loading-text { margin-top: 15px; color: var(--neon-blue); font-size: 14px; letter-spacing: 1px; }
+
+        @keyframes pulse { 0% { box-shadow: 0 0 5px #ffd700; } 50% { box-shadow: 0 0 20px #ffd700; } 100% { box-shadow: 0 0 5px #ffd700; } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="header">TACTICAL ROUTE PLANNER</div>
+
+        <div class="route-slots">
+            <div class="slot slot-start active" id="slot0">
+                <span class="slot-label">START POINT</span>
+                <span class="slot-val" id="val0">SELECT ON MAP...</span>
+            </div>
+            <div style="text-align:center; color:#444; font-size:20px;">↓</div>
+            <div class="slot slot-end" id="slot1">
+                <span class="slot-label">DESTINATION</span>
+                <span class="slot-val" id="val1">WAITING...</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn" id="planBtn" onclick="executeMission()" disabled>ESTABLISH ROUTE</button>
+            <button class="btn btn-reset" onclick="resetMission()">RESET</button>
+        </div>
+
+        <div class="result-panel" id="resultPanel">
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-val" id="resDist">--</div>
+                    <div class="stat-lbl">DISTANCE</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val" id="resTime">--</div>
+                    <div class="stat-lbl">WALK TIME</div>
+                </div>
+            </div>
+            
+            <div class="ai-box">
+                <div class="ai-title">TACTICAL BRIEFING (AI):</div>
+                <div class="ai-content" id="aiResponse">Analyzing...</div>
+            </div>
+
+            <button class="btn btn-audio" id="audioBtn" onclick="readAdvice()">▶ PLAY AUDIO GUIDE</button>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div id="map"></div>
+        <div class="loading-overlay" id="loading">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingMsg">CALCULATING PATH...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const DEEPSEEK_KEY = "sk-daa16008e81843deba6fefe9dce51465"; 
+        const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
+        
+        const AZURE_KEY = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+        const AZURE_REGION = "eastus2";
+        const AZURE_VOICE = "en-GB-RyanNeural";
+
+        // --- ICONS ---
+        const redPinIcon = L.icon({
+            iconUrl: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+            iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -32],
+            className: 'custom-pin-icon'
+        });
+
+        const bluePinIcon = L.icon({
+            iconUrl: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+            iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -32],
+            className: 'custom-pin-icon'
+        });
+
+        // --- STATE ---
+        let map, routingControl, synthesizer;
+        let markers = [];
+        let selectedPoints = [null, null];
+        let currentStage = 0;
+        let targets = (typeof chengduSpots !== 'undefined') ? chengduSpots : [];
+
+        window.onload = function() {
+            initMap();
+            initAzure();
+        };
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([30.6600, 104.0600], 12);
+            // Hybrid Satellite (with labels)
+            L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', {
+                attribution: 'Google Maps', maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3']
+            }).addTo(map);
+
+            targets.forEach((target, index) => {
+                const marker = L.marker([target.lat, target.lng], {icon: redPinIcon}).addTo(map);
+                marker.on('click', () => handlePinClick(index, marker));
+                markers.push(marker);
+            });
+        }
+
+        function initAzure() {
+            if (typeof SpeechSDK !== 'undefined' && AZURE_KEY) {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+                speechConfig.speechSynthesisVoiceName = AZURE_VOICE;
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+            }
+        }
+
+        function handlePinClick(index, marker) {
+            if (currentStage > 1) return;
+
+            const data = targets[index];
+            if (selectedPoints.some(p => p && p.id === data.id)) { alert("Selected!"); return; }
+
+            selectedPoints[currentStage] = data;
+            document.getElementById(`val${currentStage}`).innerText = data.nameEn;
+            document.getElementById(`slot${currentStage}`).classList.remove('active');
+            document.getElementById(`slot${currentStage}`).classList.add('filled');
+            marker.setIcon(bluePinIcon);
+
+            currentStage++;
+            if (currentStage <= 1) {
+                document.getElementById(`slot${currentStage}`).classList.add('active');
+            } else {
+                document.getElementById('planBtn').disabled = false;
+                document.getElementById('planBtn').innerText = "CALCULATE ROUTE";
+            }
+        }
+
+        function executeMission() {
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('loadingMsg').innerText = "CALCULATING FOOT PATH...";
+
+            if (routingControl) map.removeControl(routingControl);
+
+            const points = selectedPoints.map(p => L.latLng(p.lat, p.lng));
+
+            routingControl = L.Routing.control({
+                waypoints: points,
+                router: L.Routing.osrmv1({
+                    serviceUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
+                    profile: 'driving'
+                }),
+                lineOptions: {
+                    styles: [{ color: '#00f3ff', opacity: 0.9, weight: 6, className: 'cyber-line' }]
+                },
+                createMarker: function() { return null; },
+                addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: true, show: false
+            }).addTo(map);
+
+            routingControl.on('routesfound', function(e) {
+                const summary = e.routes[0].summary;
+                const distKm = (summary.totalDistance / 1000).toFixed(1);
+                
+                // --- Speed Fix: 5.5 km/h ---
+                const walkingSpeed = 5.5; 
+                const rawTimeHours = distKm / walkingSpeed;
+                const totalMinutes = Math.round(rawTimeHours * 60);
+
+                let timeStr = "";
+                if (totalMinutes > 60) {
+                    const h = Math.floor(totalMinutes / 60);
+                    const m = totalMinutes % 60;
+                    timeStr = `${h}h ${m}m`;
+                } else {
+                    timeStr = `${totalMinutes} min`;
+                }
+
+                document.getElementById('resDist').innerText = distKm + " km";
+                document.getElementById('resTime').innerText = timeStr;
+                document.getElementById('resultPanel').style.display = 'flex';
+
+                document.getElementById('loadingMsg').innerText = "GENERATING TACTICAL GUIDE...";
+                callDeepSeek(timeStr);
+            });
+
+            routingControl.on('routingerror', function(e) {
+                alert("Routing Busy. Try again.");
+                document.getElementById('loading').style.display = 'none';
+            });
+        }
+
+        // --- Helper: Direction Calc ---
+        function getCardinalDirection(lat1, lng1, lat2, lng2) {
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const y = Math.sin(dLng) * Math.cos(lat2 * Math.PI / 180);
+            const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+                      Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLng);
+            let brng = Math.atan2(y, x);
+            brng = brng * 180 / Math.PI;
+            brng = (brng + 360) % 360;
+            const dirs = ["North", "North-East", "East", "South-East", "South", "South-West", "West", "North-West"];
+            return dirs[Math.round(brng / 45) % 8];
+        }
+
+        // --- AI (Random Tone + Simple Directions) ---
+        async function callDeepSeek(time) {
+            const p1 = selectedPoints[0];
+            const p2 = selectedPoints[1];
+            
+            // 1. Calculate general direction
+            const direction = getCardinalDirection(p1.lat, p1.lng, p2.lat, p2.lng);
+
+            // 2. Random Tone to prevent repetition
+            const styles = [
+                "a tactical agent briefing a mission",
+                "a friendly local guide giving advice",
+                "a concise GPS navigation system",
+                "an energetic fitness coach"
+            ];
+            const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+
+            // 3. New Prompt: Strict on content, loose on style
+            const prompt = `
+                Start: ${p1.nameEn}
+                End: ${p2.nameEn}
+                Direction: ${direction}
+                Time: ${time}
+                
+                Task: Write a short navigation instruction (1-2 sentences).
+                Style: Act as ${randomStyle}.
+                Goal: Tell the user to leave ${p1.nameEn} and head ${direction} for about ${time} to reach ${p2.nameEn}.
+                Constraint: Do NOT use road names. Vary your vocabulary each time.
+            `;
+
+            try {
+                const response = await fetch(DEEPSEEK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEEPSEEK_KEY}` },
+                    body: JSON.stringify({
+                        model: "deepseek-chat",
+                        messages: [ { role: "system", content: "You are a creative guide." }, { role: "user", content: prompt } ],
+                        temperature: 0.8 // Higher temp for variety
+                    })
+                });
+
+                const data = await response.json();
+                document.getElementById('aiResponse').innerText = data.choices[0].message.content;
+                document.getElementById('loading').style.display = 'none';
+
+            } catch (error) {
+                // Fallback text if AI fails
+                document.getElementById('aiResponse').innerText = `Depart from ${p1.nameEn}. Head ${direction} for ${time} to arrive at ${p2.nameEn}.`;
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function readAdvice() {
+            const text = document.getElementById('aiResponse').innerText;
+            const btn = document.getElementById('audioBtn');
+            if (synthesizer) {
+                btn.classList.add('playing'); btn.innerText = "PLAYING...";
+                synthesizer.speakTextAsync(text, 
+                    result => { btn.classList.remove('playing'); btn.innerText = "▶ REPLAY AUDIO"; synthesizer.close(); initAzure(); },
+                    err => { console.error(err); btn.classList.remove('playing'); }
+                );
+            } else { alert("Azure not ready."); }
+        }
+
+        function resetMission() {
+            currentStage = 0; selectedPoints = [null, null];
+            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+            document.getElementById('val0').innerText = "SELECT ON MAP...";
+            document.getElementById('val1').innerText = "WAITING...";
+            document.getElementById('slot0').classList.remove('filled'); document.getElementById('slot0').classList.add('active');
+            document.getElementById('slot1').classList.remove('active', 'filled');
+            document.getElementById('planBtn').disabled = true; document.getElementById('planBtn').innerText = "ESTABLISH ROUTE";
+            document.getElementById('resultPanel').style.display = 'none';
+            markers.forEach(m => m.setIcon(redPinIcon));
+            map.flyTo([30.6600, 104.0600], 12);
+        }
+    </script>
+</body>
+</html>

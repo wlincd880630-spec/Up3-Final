@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission: Bashu Culture Guide</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap');
+
+        :root {
+            --cinnabar: #b83b3b;
+            --border-brown: #5d4037;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: #000;
+            font-family: 'Playfair Display', 'Noto Serif SC', serif;
+            height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* --- 地图样式优化 --- */
+        #map {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+            /* 关键修改：移除 sepia(复古黄)，改为增加饱和度和对比度，让色彩更丰富 */
+            filter: saturate(1.2) contrast(1.1) brightness(0.9);
+            transition: filter 2s ease-in-out;
+        }
+        
+        /* 飞行时稍微提亮，模拟穿过云层后的清晰感 */
+        #map.zooming-in {
+            filter: saturate(1.3) contrast(1.2) brightness(1.1);
+        }
+
+        /* 纹理层：保留一点点纸张纹理增加质感，但降低透明度，不遮挡地图颜色 */
+        .texture-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1;
+            background-image: url('https://www.transparenttextures.com/patterns/cream-paper.png');
+            opacity: 0.3; /* 调低透明度，让地图更清晰 */
+            pointer-events: none; transition: opacity 2s;
+        }
+
+        /* --- 信封样式 --- */
+        .envelope-container {
+            position: fixed; top: 30px; right: 40px;
+            cursor: pointer; z-index: 100;
+            opacity: 0; transform: translateY(-20px);
+            transition: opacity 1s, transform 1s;
+            display: none;
+        }
+        .envelope-container.show {
+            opacity: 1; transform: translateY(0); display: block;
+            animation: float 3s ease-in-out infinite;
+        }
+        .envelope-icon {
+            width: 70px; height: 45px;
+            background: #d4af37; border: 2px solid #8e6e28;
+            border-radius: 4px; position: relative;
+            box-shadow: 4px 4px 15px rgba(0,0,0,0.5);
+        }
+        .envelope-icon::after {
+            content: ''; position: absolute; top: 0; left: 0;
+            border-left: 35px solid transparent; border-right: 35px solid transparent;
+            border-top: 30px solid #f3cf55;
+        }
+        .badge {
+            position: absolute; bottom: -10px; left: -15px;
+            background-color: var(--cinnabar); color: white;
+            padding: 2px 8px; border-radius: 4px;
+            font-size: 12px; font-weight: bold; border: 1px solid #fff;
+        }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-5px); } 100% { transform: translateY(0px); } }
+
+        /* --- 信件弹窗 --- */
+        .letter-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); /* 稍微降低背景黑度，能看到地图 */
+            backdrop-filter: blur(4px);
+            display: none; justify-content: center; align-items: center;
+            z-index: 200; transition: opacity 0.8s;
+        }
+        .paper-content {
+            width: 65%; max-width: 750px;
+            background: #fffbf0; border: 1px solid #dcdcdc;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            padding: 50px; position: relative;
+            border-top: 8px solid var(--cinnabar); border-bottom: 8px solid var(--cinnabar);
+            max-height: 80vh; overflow-y: auto;
+            transform-origin: center;
+            transition: transform 1s cubic-bezier(0.6, -0.28, 0.735, 0.045), opacity 0.5s;
+        }
+        .paper-content.folding { transform: scaleY(0.01) scaleX(0.5); opacity: 0; }
+        
+        h2 { 
+            color: var(--cinnabar); text-align: center; 
+            border-bottom: 2px solid #ccc; padding-bottom: 15px; 
+            opacity: 0; transition: opacity 1s;
+        }
+        
+        .type-text { 
+            font-family: 'Courier Prime', 'Courier New', monospace;
+            font-size: 18px; line-height: 1.6; color: #333; 
+            white-space: pre-wrap; min-height: 150px; margin-bottom: 20px;
+        }
+        
+        .cursor {
+            display: inline-block; width: 8px; height: 18px; 
+            background-color: var(--cinnabar); animation: blink 1s infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        .btn {
+            background: transparent; border: 2px solid var(--cinnabar);
+            color: var(--cinnabar); padding: 10px 30px; font-size: 16px;
+            cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 20px;
+        }
+        .btn:hover { background: var(--cinnabar); color: white; }
+
+        .mission-details {
+            display: none; margin-top: 20px; padding: 20px;
+            background: rgba(184, 59, 59, 0.08); border-left: 5px solid var(--cinnabar);
+            animation: fadeIn 1s;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- 底部画卷 --- */
+        .scroll-wrapper {
+            position: fixed; bottom: 40px; width: 100%; height: 160px;
+            background: rgba(255, 255, 255, 0.8);
+            border-top: 1px solid var(--border-brown); border-bottom: 1px solid var(--border-brown);
+            overflow: hidden; display: flex; align-items: center;
+            backdrop-filter: blur(5px); z-index: 150;
+            transition: transform 0.8s ease-in;
+        }
+        .scroll-wrapper.exit { transform: translateY(200px); }
+        .scroll-track { display: flex; width: max-content; animation: scroll-left 50s linear infinite; }
+        .card {
+            width: 200px; height: 120px; margin: 0 10px; position: relative;
+            border: 3px solid #fff; box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+            flex-shrink: 0; background: #ccc;
+        }
+        .card img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.4); transition: filter 0.3s; }
+        .card:hover img { filter: sepia(0); }
+        .card-name {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: rgba(43, 43, 43, 0.8); color: #fff;
+            font-size: 11px; text-align: center; padding: 3px 0;
+        }
+        @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div class="texture-layer" id="paperTexture"></div>
+
+    <div class="envelope-container" id="mailIcon" onclick="openLetter()">
+        <div class="envelope-icon"></div>
+        <div class="badge">New Mail</div>
+    </div>
+
+    <div class="letter-overlay" id="overlay">
+        <div class="paper-content" id="paper">
+            <h2 id="missionTitle">Mission Directive: Project Chengdu</h2>
+            
+            <div class="type-text">
+                <span id="textTarget"></span><span class="cursor" id="cursor"></span>
+            </div>
+            
+            <div id="btnArea" style="opacity: 0; text-align: center; transition: opacity 1s;">
+                <p><em>Would you like to accept this mission?</em></p>
+                <button class="btn" onclick="showDetails()">ACCEPT MISSION</button>
+            </div>
+
+            <div class="mission-details" id="missionDetails">
+                <h3>MISSION REQUIREMENTS:</h3>
+                <ul>
+                    <li><strong>Time:</strong> Design a 1-Day Itinerary.</li>
+                    <li><strong>Route:</strong> Spots must be within walking distance.</li>
+                    <li><strong>Content:</strong> Name, Activities, Sights, Costs, & Fun Facts.</li>
+                    <li><strong>Grammar:</strong> Use <u>Imperative Sentences</u> (e.g., "Don't miss the hotpot").</li>
+                </ul>
+                <div style="text-align: right;">
+                    <button class="btn" onclick="startWritingSequence()">START WRITING >></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scroll-wrapper" id="scrollBar">
+        <div class="scroll-track">
+            <div class="card"><img src="images/panda.jpg" alt="Panda"><div class="card-name">Panda Base</div></div>
+            <div class="card"><img src="images/jinli.jpg" alt="Jinli"><div class="card-name">Jinli Street</div></div>
+            <div class="card"><img src="images/taikoo.jpg" alt="Taikoo Li"><div class="card-name">Taikoo Li</div></div>
+            <div class="card"><img src="images/wuhou.jpg" alt="Wuhou Shrine"><div class="card-name">Wuhou Shrine</div></div>
+            <div class="card"><img src="images/dufu.jpg" alt="Du Fu"><div class="card-name">Du Fu Cottage</div></div>
+            <div class="card"><img src="images/kuanzhai.jpg" alt="Kuanzhai"><div class="card-name">Kuanzhai Alleys</div></div>
+            <div class="card"><img src="images/panda.jpg" alt="Panda"><div class="card-name">Panda Base</div></div>
+            <div class="card"><img src="images/jinli.jpg" alt="Jinli"><div class="card-name">Jinli Street</div></div>
+            <div class="card"><img src="images/taikoo.jpg" alt="Taikoo Li"><div class="card-name">Taikoo Li</div></div>
+            <div class="card"><img src="images/wuhou.jpg" alt="Wuhou Shrine"><div class="card-name">Wuhou Shrine</div></div>
+        </div>
+    </div>
+
+    <script>
+        // 完整文本内容
+        const segments = [
+            "China, one of the world's ancient civilizations, boasts 5,000 years of glorious history and magnificent landscapes.",
+            "As the younger generation, you hold the torch to introduce the beauty of China to the world.",
+            "Today, your mission is to showcase our hometown—Chengdu—by designing a unique One-Day Walking Tour."
+        ];
+
+        let map;
+
+        // --- 1. 地图初始化 (色彩优化版) ---
+        function initMap() {
+            // 初始视角中国
+            map = L.map('map', {
+                zoomControl: false, attributionControl: false
+            }).setView([35, 104], 3); 
+
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri'
+            }).addTo(map);
+        }
+
+        // --- 2. 语音控制 (007男声) ---
+        function getSpyVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            return voices.find(v => v.lang.includes('en-GB') && v.name.includes('Male')) || 
+                   voices.find(v => v.lang.includes('en-GB')) ||
+                   voices.find(v => v.name.includes('English'));
+        }
+
+        function speakText(text) {
+            return new Promise((resolve) => {
+                const msg = new SpeechSynthesisUtterance(text);
+                const voice = getSpyVoice();
+                if (voice) msg.voice = voice;
+                msg.pitch = 0.8;
+                msg.rate = 0.9;
+                msg.onend = resolve;
+                window.speechSynthesis.speak(msg);
+            });
+        }
+
+        // --- 3. 打字机效果 ---
+        function typeWriterEffect(text) {
+            return new Promise((resolve) => {
+                const target = document.getElementById("textTarget");
+                let i = 0;
+                const speed = 50;
+                function type() {
+                    if (i < text.length) {
+                        target.innerHTML += text.charAt(i);
+                        i++;
+                        setTimeout(type, speed);
+                    } else {
+                        target.innerHTML += "<br><br>";
+                        resolve();
+                    }
+                }
+                type();
+            });
+        }
+
+        // --- 4. 提示音 ---
+        function playPing() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
+        }
+
+        async function playSyncedContent() {
+            const target = document.getElementById("textTarget");
+            target.innerHTML = ""; 
+
+            for (const segment of segments) {
+                await Promise.all([
+                    speakText(segment),
+                    typeWriterEffect(segment)
+                ]);
+            }
+            
+            document.getElementById('cursor').style.display = 'none';
+            document.getElementById('btnArea').style.opacity = 1;
+        }
+
+        // --- 5. 流程控制 ---
+        window.onload = function() {
+            initMap();
+            window.speechSynthesis.onvoiceschanged = getSpyVoice;
+
+            setTimeout(() => {
+                try { playPing(); } catch(e) {}
+                const mail = document.getElementById('mailIcon');
+                mail.style.display = 'block';
+                setTimeout(() => mail.classList.add('show'), 50);
+                speakText("You have a new message.");
+            }, 5000);
+        };
+
+        let isMissionStarted = false;
+
+        function openLetter() {
+            if (isMissionStarted) return;
+            isMissionStarted = true;
+
+            window.speechSynthesis.cancel();
+            document.getElementById('mailIcon').style.display = 'none';
+            document.getElementById('overlay').style.display = 'flex';
+
+            setTimeout(() => {
+                document.getElementById('missionTitle').style.opacity = 1;
+                speakText("You have a new mission.").then(() => {
+                    setTimeout(() => {
+                        playSyncedContent();
+                    }, 2000);
+                });
+            }, 500);
+        }
+
+        function showDetails() {
+            document.getElementById('btnArea').style.display = 'none';
+            document.getElementById('missionDetails').style.display = 'block';
+        }
+
+        // --- 6. 核心修改：慢速飞行 ---
+        function startWritingSequence() {
+            window.speechSynthesis.cancel();
+            document.getElementById('scrollBar').classList.add('exit');
+            document.getElementById('paper').classList.add('folding');
+            setTimeout(() => document.getElementById('overlay').style.opacity = '0', 500);
+            
+            setTimeout(() => {
+                // 增加亮度，让地图变鲜艳
+                document.getElementById('map').classList.add('zooming-in');
+                document.getElementById('paperTexture').style.opacity = '0';
+                document.getElementById('overlay').style.display = 'none';
+            }, 800);
+
+            setTimeout(() => {
+                // 核心修改：duration 设置为 12 秒，保证加载
+                // 坐标：成都 (30.6586, 104.0648)
+                map.flyTo([30.6586, 104.0648], 14, { 
+                    animate: true, 
+                    duration: 12 // 12秒飞行时间
+                });
+            }, 1000);
+
+            // 跳转也相应推迟，多留2秒欣赏地图
+            setTimeout(() => {
+                window.location.href = '02.html';
+            }, 14000); // 1000 + 12000 + 1000 (buffer)
+        }
+    </script>
+</body>
+</html>

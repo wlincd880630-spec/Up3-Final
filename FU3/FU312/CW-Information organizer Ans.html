@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher's Key: Full Sentence Edition</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Kalam:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap');
+
+        :root {
+            --bg-dark: #2c3e50;
+            --paper: #ffffff;
+            --ink: #2c3e50;
+            --blue-ink: #2980b9;
+            --red-ink: #c0392b;
+            --header-bg: #f8f9fa;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            margin: 0; padding: 20px;
+            font-family: 'Roboto', sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* --- A4 Page Logic --- */
+        .page {
+            background: var(--paper);
+            width: 210mm; 
+            height: 296mm; 
+            padding: 15mm; 
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            position: relative;
+            display: flex; flex-direction: column;
+            overflow: hidden; 
+            break-after: always;
+            page-break-after: always;
+        }
+
+        /* --- Header --- */
+        .header-bar {
+            height: 25mm;
+            border-bottom: 2px solid var(--ink);
+            display: flex; justify-content: space-between; align-items: flex-end;
+            padding-bottom: 5px; margin-bottom: 5px;
+            box-sizing: border-box;
+        }
+        .header-title h1 { margin: 0; font-size: 18px; color: var(--ink); text-transform: uppercase; }
+        .header-title .subtitle { font-size: 10px; color: var(--red-ink); font-weight: bold; }
+        .legend { font-size: 9px; text-align: right; }
+        .badge { 
+            display: inline-block; width: 15px; text-align: center; 
+            border-radius: 2px; color: white; font-size: 9px; margin-right: 3px;
+        }
+        .bg-blue { background: var(--blue-ink); }
+        .bg-red { background: var(--red-ink); }
+
+        /* --- Content Area --- */
+        .content-area {
+            flex: 1;
+            display: flex; flex-direction: column;
+            justify-content: flex-start;
+            gap: 8mm; /* Card Spacing */
+        }
+
+        /* --- Mission Card --- */
+        .mission-entry {
+            height: 112mm; /* Slightly taller to fit full sentences */
+            border: 1px solid var(--ink);
+            border-radius: 4px;
+            background: #fff;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        .entry-header {
+            height: 9mm;
+            background: var(--header-bg); 
+            border-bottom: 1px solid #ccc;
+            padding: 0 10px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .cn-name { font-family: 'Noto Serif SC', serif; font-size: 14px; font-weight: bold; color: #000; }
+        .en-name { font-family: 'Roboto', sans-serif; font-weight: bold; color: var(--ink); font-size: 11px; }
+
+        .entry-grid {
+            flex: 1;
+            display: grid; grid-template-columns: 1fr 1fr; 
+            grid-template-rows: auto auto auto auto; /* Allow auto sizing */
+        }
+        
+        .grid-cell { 
+            padding: 4px 8px;
+            border-right: 1px solid #eee; 
+            border-bottom: 1px solid #eee; 
+            font-size: 10px;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .grid-cell:nth-child(2n) { border-right: none; }
+        .cell-full { grid-column: span 2; }
+
+        .label {
+            font-weight: bold; color: #7f8c8d; text-transform: uppercase; 
+            font-size: 8px; margin-bottom: 2px;
+        }
+
+        /* --- Answer Text (Updated for Length) --- */
+        .answer-text {
+            font-family: 'Kalam', cursive;
+            font-size: 9.5px; /* Slightly smaller to fit sentences */
+            line-height: 1.2;
+            margin-bottom: 3px;
+            color: var(--blue-ink);
+            white-space: normal;
+            text-align: justify; /* Better block text */
+        }
+        .opt-b { color: var(--red-ink); margin-top: 2px; border-top: 1px dotted #eee; padding-top: 2px; }
+        .marker { font-family: sans-serif; font-weight: bold; margin-right: 3px; font-size: 8px; color: #000; }
+
+        /* --- Footer --- */
+        .footer {
+            height: 8mm;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 9px; color: #ccc; border-top: 1px solid #f0f0f0;
+        }
+
+        .controls { position: fixed; top: 20px; right: 20px; z-index: 999; }
+        .btn {
+            background: var(--red-ink); color: white; border: none; padding: 12px 30px;
+            font-weight: bold; cursor: pointer; border-radius: 4px;
+        }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .page { margin: 0; box-shadow: none; border: none; }
+            .controls { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button class="btn" onclick="exportPDF()">🖨️ DOWNLOAD FULL SENTENCE KEY</button>
+    </div>
+
+    <div id="report-container"></div>
+
+    <script>
+        // Data: Full Sentence Answers (B1+ Level)
+        const spotsData = [
+            {
+                cn: "成都大熊猫繁育研究基地", en: "Chengdu Research Base of Giant Panda Breeding",
+                loc: { 
+                    a: "It is situated in the northern suburbs of the Chenghua District, about 10km from the center.", 
+                    b: "You can find this sanctuary on Panda Avenue, accessible via Metro Line 3." 
+                },
+                feat: { 
+                    a: "This world-class facility simulates a natural ecological environment perfect for breeding pandas.", 
+                    b: "It is renowned for its success in breeding both giant pandas and red pandas in a semi-wild setting." 
+                },
+                see: { 
+                    a: "Visitors should see the Sunshine Nursery, where newborn pandas are cared for in incubators.", 
+                    b: "Do not miss the Swan Lake area and the active Red Panda playgrounds in the trees." 
+                },
+                do: { 
+                    a: "The best activity is watching the pandas eat breakfast during the morning feeding time.", 
+                    b: "You should walk quietly through the bamboo paths and take photos without using flash." 
+                },
+                exp: { 
+                    a: "The standard admission ticket costs 55 RMB per person.", 
+                    b: "Entry is 55 RMB, though students and seniors may qualify for discounts." 
+                },
+                fun: { 
+                    a: "Adult pandas spend up to 14 hours every day doing nothing but eating bamboo.", 
+                    b: "They possess a specialized 'pseudo-thumb' bone that helps them grip bamboo stems." 
+                }
+            },
+            {
+                cn: "文殊院", en: "Wenshu Monastery",
+                loc: { 
+                    a: "This ancient temple is conveniently located in the city center within the Qingyang District.", 
+                    b: "It sits in a bustling downtown area, easily reachable via the Wenshu Monastery Metro Station." 
+                },
+                feat: { 
+                    a: "It stands as the best-preserved Buddhist temple in Chengdu, featuring serene gardens.", 
+                    b: "The site uniquely combines solemn Buddhist worship with the relaxed local tea culture." 
+                },
+                see: { 
+                    a: "You can admire distinct ancient Buddha statues and precious calligraphy scrolls.", 
+                    b: "Look for the Thousand Buddha Pagoda and the famous 'Fu' (Fortune) character wall." 
+                },
+                do: { 
+                    a: "Visitors often sit in the garden teahouse to enjoy traditional covered-bowl tea.", 
+                    b: "I recommend trying the highly-rated vegetarian hotpot restaurant located next door." 
+                },
+                exp: { 
+                    a: "Admission to the monastery is completely free for all visitors.", 
+                    b: "There is no entrance fee, and incense is often provided for free." 
+                },
+                fun: { 
+                    a: "The temple houses a piece of the skull bone of Xuanzang, the legendary monk.", 
+                    b: "Locals believe that touching the 'Fu' character on the wall brings good luck." 
+                }
+            },
+            {
+                cn: "东郊记忆", en: "Dongjiao Memory",
+                loc: { 
+                    a: "It is found in the eastern suburbs of the Chenghua District, at an old factory site.", 
+                    b: "This park was built on the grounds of a former state-run electronics manufacturing plant." 
+                },
+                feat: { 
+                    a: "It is a vibrant industrial art park that preserves its original factory aesthetic.", 
+                    b: "The area retains its industrial heritage, featuring massive pipes, chimneys, and slogans." 
+                },
+                see: { 
+                    a: "You will see vintage steam trains and even a retired fighter jet on display.", 
+                    b: "The park is filled with colorful graffiti walls and various modern art galleries." 
+                },
+                do: { 
+                    a: "It is a perfect spot to take industrial-style photos against the brick backgrounds.", 
+                    b: "You can attend a concert at a live house or browse through creative bookstores." 
+                },
+                exp: { 
+                    a: "Entrance to the main park area is free of charge.", 
+                    b: "It is free to enter, although some special exhibitions may require a ticket." 
+                },
+                fun: { 
+                    a: "Locals often refer to it as the '798 Art Zone of Chengdu' due to its style.", 
+                    b: "It serves as a monument to the city's communist industrial history from the 1950s." 
+                }
+            },
+            {
+                cn: "望平街", en: "Wangping Street",
+                loc: { 
+                    a: "It runs along the banks of the Jinjiang River, near the television tower.", 
+                    b: "It is centrally located in the Jinjiang District, close to the Taikoo Li area." 
+                },
+                feat: { 
+                    a: "This renovated riverside street offers a trendy vibe mixed with local life.", 
+                    b: "It is a perfect blend of old community housing and modern, geometric architecture." 
+                },
+                see: { 
+                    a: "Check out the Geometric Bookshop with its unique spiral staircase design.", 
+                    b: "The night view is spectacular when the river and TV tower are illuminated." 
+                },
+                do: { 
+                    a: "Relax and drink coffee at one of the many riverside cafes along the street.", 
+                    b: "On weekends, you can visit the creative market to buy handmade local crafts." 
+                },
+                exp: { 
+                    a: "Since it is a public street, walking there is free.", 
+                    b: "There is no cost to visit, though cafes and bars charge for service." 
+                },
+                fun: { 
+                    a: "The area transforms from a quiet street by day into a lively bar hub at night.", 
+                    b: "It is considered a successful example of urban renewal projects in Chengdu." 
+                }
+            },
+            {
+                cn: "太古里", en: "Taikoo Li",
+                loc: { 
+                    a: "It is situated in the heart of the city, adjacent to the famous Chunxi Road.", 
+                    b: "The complex surrounds the ancient Daci Temple in the Jinjiang District." 
+                },
+                feat: { 
+                    a: "It is an open-air luxury retail complex featuring traditional Sichuan-style roofs.", 
+                    b: "The design features low-rise buildings that blend high fashion with history." 
+                },
+                see: { 
+                    a: "You cannot miss the giant Climbing Panda sculpture hanging on the building.", 
+                    b: "Discover the serene Daci Temple which is hidden inside the bustling mall." 
+                },
+                do: { 
+                    a: "It is the premier destination to shop for international luxury fashion brands.", 
+                    b: "The open squares are excellent for people-watching and street photography." 
+                },
+                exp: { 
+                    a: "It is free to enter the district and walk around.", 
+                    b: "Admission is free, but shopping and dining here can be quite expensive." 
+                },
+                fun: { 
+                    a: "The entire modern mall was carefully built around a 1600-year-old temple.", 
+                    b: "Strict height limits were enforced to protect the temple's skyline view." 
+                }
+            },
+            {
+                cn: "玉林路", en: "Yulin Road",
+                loc: { 
+                    a: "This area is located in the Wuhou District, south of the city center.", 
+                    b: "It consists of a network of small residential streets in the southern quarter." 
+                },
+                feat: { 
+                    a: "Yulin is famous for its 'Slow Life' philosophy and vibrant bistro culture.", 
+                    b: "It offers an authentic street vibe filled with small taverns and art spaces." 
+                },
+                see: { 
+                    a: "Look for the entrance of the famous 'Little Bar', a landmark for folk music.", 
+                    b: "The streets are decorated with artistic wall paintings depicting local life." 
+                },
+                do: { 
+                    a: "Experience the nightlife by eating traditional BBQ at a street stall.", 
+                    b: "You should visit a small pub to listen to live Chinese folk music." 
+                },
+                exp: { 
+                    a: "It is a public neighborhood, so exploring it is free.", 
+                    b: "There is no entry fee to walk around the streets." 
+                },
+                fun: { 
+                    a: "This neighborhood became famous nationwide due to the pop song 'Chengdu'.", 
+                    b: "It symbolizes the relaxed, bohemian lifestyle that Chengdu is known for." 
+                }
+            },
+            {
+                cn: "武侯祠", en: "Wuhou Shrine",
+                loc: { 
+                    a: "It is located next to Jinli Street in the southwest part of the city.", 
+                    b: "You will find it in the Wuhou District, near the Tibetan Quarter." 
+                },
+                feat: { 
+                    a: "This is the most significant temple dedicated to the Three Kingdoms heroes.", 
+                    b: "It is unique because it honors both an Emperor and his Minister together." 
+                },
+                see: { 
+                    a: "Walk through the iconic Red Wall bamboo path for a classic photo.", 
+                    b: "You can see majestic statues of Liu Bei, Zhuge Liang, and Guan Yu." 
+                },
+                do: { 
+                    a: "Take a walk along the Red Wall to appreciate the tranquil atmosphere.", 
+                    b: "I suggest renting an audio guide to learn the detailed history." 
+                },
+                exp: { 
+                    a: "The entrance ticket costs 50 RMB per person.", 
+                    b: "Admission is 50 RMB for adults." 
+                },
+                fun: { 
+                    a: "The temple commemorates the sacred bond of loyalty between ruler and advisor.", 
+                    b: "The curved 'Red Wall' is one of the most photographed spots in the city." 
+                }
+            },
+            {
+                cn: "锦里古街", en: "Jinli Ancient Street",
+                loc: { 
+                    a: "It is located immediately next to the Wuhou Shrine complex.", 
+                    b: "This street is part of the historic Wuhou District area." 
+                },
+                feat: { 
+                    a: "It is a pedestrian street built in the architectural style of the Qing Dynasty.", 
+                    b: "The street is famous for its red lanterns, folk crafts, and traditional snacks." 
+                },
+                see: { 
+                    a: "Check out the traditional Opera Stage located in the middle of the street.", 
+                    b: "The view is best at night when hundreds of red lanterns are glowing." 
+                },
+                do: { 
+                    a: "You can taste various local snacks like sticky rice cakes and spicy tofu.", 
+                    b: "It is a good place to buy souvenirs like panda dolls or Shu embroidery." 
+                },
+                exp: { 
+                    a: "Admission to the street is entirely free of charge.", 
+                    b: "It is free to enter, though food and souvenirs cost money." 
+                },
+                fun: { 
+                    a: "It is known as the 'First Street of the Shu Kingdom' due to its history.", 
+                    b: "It claims to be one of the oldest commercial streets in West China." 
+                }
+            },
+            {
+                cn: "杜甫草堂", en: "Du Fu Thatched Cottage",
+                loc: { 
+                    a: "It is located in the west of Chengdu, adjacent to the Huanhuaxi Park.", 
+                    b: "This site sits in the Qingyang District, along the riverbank." 
+                },
+                feat: { 
+                    a: "This was the former residence of Du Fu, known as China's 'Sage of Poetry'.", 
+                    b: "It serves as both a museum and a serene classical Chinese garden." 
+                },
+                see: { 
+                    a: "Visit the reconstructed Thatched Cottage where the poet lived and worked.", 
+                    b: "Walk along the poetic Flower Path lined with tall red walls and bamboo." 
+                },
+                do: { 
+                    a: "Spend time reading Du Fu's poetry displayed throughout the garden.", 
+                    b: "Enjoy the peaceful atmosphere which is a sharp contrast to the city noise." 
+                },
+                exp: { 
+                    a: "The standard entry ticket is 50 RMB.", 
+                    b: "Admission costs 50 RMB per visitor." 
+                },
+                fun: { 
+                    a: "Du Fu wrote more than 240 of his most famous poems while living here.", 
+                    b: "The original cottage was destroyed by wind; this version was rebuilt many times." 
+                }
+            },
+            {
+                cn: "金沙遗址博物馆", en: "Jinsha Site Museum",
+                loc: { 
+                    a: "It is located in northwest Chengdu, at the original excavation site.", 
+                    b: "The museum is situated in the Qingyang District, encompassing the dig site." 
+                },
+                feat: { 
+                    a: "It protects the ruins of the mysterious 3,000-year-old Ancient Shu Civilization.", 
+                    b: "The museum is built directly over the archaeological site where artifacts were found." 
+                },
+                see: { 
+                    a: "The most important artifact to see is the exquisite Golden Sun Bird.", 
+                    b: "You should also see the Gold Mask and the massive ancient Ebony Wood forest." 
+                },
+                do: { 
+                    a: "Watch the 4D movie to better understand the history of the Shu Kingdom.", 
+                    b: "Compare the artifacts here with those found at the Sanxingdui site." 
+                },
+                exp: { 
+                    a: "The admission fee is 70 RMB per person.", 
+                    b: "Tickets are priced at 70 RMB." 
+                },
+                fun: { 
+                    a: "The Golden Sun Bird found here is now the official logo of Chengdu city.", 
+                    b: "The gold ornaments discovered here are made of 94% pure gold." 
+                }
+            },
+            {
+                cn: "府青路片区", en: "Fuqing Flyover",
+                loc: { 
+                    a: "It is located in the northeast, at a major highway intersection in Chenghua.", 
+                    b: "This spot is found at the interchange of the Second Ring Road." 
+                },
+                feat: { 
+                    a: "It offers a futuristic, 'Cyberpunk' view of the city's infrastructure.", 
+                    b: "The view features multi-layered bridges surrounded by dense residential buildings." 
+                },
+                see: { 
+                    a: "Observe the endless stream of traffic lights moving beneath the bridge.", 
+                    b: "Notice the sharp contrast between the bright neon lights and old apartments." 
+                },
+                do: { 
+                    a: "Go there at night to take long-exposure photos of the traffic trails.", 
+                    b: "Use a telephoto lens to capture the compressed, cinematic view." 
+                },
+                exp: { 
+                    a: "It is a public pedestrian bridge, so access is free.", 
+                    b: "There is no cost to visit this photography spot." 
+                },
+                fun: { 
+                    a: "This spot went viral on social media for its Sci-Fi aesthetic.", 
+                    b: "Many people say it looks exactly like a scene from the movie 'Blade Runner'." 
+                }
+            },
+            {
+                cn: "宽窄巷子", en: "Kuanzhai Alleys",
+                loc: { 
+                    a: "Ideally located in the city center, a short walk from People's Park.", 
+                    b: "It is in the central Qingyang District, consisting of three parallel alleys." 
+                },
+                feat: { 
+                    a: "The area comprises three historic alleys: Wide, Narrow, and Well Alleys.", 
+                    b: "It preserves the traditional courtyard architecture from the Qing Dynasty era." 
+                },
+                see: { 
+                    a: "Admire the detailed brick carvings on the gates of the courtyard houses.", 
+                    b: "Visit the various panda-themed shops and traditional tea houses." 
+                },
+                do: { 
+                    a: "You can try the traditional ear-cleaning service offered on the street.", 
+                    b: "Sit in a courtyard to drink Gaiwan tea or watch a face-changing show." 
+                },
+                exp: { 
+                    a: "It is free to walk around the alleys.", 
+                    b: "Admission to the street is free." 
+                },
+                fun: { 
+                    a: "This area originally served as a garrison for Manchu soldiers in the past.", 
+                    b: "It is one of the three designated historic conservation districts in Chengdu." 
+                }
+            },
+            {
+                cn: "人民公园", en: "People's Park",
+                loc: { 
+                    a: "It is located in the city center, very close to the Kuanzhai Alleys.", 
+                    b: "You can find it in the Qingyang District, easily accessible by Metro Line 2." 
+                },
+                feat: { 
+                    a: "It is the most authentic place to experience the daily life of locals.", 
+                    b: "This comprehensive park is famous for its lively teahouses and artificial lakes." 
+                },
+                see: { 
+                    a: "The Matchmaking Corner is a unique cultural sight you shouldn't miss.", 
+                    b: "Observe locals dancing, singing, or practicing calligraphy on the ground." 
+                },
+                do: { 
+                    a: "You must order a cup of Jasmine tea at the historic Heming Teahouse.", 
+                    b: "Rent a small boat to row on the lake or get a traditional ear massage." 
+                },
+                exp: { 
+                    a: "Entrance to the park is free for everyone.", 
+                    b: "Free admission." 
+                },
+                fun: { 
+                    a: "Parents post advertisements in the Matchmaking Corner to find partners for their kids.", 
+                    b: "Established in 1911, it was the very first public park built in Chengdu." 
+                }
+            }
+        ];
+
+        window.onload = function() {
+            const container = document.getElementById('report-container');
+            const itemsPerPage = 2; // Strict 2 per page
+            
+            for (let i = 0; i < spotsData.length; i += itemsPerPage) {
+                const pageNum = Math.floor(i / itemsPerPage) + 1;
+                const totalPages = Math.ceil(spotsData.length / itemsPerPage);
+                
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'page';
+                
+                // Header
+                let headerHTML = `
+                    <div class="header-bar">
+                        <div class="header-title">
+                            <h1>Teacher's Key</h1>
+                            <div class="subtitle">FULL SENTENCE ANSWERS • PAGE ${pageNum}</div>
+                        </div>
+                        <div class="legend">
+                            <span class="badge bg-blue">A</span>Descriptive
+                            <span class="badge bg-red">B</span>Insightful
+                        </div>
+                    </div>
+                `;
+                pageDiv.innerHTML = headerHTML;
+
+                const contentArea = document.createElement('div');
+                contentArea.className = 'content-area';
+
+                const pageSpots = spotsData.slice(i, i + itemsPerPage);
+                pageSpots.forEach(spot => {
+                    const card = document.createElement('div');
+                    card.className = 'mission-entry';
+                    card.innerHTML = `
+                        <div class="entry-header">
+                            <div class="cn-name">${spot.cn}</div>
+                            <div class="en-name">${spot.en}</div>
+                        </div>
+                        <div class="entry-grid">
+                            <div class="grid-cell">
+                                <span class="label">Location</span>
+                                <div class="answer-text"><span class="marker">A</span>${spot.loc.a}</div>
+                                <div class="answer-text opt-b"><span class="marker">B</span>${spot.loc.b}</div>
+                            </div>
+                            <div class="grid-cell">
+                                <span class="label">Expenses</span>
+                                <div class="answer-text"><span class="marker">A</span>${spot.exp.a}</div>
+                                <div class="answer-text opt-b"><span class="marker">B</span>${spot.exp.b}</div>
+                            </div>
+                            <div class="grid-cell cell-full">
+                                <span class="label">Key Feature</span>
+                                <div class="answer-text"><span class="marker">A</span>${spot.feat.a}</div>
+                                <div class="answer-text opt-b"><span class="marker">B</span>${spot.feat.b}</div>
+                            </div>
+                            <div class="grid-cell">
+                                <span class="label">What to See</span>
+                                <div class="answer-text"><span class="marker">A</span>${spot.see.a}</div>
+                                <div class="answer-text opt-b"><span class="marker">B</span>${spot.see.b}</div>
+                            </div>
+                            <div class="grid-cell">
+                                <span class="label">What to Do</span>
+                                <div class="answer-text"><span class="marker">A</span>${spot.do.a}</div>
+                                <div class="answer-text opt-b"><span class="marker">B</span>${spot.do.b}</div>
+                            </div>
+                            <div class="grid-cell cell-full">
+                                <span class="label">Fun Fact</span>
+                                <div class="answer-text"><span class="marker">A</span>${spot.fun.a}</div>
+                                <div class="answer-text opt-b"><span class="marker">B</span>${spot.fun.b}</div>
+                            </div>
+                        </div>
+                    `;
+                    contentArea.appendChild(card);
+                });
+                pageDiv.appendChild(contentArea);
+
+                const footer = document.createElement('div');
+                footer.className = 'footer';
+                footer.innerText = `UNIT 03 TEACHER REFERENCE // PAGE ${pageNum} OF ${totalPages}`;
+                pageDiv.appendChild(footer);
+
+                container.appendChild(pageDiv);
+            }
+        };
+
+        function exportPDF() {
+            const element = document.getElementById('report-container');
+            const opt = {
+                margin: 0,
+                filename: 'Chengdu_Key_Full_Sentences.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: 'css', after: '.page' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
