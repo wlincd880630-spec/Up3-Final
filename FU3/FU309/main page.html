@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Unit 3: Travel Adventures</title>
-    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.34.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
@@ -20,9 +20,10 @@
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background-color: #2c3e50;
             overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
         
-        /* 响应式背景 */
+        /* Responsive Hero Background */
         .hero {
             background-image: url('images/main.jpg'); 
             background-size: cover;
@@ -44,6 +45,7 @@
         .content {
             position: relative; z-index: 1; text-align: center; color: white;
             padding: 20px;
+            width: 90%;
             max-width: 900px;
             animation: fadeIn 1.2s cubic-bezier(0.39, 0.575, 0.565, 1) both;
         }
@@ -52,33 +54,37 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 20px;
+            gap: 15px; /* Reduced gap for mobile */
             margin-bottom: 10px;
+            flex-wrap: wrap; /* Allow wrapping on very small screens */
         }
 
         h1 {
-            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-size: clamp(2.5rem, 10vw, 5rem);
             margin: 0;
             text-shadow: var(--text-shadow);
-            letter-spacing: 4px;
+            letter-spacing: clamp(1px, 1vw, 4px);
             text-transform: uppercase;
+            line-height: 1.1;
         }
         
         h2 {
-            font-size: clamp(1.2rem, 4vw, 2.8rem);
+            font-size: clamp(1.2rem, 5vw, 2.8rem);
             margin-top: 10px;
             font-weight: 300;
             text-shadow: var(--text-shadow);
-            margin-bottom: 60px;
+            margin-bottom: clamp(30px, 8vh, 60px);
             color: var(--primary-gold);
+            line-height: 1.3;
         }
 
-        /* 导航菜单容器 */
+        /* Navigation Grid */
         .nav-grid {
             display: flex;
             gap: 15px;
             justify-content: center;
             flex-wrap: wrap;
+            width: 100%;
         }
 
         .nav-item {
@@ -87,60 +93,83 @@
             background: var(--glass-bg);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            padding: clamp(12px, 2vw, 18px) clamp(30px, 5vw, 50px);
+            padding: 15px 30px;
             border-radius: 100px;
-            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            font-size: 1.2rem;
             font-weight: 600;
             border: 1px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            min-width: 120px; /* Ensure touch target size */
+            text-align: center;
         }
 
-        .nav-item:hover {
+        .nav-item:hover, .nav-item:active {
             background: var(--accent-orange);
             border-color: var(--accent-orange);
-            transform: translateY(-8px) scale(1.08);
-            box-shadow: 0 15px 30px rgba(211, 84, 0, 0.4);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 25px rgba(211, 84, 0, 0.4);
         }
 
-        /* TTS 按钮样式 */
+        /* TTS Button */
         .audio-trigger {
             background: rgba(255,255,255,0.2);
-            border: none;
+            border: 1px solid rgba(255,255,255,0.3);
             color: white;
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
+            backdrop-filter: blur(5px);
         }
 
-        .audio-trigger:hover {
+        .audio-trigger:hover, .audio-trigger:active {
             background: var(--primary-gold);
             color: #2c3e50;
             transform: scale(1.1);
+        }
+        
+        .audio-trigger.playing {
+            background: var(--primary-gold);
+            color: #2c3e50;
+            animation: pulse 1s infinite;
         }
 
         @keyframes fadeIn { 
             0% { opacity: 0; transform: translateY(30px); } 
             100% { opacity: 1; transform: translateY(0); } 
         }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
 
-        /* 移动端适配调整 */
-        @media (max-width: 480px) {
+        /* Mobile Specific Adjustments */
+        @media (max-width: 600px) {
             .nav-grid {
                 display: grid;
-                grid-template-columns: 1fr 1fr;
-                width: 100%;
-                padding: 0 20px;
+                grid-template-columns: 1fr 1fr; /* 2 columns on mobile */
+                gap: 12px;
             }
             .nav-item {
-                padding: 15px 10px;
-                text-align: center;
+                padding: 12px 10px;
+                font-size: 1rem;
+                min-width: auto;
+            }
+            .title-area {
+                gap: 10px;
+            }
+            .audio-trigger {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
             }
         }
     </style>
@@ -152,11 +181,11 @@
     <div class="content">
         <div class="title-area">
             <h1>Unit 3</h1>
-            <button class="audio-trigger" onclick="speakTitle()" title="Listen to Title">
+            <button id="ttsBtn" class="audio-trigger" onclick="speakTitle()" title="Listen to Title">
                 <i class="fas fa-volume-up"></i>
             </button>
         </div>
-        <h2>Adventure and Unusual Destination</h2>
+        <h2>Adventure and Unusual Destinations</h2>
         
         <div class="nav-grid">
             <a href="page1.html" class="nav-item">Page 1</a>
@@ -168,34 +197,75 @@
 </div>
 
 <script>
-    // --- Azure Speech SDK 配置 ---
-    const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(
-        "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9", 
-        "eastus2"
-    );
-    // 设置语音角色
-    speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+    // --- Azure Speech SDK Configuration ---
+    const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const azureRegion = "eastus2";
+    let synthesizer = null;
+    let btn = null;
+
+    window.onload = () => {
+        btn = document.getElementById('ttsBtn');
+    };
 
     function speakTitle() {
-        const text = "Unit 3. Adventure and Unusual Destination.";
-        const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
-        const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+        const text = "Unit 3. Adventure and Unusual Destinations.";
+        
+        // Stop any previous playback
+        if (synthesizer) {
+            try { synthesizer.close(); } catch(e) {}
+            synthesizer = null;
+        }
+        window.speechSynthesis.cancel();
+        
+        if (btn) btn.classList.add('playing');
 
-        synthesizer.speakTextAsync(
-            text,
-            result => {
-                if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
-                    console.log("Synthesis finished.");
-                } else {
-                    console.error("Speech synthesis cancelled, " + result.errorDetails);
-                }
-                synthesizer.close();
-            },
-            err => {
-                console.trace("err - " + err);
-                synthesizer.close();
+        try {
+            // Check if SDK is loaded
+            if (typeof SpeechSDK === 'undefined') {
+                throw new Error("Azure SDK not loaded");
             }
-        );
+
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+            speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; // High quality neural voice
+            
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+
+            synthesizer.speakTextAsync(
+                text,
+                result => {
+                    if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                        // Success
+                    } else {
+                        console.warn("Azure TTS canceled/failed: " + result.errorDetails);
+                        speakNative(text); // Fallback
+                    }
+                    if (btn) btn.classList.remove('playing');
+                    synthesizer.close();
+                    synthesizer = null;
+                },
+                err => {
+                    console.error("Azure TTS Error: " + err);
+                    speakNative(text); // Fallback
+                    if (btn) btn.classList.remove('playing');
+                    synthesizer.close();
+                    synthesizer = null;
+                }
+            );
+        } catch (e) {
+            console.error("Initialization Error: " + e);
+            speakNative(text); // Fallback to browser TTS
+        }
+    }
+
+    // Browser Native Fallback (Offline/Mobile Safari safety net)
+    function speakNative(text) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        u.rate = 0.9;
+        u.onend = () => { if (btn) btn.classList.remove('playing'); };
+        window.speechSynthesis.speak(u);
     }
 </script>
 

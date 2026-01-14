@@ -25,6 +25,7 @@
             margin: 0; font-family: 'Nunito', sans-serif; min-height: 100vh; overflow-y: auto;
             background: var(--bg-gradient); display: flex; justify-content: center; align-items: flex-start;
             user-select: none; padding: 20px 0;
+            overscroll-behavior: none; /* 防止iOS橡皮筋效果 */
         }
 
         /* --- Home 按钮 --- */
@@ -66,7 +67,7 @@
         .view.active { display: flex; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 
-        /* --- VIEW 1: SOUND LAB (Fixed) --- */
+        /* --- VIEW 1: SOUND LAB --- */
         .sound-card {
             background: white; padding: 40px; border-radius: 30px; text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 100%; max-width: 500px;
@@ -142,15 +143,29 @@
         .result-box.show { opacity: 1; transform: rotateY(0deg); }
         .res-img { width: 150px; height: 150px; object-fit: contain; margin-bottom: 20px; }
 
-        /* --- VIEW 4: SORTING --- */
+        /* --- VIEW 4: SORTING (UPDATED) --- */
         .sort-area { width: 100%; max-width: 900px; display: flex; flex-direction: column; align-items: center; }
         
         .draggable-card {
             background: white; padding: 20px 40px; border-radius: 20px;
             font-size: 1.5rem; font-weight: 800; color: var(--text-dark);
             box-shadow: 0 15px 30px rgba(0,0,0,0.15); margin-bottom: 40px;
-            animation: float 3s ease-in-out infinite; cursor: grab;
+            cursor: grab; position: relative; z-index: 100;
+            /* 关键修改：允许触摸拖拽，不触发滚动 */
+            touch-action: none;
+            user-select: none;
         }
+        
+        .draggable-card.dragging {
+            cursor: grabbing;
+            transition: none; /* 拖拽时移除过渡，更跟手 */
+        }
+        
+        /* 只有在不拖拽时才应用浮动动画 */
+        .draggable-card:not(.dragging) {
+            animation: float 3s ease-in-out infinite;
+        }
+
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
         .bins-container { display: flex; gap: 40px; width: 100%; justify-content: center; }
@@ -160,11 +175,13 @@
             display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
             padding-bottom: 30px; cursor: pointer; transition: 0.2s; position: relative;
         }
+        .bin.hover-target { transform: scale(1.1); background: rgba(255,255,255,0.9); border-style: solid; }
+        .bin.micro-bin.hover-target { border-color: var(--micro-color); }
+        .bin.macro-bin.hover-target { border-color: var(--macro-color); }
+
         .bin:hover { transform: scale(1.05); background: rgba(255,255,255,0.8); }
-        .bin.micro-bin:hover { border-color: var(--micro-color); }
-        .bin.macro-bin:hover { border-color: var(--macro-color); }
         .bin-icon { font-size: 4rem; margin-bottom: 10px; opacity: 0.5; transition: 0.2s; }
-        .bin:hover .bin-icon { opacity: 1; transform: scale(1.2); }
+        .bin:hover .bin-icon, .bin.hover-target .bin-icon { opacity: 1; transform: scale(1.2); }
 
         /* --- 导航按钮 --- */
         .nav-btn {
@@ -196,6 +213,7 @@
             .bin-icon { font-size: 2.5rem; }
             .choice-container { flex-direction: column; width: 100%; gap: 15px; }
             .choice-btn { width: 100%; }
+            .draggable-card { margin-bottom: 20px; padding: 15px 25px; font-size: 1.2rem; }
         }
     </style>
 </head>
@@ -285,7 +303,7 @@
 
         <div id="view-4" class="view">
             <h2 style="font-family:'Fredoka'; color:#334155; font-size:2rem; margin-bottom:10px;">Nick's Sorting Job</h2>
-            <p style="color:#64748b; margin-bottom:20px;">Help Nick sort the evidence!</p>
+            <p style="color:#64748b; margin-bottom:20px;">Drag the evidence to the correct bin!</p>
 
             <div class="sort-area">
                 <div id="drag-zone">
@@ -293,12 +311,12 @@
                 </div>
 
                 <div class="bins-container">
-                    <div class="bin micro-bin" onclick="checkSort('micro')">
+                    <div class="bin micro-bin" id="bin-micro" onclick="checkSort('micro')">
                         <i class="fas fa-search-plus bin-icon" style="color:var(--micro-color);"></i>
                         <div style="font-family:'Fredoka'; font-size:1.5rem; color:var(--micro-color);">MICRO</div>
                         <div style="color:#64748b; font-size:0.9rem; font-weight:bold;">Small Details</div>
                     </div>
-                    <div class="bin macro-bin" onclick="checkSort('macro')">
+                    <div class="bin macro-bin" id="bin-macro" onclick="checkSort('macro')">
                         <i class="fas fa-globe bin-icon" style="color:var(--macro-color);"></i>
                         <div style="font-family:'Fredoka'; font-size:1.5rem; color:var(--macro-color);">MACRO</div>
                         <div style="color:#64748b; font-size:0.9rem; font-weight:bold;">Big Picture</div>
@@ -317,7 +335,7 @@
         <img id="feedback-nick-img" class="nick-img" src="" style="display:none;">
         <div id="feedback-icon" style="font-size:4rem; margin-bottom:15px;"></div>
         <h2 id="feedback-text" style="font-family:'Fredoka'; margin:0 0 20px 0;"></h2>
-        <button class="btn btn-primary" onclick="closeModal()">Continue</button>
+        <button class="btn btn-primary" style="padding:10px 30px; border-radius:20px; border:none; background:var(--accent); color:white; font-size:1.2rem; cursor:pointer;" onclick="closeModal()">Continue</button>
     </div>
 
 </div>
@@ -327,7 +345,7 @@
     let currentView = 1;
     const totalViews = 4;
 
-    // View 1 Data (3 Distinct Words)
+    // View 1 Data
     const soundList = [
         { w: "Microscope", t: "micro" },
         { w: "Macroeconomics", t: "macro" },
@@ -335,7 +353,7 @@
     ];
     let soundIdx = 0;
 
-    // View 3 Data (Image Mappings)
+    // View 3 Data
     const definitions = {
         "micro-scope": { w: "Microscope", img: "Object_Microscope.jpg", d: "An instrument to see objects that are too small for the naked eye." },
         "macro-economics": { w: "Macroeconomics", img: "Object_Globe.jpg", d: "The study of the economy as a whole (countries, global)." },
@@ -369,7 +387,6 @@
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
             synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
             
-            // Visual Feedback
             const btn = document.getElementById('play-btn');
             if(btn) btn.classList.add('playing');
 
@@ -382,29 +399,22 @@
     }
 
     // --- VIEW 1 LOGIC ---
-    function playCurrentSound() { 
-        speak(soundList[soundIdx].w); 
-    }
+    function playCurrentSound() { speak(soundList[soundIdx].w); }
     
     function checkSound(choice) {
-        if (soundIdx >= soundList.length) return; // Prevent extra clicks
-
+        if (soundIdx >= soundList.length) return;
         const correct = soundList[soundIdx].t;
         const feedback = document.getElementById('sound-feedback');
-        
         if (choice === correct) {
             feedback.innerHTML = '<span style="color:#10b981">Correct!</span>';
             soundIdx++;
-            
             if(soundIdx < soundList.length) {
-                // Next Question
                 setTimeout(() => { 
                     feedback.innerHTML = ""; 
                     document.getElementById('sound-progress').innerText = `Word ${soundIdx + 1} / ${soundList.length}`;
                     playCurrentSound(); 
                 }, 1000);
             } else {
-                // Finish
                 feedback.innerHTML = "All Correct!";
                 document.getElementById('next-btn').classList.add('show');
             }
@@ -442,16 +452,14 @@
             if(data) {
                 const box = document.getElementById('result-box');
                 box.classList.remove('show');
-                
                 setTimeout(() => {
                     const img = document.getElementById('res-img');
                     if(data.img) {
                         img.src = data.img;
                         img.style.display = 'block';
                     } else {
-                        img.style.display = 'none'; // Use Emoji/Icon logic if needed, simplified here
+                        img.style.display = 'none';
                     }
-                    
                     document.getElementById('res-word').innerText = data.w;
                     document.getElementById('res-def').innerText = data.d;
                     box.classList.add('show');
@@ -463,14 +471,149 @@
     }
     function speakResult() { speak(document.getElementById('res-word').innerText); }
 
-    // --- VIEW 4 LOGIC ---
+    // --- VIEW 4 LOGIC (Enhanced with Drag & Drop) ---
     function initSorting() {
         if (sortIdx < sortItems.length) {
-            document.getElementById('current-drag').innerText = sortItems[sortIdx].text;
+            const dragEl = document.getElementById('current-drag');
+            dragEl.innerText = sortItems[sortIdx].text;
+            // 重置位置
+            dragEl.style.transform = 'translate(0, 0)';
+            dragEl.classList.remove('dragging');
+            
+            // 确保没有残留的style
+            dragEl.style.left = '';
+            dragEl.style.top = '';
+            dragEl.style.position = 'relative';
+
             speak(sortItems[sortIdx].text);
+            initDrag(); // 初始化拖拽
         }
     }
     
+    // --- DRAG AND DROP IMPLEMENTATION ---
+    let isDragging = false;
+    let startX, startY, initialX, initialY;
+    let xOffset = 0, yOffset = 0;
+    
+    function initDrag() {
+        const dragItem = document.getElementById('current-drag');
+        const container = document.getElementById('app-frame');
+
+        // Mouse events
+        dragItem.addEventListener('mousedown', dragStart);
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('mousemove', drag);
+
+        // Touch events
+        dragItem.addEventListener('touchstart', dragStart, {passive: false});
+        document.addEventListener('touchend', dragEnd);
+        document.addEventListener('touchmove', drag, {passive: false});
+    }
+
+    function dragStart(e) {
+        if (e.target.id !== 'current-drag') return;
+
+        const dragItem = document.getElementById('current-drag');
+        if (e.type === "touchstart") {
+            initialX = e.touches[0].clientX - xOffset;
+            initialY = e.touches[0].clientY - yOffset;
+        } else {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+        }
+
+        isDragging = true;
+        dragItem.classList.add('dragging');
+    }
+
+    function drag(e) {
+        if (isDragging) {
+            e.preventDefault();
+            
+            let currentX, currentY;
+            if (e.type === "touchmove") {
+                currentX = e.touches[0].clientX - initialX;
+                currentY = e.touches[0].clientY - initialY;
+            } else {
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+            }
+
+            xOffset = currentX;
+            yOffset = currentY;
+
+            const dragItem = document.getElementById('current-drag');
+            dragItem.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+
+            // Collision Highlight
+            checkCollision();
+        }
+    }
+
+    function dragEnd(e) {
+        if (!isDragging) return;
+        
+        initialX = currentX = initialY = currentY = 0;
+        isDragging = false;
+        
+        const dragItem = document.getElementById('current-drag');
+        dragItem.classList.remove('dragging');
+
+        // Check final drop position
+        const dropResult = checkDrop();
+        
+        if (dropResult) {
+            // Valid Drop
+            checkSort(dropResult);
+            // Reset offset for next item
+            xOffset = 0; yOffset = 0;
+        } else {
+            // Invalid Drop - Snap back
+            dragItem.style.transition = "transform 0.3s ease-out";
+            dragItem.style.transform = "translate3d(0, 0, 0)";
+            xOffset = 0; yOffset = 0;
+            
+            setTimeout(() => {
+                dragItem.style.transition = "";
+            }, 300);
+        }
+        
+        // Remove highlighting
+        document.querySelectorAll('.bin').forEach(b => b.classList.remove('hover-target'));
+    }
+
+    function checkCollision() {
+        const dragItem = document.getElementById('current-drag');
+        const microBin = document.getElementById('bin-micro');
+        const macroBin = document.getElementById('bin-macro');
+        
+        const r1 = dragItem.getBoundingClientRect();
+        const r2 = microBin.getBoundingClientRect();
+        const r3 = macroBin.getBoundingClientRect();
+
+        microBin.classList.remove('hover-target');
+        macroBin.classList.remove('hover-target');
+
+        if (rectOverlap(r1, r2)) microBin.classList.add('hover-target');
+        if (rectOverlap(r1, r3)) macroBin.classList.add('hover-target');
+    }
+
+    function checkDrop() {
+        const dragItem = document.getElementById('current-drag');
+        const microBin = document.getElementById('bin-micro');
+        const macroBin = document.getElementById('bin-macro');
+        
+        const r1 = dragItem.getBoundingClientRect();
+        if (rectOverlap(r1, microBin.getBoundingClientRect())) return 'micro';
+        if (rectOverlap(r1, macroBin.getBoundingClientRect())) return 'macro';
+        return null;
+    }
+
+    function rectOverlap(r1, r2) {
+        return !(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom);
+    }
+
+    // --- GAME LOGIC ---
     function checkSort(type) {
         if (sortIdx >= sortItems.length) return;
         
@@ -480,13 +623,20 @@
             sortIdx++;
             if (sortIdx >= sortItems.length) {
                 setTimeout(() => { 
-                    document.querySelector('#feedback-modal button').onclick = () => location.reload();
+                    const btn = document.querySelector('#feedback-modal button');
+                    btn.innerText = "Restart Game";
+                    btn.onclick = () => location.reload();
+                    
                     document.getElementById('feedback-text').innerText = "Mission Complete!";
                     document.getElementById('feedback-modal').classList.add('show');
                 }, 1000);
             }
         } else {
             showFeedback(false);
+            // Reset position if clicked incorrectly (if dragged, dragEnd handles it)
+            const dragItem = document.getElementById('current-drag');
+            dragItem.style.transform = "translate(0,0)";
+            xOffset = 0; yOffset = 0;
         }
     }
 
@@ -496,25 +646,24 @@
         const imgEl = document.getElementById('feedback-nick-img');
         const iconEl = document.getElementById('feedback-icon');
         
-        // Try to use Nick images if they exist
         const imgName = isHappy ? 'Nick_Happy.png' : 'Nick_Confused.png';
-        
         imgEl.src = imgName;
         imgEl.style.display = 'block';
         imgEl.onerror = function() {
-            // Fallback if user didn't generate Nick images
             this.style.display = 'none';
             iconEl.innerText = isHappy ? "🌟" : "🤔";
             iconEl.style.display = 'block';
         };
-        iconEl.style.display = 'none'; // Hide icon initially, rely on onerror to show it
+        iconEl.style.display = 'none';
 
         document.getElementById('feedback-modal').classList.add('show');
     }
 
     function closeModal() {
         document.getElementById('feedback-modal').classList.remove('show');
-        if (currentView === 4) initSorting();
+        if (currentView === 4 && sortIdx < sortItems.length) {
+            initSorting();
+        }
     }
 
     // --- NAVIGATION ---

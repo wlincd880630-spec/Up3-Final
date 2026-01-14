@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Global Explorer: Main Map (Pro V2)</title>
     
     <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
@@ -20,33 +20,40 @@
         body { 
             font-family: 'Outfit', sans-serif; 
             color: #e2e8f0; 
-            /* 升级版极光背景 (与 FU302 统一) */
+            /* 升级版极光背景 */
             background: linear-gradient(135deg, #0f172a, #312e81, #4c1d95, #581c87);
             background-size: 400% 400%;
             animation: gradient 25s ease infinite;
-            height: 100vh;
+            /* 使用 dvh 适配 iOS Safari 地址栏 */
+            height: 100dvh; 
             width: 100vw;
-            overflow: hidden;
+            overflow: hidden; /* Body 不滚动，让 app-frame 内部滚动 */
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
         @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         
-        /* 玻璃面板 (主容器) */
+        /* 玻璃面板 (主容器) - 关键修改：允许y轴滚动 */
         .app-frame { 
             width: 95vw;
-            height: 90vh;
+            height: 92dvh; /* 稍微增加高度利用率 */
             max-width: 1600px;
             background: rgba(255, 255, 255, 0.03); 
             backdrop-filter: blur(24px); 
             -webkit-backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 0.1); 
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
-            border-radius: 32px;
+            border-radius: 24px; /* 稍微减小圆角适配手机 */
             position: relative;
-            overflow: hidden;
+            overflow-y: auto; /* 允许垂直滚动 */
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch; /* iOS 惯性滚动 */
+            scrollbar-width: none; /* Firefox 隐藏滚动条 */
         }
+        /* Chrome/Safari 隐藏滚动条 */
+        .app-frame::-webkit-scrollbar { display: none; }
 
         /* 动画 */
         .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -59,60 +66,74 @@
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             cursor: pointer;
             z-index: 20;
+            /* 增大触摸区域 */
+            padding: 10px;
+            margin: -10px;
         }
-        .map-pin:hover { transform: translate(-50%, -115%) scale(1.25); z-index: 30; }
+        /* 手机上去掉 hover 缩放防止误触遮挡，改为点击反馈 */
+        @media (hover: hover) {
+            .map-pin:hover { transform: translate(-50%, -115%) scale(1.25); z-index: 30; }
+        }
         
         .pin-head {
             background: #ef4444;
-            width: 28px; height: 28px;
+            width: 24px; height: 24px; /* 稍微调小适配密集地图 */
             border-radius: 50% 50% 50% 0;
             transform: rotate(-45deg);
-            border: 3px solid white;
+            border: 2px solid white;
             box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
         }
         .pin-label {
             position: absolute;
             top: -35px; left: 50%; transform: translateX(-50%);
             background: white; color: #0f172a;
-            padding: 6px 12px; border-radius: 12px;
-            font-weight: 800; font-size: 14px;
+            padding: 4px 10px; border-radius: 8px;
+            font-weight: 800; font-size: 12px;
             white-space: nowrap;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             opacity: 0; transition: all 0.2s;
             pointer-events: none;
             transform: translateY(10px);
         }
-        .map-pin:hover .pin-label { opacity: 1; transform: translateY(0); }
+        .map-pin:hover .pin-label, .map-pin:active .pin-label { opacity: 1; transform: translateY(0); }
 
         /* 飞机 */
         .plane-sprite {
             position: absolute;
-            width: 70px;
+            width: 50px; /* 手机上缩小飞机 */
             z-index: 40;
-            filter: drop-shadow(0 20px 30px rgba(0,0,0,0.6));
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.6));
             transition: top 2.5s cubic-bezier(0.45, 0, 0.55, 1), left 2.5s cubic-bezier(0.45, 0, 0.55, 1), transform 1s ease-in-out;
             pointer-events: none;
         }
-
-        /* 修复后的顶部导航按钮样式 (非 absolute) */
-        .nav-btn { 
-            background: rgba(255,255,255,0.1); color: white; 
-            padding: 10px 20px; border-radius: 99px; text-decoration: none; 
-            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); 
-            font-weight: 600; font-size: 1rem;
-            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
-            pointer-events: auto; cursor: pointer;
+        @media (min-width: 768px) {
+            .plane-sprite { width: 70px; }
+            .pin-head { width: 28px; height: 28px; border-width: 3px; }
+            .pin-label { font-size: 14px; padding: 6px 12px; }
         }
-        .nav-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+
+        /* 按钮样式 */
+        .nav-btn { 
+            background: rgba(255,255,255,0.15); color: white; 
+            padding: 8px 16px; border-radius: 99px; text-decoration: none; 
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); 
+            font-weight: 600; font-size: 0.9rem;
+            transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+            pointer-events: auto; cursor: pointer;
+            white-space: nowrap;
+        }
+        .nav-btn:hover, .nav-btn:active { background: rgba(255,255,255,0.25); transform: translateY(-2px); }
 
         /* 卡片 Hover 光效 */
         .sector-card {
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .sector-card:hover {
-            transform: translateY(-10px);
-            border-color: rgba(255,255,255,0.4);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 50px rgba(59, 130, 246, 0.2);
+        @media (hover: hover) {
+            .sector-card:hover {
+                transform: translateY(-10px);
+                border-color: rgba(255,255,255,0.4);
+                box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 50px rgba(59, 130, 246, 0.2);
+            }
         }
     </style>
 </head>
@@ -124,7 +145,7 @@
         const { useState, useEffect, useRef } = React;
 
         // ==========================================
-        // 🔹 Azure 语音配置
+        // 🔹 Azure 语音配置 (保持不变)
         // ==========================================
         const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
         const azureRegion = "eastus2"; 
@@ -149,7 +170,7 @@
         };
 
         // ==========================================
-        // 🔹 地图数据配置
+        // 🔹 地图数据配置 (保持不变)
         // ==========================================
         const MAP_DATA = {
             west: {
@@ -185,65 +206,67 @@
         // 🔹 页面组件
         // ==========================================
 
-        // 1. Landing View (全新设计)
+        // 1. Landing View (修复响应式布局)
         const LandingView = ({ onSelectMap }) => {
             return (
-                <div className="w-full h-full flex flex-col items-center justify-center p-8 fade-in relative overflow-hidden">
+                <div className="w-full min-h-full flex flex-col items-center justify-start md:justify-center p-6 md:p-8 fade-in relative">
                     
-                    {/* 返回 Home 按钮 (绝对定位，独立于布局) */}
-                    <a href="../../index.html" className="absolute top-8 left-8 nav-btn z-50">
-                        <i className="ph ph-house text-xl"></i> Home
-                    </a>
-
-                    {/* 装饰大标题 */}
-                    <div className="text-center mb-16 relative z-10">
-                        <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-white to-purple-200 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" style={{fontFamily: 'Fredoka'}}>
-                            Global Explorer
-                        </h1>
-                        <p className="text-blue-200 text-xl mt-4 font-light tracking-widest uppercase">Select Your Destination Sector</p>
+                    {/* 返回 Home 按钮 - 手机上改用相对定位防止遮挡 */}
+                    <div className="w-full flex justify-start mb-6 md:absolute md:top-8 md:left-8 z-50">
+                        <a href="../../index.html" className="nav-btn">
+                            <i className="ph ph-house text-xl"></i> Home
+                        </a>
                     </div>
 
-                    {/* 卡片容器 */}
-                    <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-full max-w-6xl relative z-10">
+                    {/* 装饰大标题 - 调整字体大小 */}
+                    <div className="text-center mb-8 md:mb-16 relative z-10 mt-2 md:mt-0">
+                        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-white to-purple-200 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight" style={{fontFamily: 'Fredoka'}}>
+                            Global Explorer
+                        </h1>
+                        <p className="text-blue-200 text-sm md:text-xl mt-4 font-light tracking-widest uppercase">Select Your Destination Sector</p>
+                    </div>
+
+                    {/* 卡片容器 - 增加底部padding防止被切掉 */}
+                    <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center justify-center w-full max-w-6xl relative z-10 pb-12 md:pb-0">
                         
-                        {/* West Sector */}
+                        {/* West Sector - 减小手机上的高度 */}
                         <div onClick={() => onSelectMap('west')} 
-                             className="sector-card cursor-pointer group relative w-full md:w-1/3 h-96 bg-gradient-to-b from-slate-800/40 to-slate-900/40 rounded-[2rem] border border-white/10 overflow-hidden flex flex-col items-center justify-center text-center p-6">
+                             className="sector-card cursor-pointer group relative w-full md:w-1/3 h-64 md:h-96 bg-gradient-to-b from-slate-800/40 to-slate-900/40 rounded-[1.5rem] md:rounded-[2rem] border border-white/10 overflow-hidden flex flex-col items-center justify-center text-center p-4">
                             <div className="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                            <div className="w-32 h-32 rounded-full bg-blue-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition duration-500 border border-blue-400/30 shadow-[0_0_30px_rgba(59,130,246,0.3)]">
-                                <i className="ph ph-globe-hemisphere-west text-6xl text-blue-300"></i>
+                            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-blue-500/20 flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition duration-500 border border-blue-400/30 shadow-[0_0_30px_rgba(59,130,246,0.3)]">
+                                <i className="ph ph-globe-hemisphere-west text-4xl md:text-6xl text-blue-300"></i>
                             </div>
-                            <h2 className="text-3xl font-bold text-white mb-2">West Sector</h2>
-                            <p className="text-slate-400 text-sm">Americas • Europe • Atlantic</p>
-                            <div className="mt-6 px-6 py-2 rounded-full border border-blue-400/50 text-blue-300 text-sm font-bold opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition duration-300">
+                            <h2 className="text-2xl md:text-3xl font-bold text-white mb-1">West Sector</h2>
+                            <p className="text-slate-400 text-xs md:text-sm">Americas • Europe • Atlantic</p>
+                            <div className="mt-4 md:mt-6 px-6 py-2 rounded-full border border-blue-400/50 text-blue-300 text-xs md:text-sm font-bold md:opacity-0 group-hover:opacity-100 transform md:translate-y-4 group-hover:translate-y-0 transition duration-300">
                                 ENTER <i className="ph ph-arrow-right ml-1"></i>
                             </div>
                         </div>
 
-                        {/* Special Discovery */}
+                        {/* Special Discovery - 手机上高度设为 auto 或固定值 */}
                         <div onClick={() => window.location.href='Destination.html'} 
-                             className="sector-card cursor-pointer group relative w-full md:w-1/3 h-[28rem] bg-gradient-to-b from-purple-900/40 to-slate-900/40 rounded-[2rem] border-2 border-purple-500/30 overflow-hidden flex flex-col items-center justify-center text-center p-6 shadow-[0_0_40px_rgba(168,85,247,0.15)] z-20 transform md:-translate-y-4">
+                             className="sector-card cursor-pointer group relative w-full md:w-1/3 h-80 md:h-[28rem] bg-gradient-to-b from-purple-900/40 to-slate-900/40 rounded-[1.5rem] md:rounded-[2rem] border-2 border-purple-500/30 overflow-hidden flex flex-col items-center justify-center text-center p-4 shadow-[0_0_40px_rgba(168,85,247,0.15)] z-20 transform md:-translate-y-4 order-first md:order-none">
                             <div className="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                            <div className="w-40 h-40 rounded-full bg-purple-500/20 flex items-center justify-center mb-8 group-hover:scale-110 transition duration-500 border border-purple-400/30 shadow-[0_0_40px_rgba(168,85,247,0.4)] animate-pulse">
-                                <i className="ph ph-paper-plane-right text-7xl text-purple-200"></i>
+                            <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-purple-500/20 flex items-center justify-center mb-6 md:mb-8 group-hover:scale-110 transition duration-500 border border-purple-400/30 shadow-[0_0_40px_rgba(168,85,247,0.4)] animate-pulse">
+                                <i className="ph ph-paper-plane-right text-5xl md:text-7xl text-purple-200"></i>
                             </div>
-                            <h2 className="text-4xl font-bold text-white mb-2">Discovery</h2>
-                            <p className="text-purple-200 text-sm">Where to next?</p>
-                            <div className="mt-8 px-8 py-3 rounded-full bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg transition duration-300">
+                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">Discovery</h2>
+                            <p className="text-purple-200 text-xs md:text-sm">Where to next?</p>
+                            <div className="mt-6 md:mt-8 px-8 py-3 rounded-full bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg transition duration-300 text-sm md:text-base">
                                 Launch Lesson
                             </div>
                         </div>
 
                         {/* East Sector */}
                         <div onClick={() => onSelectMap('east')} 
-                             className="sector-card cursor-pointer group relative w-full md:w-1/3 h-96 bg-gradient-to-b from-slate-800/40 to-slate-900/40 rounded-[2rem] border border-white/10 overflow-hidden flex flex-col items-center justify-center text-center p-6">
+                             className="sector-card cursor-pointer group relative w-full md:w-1/3 h-64 md:h-96 bg-gradient-to-b from-slate-800/40 to-slate-900/40 rounded-[1.5rem] md:rounded-[2rem] border border-white/10 overflow-hidden flex flex-col items-center justify-center text-center p-4">
                             <div className="absolute inset-0 bg-teal-500/10 opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                            <div className="w-32 h-32 rounded-full bg-teal-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition duration-500 border border-teal-400/30 shadow-[0_0_30px_rgba(45,212,191,0.3)]">
-                                <i className="ph ph-globe-hemisphere-east text-6xl text-teal-300"></i>
+                            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-teal-500/20 flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition duration-500 border border-teal-400/30 shadow-[0_0_30px_rgba(45,212,191,0.3)]">
+                                <i className="ph ph-globe-hemisphere-east text-4xl md:text-6xl text-teal-300"></i>
                             </div>
-                            <h2 className="text-3xl font-bold text-white mb-2">East Sector</h2>
-                            <p className="text-slate-400 text-sm">Asia • Oceania • Pacific</p>
-                            <div className="mt-6 px-6 py-2 rounded-full border border-teal-400/50 text-teal-300 text-sm font-bold opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition duration-300">
+                            <h2 className="text-2xl md:text-3xl font-bold text-white mb-1">East Sector</h2>
+                            <p className="text-slate-400 text-xs md:text-sm">Asia • Oceania • Pacific</p>
+                            <div className="mt-4 md:mt-6 px-6 py-2 rounded-full border border-teal-400/50 text-teal-300 text-xs md:text-sm font-bold md:opacity-0 group-hover:opacity-100 transform md:translate-y-4 group-hover:translate-y-0 transition duration-300">
                                 ENTER <i className="ph ph-arrow-right ml-1"></i>
                             </div>
                         </div>
@@ -253,11 +276,10 @@
             );
         };
 
-        // 2. Map View (布局修复版)
+        // 2. Map View (修复布局)
         const MapView = ({ mapData, onBack }) => {
             const [planePos, setPlanePos] = useState({ top: '80%', left: '10%', rotate: 0 });
             
-            // 初始化飞机位置
             useEffect(() => {
                 const lastTop = sessionStorage.getItem('lastPlaneTop');
                 const lastLeft = sessionStorage.getItem('lastPlaneLeft');
@@ -296,21 +318,22 @@
             return (
                 <div className="w-full h-full relative bg-slate-900 overflow-hidden fade-in flex flex-col">
                     
-                    {/* 顶部控制栏 (关键修复：Flex布局，防止重叠) */}
-                    <div className="w-full p-6 flex justify-between items-center z-50 bg-gradient-to-b from-black/50 to-transparent">
-                        <button onClick={onBack} className="nav-btn shadow-lg">
+                    {/* 顶部控制栏 (移动端改为纵向排列) */}
+                    <div className="w-full p-4 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 z-50 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
+                        <button onClick={onBack} className="nav-btn shadow-lg pointer-events-auto text-xs md:text-base">
                             <i className="ph ph-arrow-u-up-left text-lg"></i> Change Map
                         </button>
                         
-                        <div className="bg-white/10 backdrop-blur-md text-white px-6 py-2 rounded-full font-mono text-sm border border-white/20 shadow-lg flex items-center gap-2">
+                        <div className="bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full font-mono text-xs md:text-sm border border-white/20 shadow-lg flex items-center gap-2 pointer-events-auto self-end md:self-auto">
                             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
                             SECTOR: <span className="text-blue-300 font-bold">{mapData.title.toUpperCase()}</span>
                         </div>
                     </div>
 
-                    {/* 地图区域 - 居中显示 */}
-                    <div className="flex-1 w-full relative flex items-center justify-center p-4 overflow-hidden">
-                        <div className="relative w-full max-w-[1400px] aspect-video rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-slate-800 group">
+                    {/* 地图区域 */}
+                    <div className="flex-1 w-full relative flex items-center justify-center p-2 md:p-4 overflow-hidden">
+                        {/* 保持 aspect-video 在手机上可能会让地图太小，但在不改变图片比例的情况下是唯一的办法 */}
+                        <div className="relative w-full max-w-[1400px] aspect-video rounded-xl md:rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-slate-800 group">
                             
                             {/* 背景图 */}
                             <img src={mapData.bg} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-700" 
@@ -322,7 +345,7 @@
                                  style={{
                                      top: planePos.top,
                                      left: planePos.left,
-                                     transform: `translate(-50%, -50%) rotate(${planePos.rotate}deg) scaleX(${planePos.scale || 1}) scale(1.5)`
+                                     transform: `translate(-50%, -50%) rotate(${planePos.rotate}deg) scaleX(${planePos.scale || 1}) scale(1.0)`
                                  }}
                                  onError={(e) => e.target.style.display = 'none'} 
                             />
@@ -344,7 +367,7 @@
             );
         };
 
-        // --- Main App Shell ---
+        // --- Main App Shell (保持不变) ---
         const App = () => {
             const [view, setView] = useState('landing');
             const [currentMapKey, setCurrentMapKey] = useState(null);

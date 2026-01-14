@@ -2,9 +2,9 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tour Guide V29 - Complete Expedition</title>
-    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tour Guide V29 - Complete Expedition (iOS Fixed)</title>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.34.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -28,13 +28,26 @@
             background-image: radial-gradient(#fff 20%, transparent 20%), radial-gradient(#fff 20%, transparent 20%);
             background-size: 50px 50px; background-position: 0 0, 25px 25px;
             min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+            -webkit-tap-highlight-color: transparent;
         }
+
+        /* --- Home 按钮 (新增) --- */
+        .home-btn {
+            position: fixed; top: 15px; left: 15px; z-index: 2000;
+            background: rgba(255, 255, 255, 0.9); color: var(--primary);
+            padding: 8px 16px; border-radius: 50px; text-decoration: none;
+            font-family: 'Fredoka One', cursive; font-weight: 700; letter-spacing: 1px;
+            border: 2px solid var(--primary); box-shadow: 0 4px 0 var(--primary);
+            backdrop-filter: blur(5px); display: flex; align-items: center; gap: 8px;
+            text-transform: uppercase; font-size: 0.9rem; transition: transform 0.1s;
+        }
+        .home-btn:active { transform: translateY(4px); box-shadow: none; }
 
         .container {
             width: 100%; max-width: 950px;
             background: var(--card-bg); border: 8px solid #fff; border-radius: var(--border-radius);
             box-shadow: 0 20px 0px rgba(0,0,0,0.1); padding: 0; overflow: hidden; display: flex; flex-direction: column;
-            min-height: 900px; position: relative;
+            min-height: 900px; position: relative; margin-top: 50px; /* Space for Home Button */
         }
 
         .page { display: none; padding: 40px; flex: 1; flex-direction: column; animation: slideUp 0.6s ease; overflow-y: auto; }
@@ -100,10 +113,20 @@
         .cheque-paper { background: #f0fdf4; width: 80%; padding: 40px; border: 10px double #16a34a; transform: scale(0.5); transition: 0.5s; text-align: center; }
         .cheque-overlay.show .cheque-paper { transform: scale(1); }
 
+        @media (max-width: 600px) {
+            .container { width: 100%; border-radius: 0; margin-top: 0; min-height: 100vh; }
+            .home-btn { top: 10px; left: 10px; padding: 5px 12px; font-size: 0.8rem; }
+            .page { padding: 20px; padding-top: 60px; }
+            .job-poster { padding: 15px; }
+            .chat-ui { height: 50vh; }
+        }
+
         @keyframes popIn { 0%{transform:scale(0.9);opacity:0;} 100%{transform:scale(1);opacity:1;} }
     </style>
 </head>
 <body>
+
+<a href="../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
 
 <div class="container">
 
@@ -228,19 +251,66 @@
         }
     }
 
-    // SLOWER SPEECH (0.9 rate)
+    // 2. iOS 语音修复核心：强制使用浏览器原生语音作为降级方案
     function speak(text) {
-        if(!synthesizer) initAzure();
-        const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-            <voice name="en-US-JennyNeural"><prosody rate="0.9">${text.replace(/UP Stars/g, "U P Stars")}</prosody></voice>
-        </speak>`;
-        synthesizer.speakSsmlAsync(ssml);
+        // 先尝试停止之前的
+        if(synthesizer) { try{synthesizer.close();}catch(e){} synthesizer=null; }
+        window.speechSynthesis.cancel(); // 停止原生播放
+
+        // 尝试 Azure
+        try {
+            const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+            sc.speechSynthesisVoiceName = "en-US-JennyNeural";
+            const ac = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            synthesizer = new SpeechSDK.SpeechSynthesizer(sc, ac);
+
+            // 修改文案适合语音
+            const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US"><voice name="en-US-JennyNeural"><prosody rate="0.9">${text.replace(/UP Stars/g, "U P Stars")}</prosody></voice></speak>`;
+
+            synthesizer.speakSsmlAsync(ssml, 
+                result => {
+                    if (result.reason !== SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                        console.warn("Azure TTS Failed/Canceled. Fallback to Native.");
+                        speakNative(text);
+                    }
+                    synthesizer.close(); synthesizer = null;
+                },
+                err => {
+                    console.error("Azure TTS Error:", err);
+                    speakNative(text);
+                }
+            );
+        } catch(e) {
+            console.error("SDK Init Error:", e);
+            speakNative(text);
+        }
+    }
+
+    function speakNative(text) {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
     }
 
     function goToPage(pid) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pid).classList.add('active');
         document.querySelector('.container').scrollTop = 0;
+        window.scrollTo(0,0);
+    }
+
+    // --- 3. iOS 麦克风唤醒修复 ---
+    async function wakeUpAudio() {
+        try {
+            // 尝试请求一次 mic 权限来唤醒 AudioContext
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop()); // 立即停止，只为了唤醒
+            return true;
+        } catch (e) {
+            alert("Microphone access is required. Please check your browser settings.");
+            return false;
+        }
     }
 
     // --- P2: INTERVIEW ---
@@ -253,18 +323,34 @@
         state.chatHistory.push({role: "assistant", content: msg});
     }
 
-    function toggleMic() { state.isRec ? stopRec() : startRec(handleReply); }
-    function startRec(cb) {
-        if(!synthesizer) initAzure();
+    function toggleMic() { 
+        if(state.isRec) stopRec(); 
+        else startRec(handleReply); 
+    }
+
+    async function startRec(cb) {
+        // iOS 唤醒
+        const awake = await wakeUpAudio();
+        if(!awake) return;
+
+        if(!synthesizer) initAzure(); // Re-init if needed
         const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
         const ac = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
         recognizer = new SpeechSDK.SpeechRecognizer(sc, ac);
+        
         document.getElementById('interviewMic').classList.add('active');
         document.getElementById('micText').innerText = "Listening...";
         state.isRec = true;
+        
         recognizer.startContinuousRecognitionAsync();
-        recognizer.recognized = (s, e) => { if(e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) { stopRec(); cb(e.result.text); } };
+        recognizer.recognized = (s, e) => { 
+            if(e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) { 
+                stopRec(); 
+                cb(e.result.text); 
+            } 
+        };
     }
+
     function stopRec() {
         document.getElementById('interviewMic').classList.remove('active');
         document.getElementById('micText').innerText = "Thinking...";
@@ -309,7 +395,7 @@
         let list = [...destinations, ...destinations, ...destinations];
         list.forEach(d => {
             const el = document.createElement('div'); el.className = 'wheel-item';
-            el.innerHTML = `<img src="${d.img}" class="wheel-img">`;
+            el.innerHTML = `<img src="${d.img}" class="wheel-img" onerror="this.src='https://placehold.co/600x400?text=${d.name}'">`;
             track.appendChild(el);
         });
         speak("Spinning for a random destination...");
@@ -324,17 +410,28 @@
     }
 
     // --- P4: IDENTIFY ---
-    function setupP4() { document.getElementById('p4-img').src = state.dest.img; document.getElementById('evalResult').innerHTML = ""; }
-    function toggleEvalMic() {
+    function setupP4() { 
+        const img = document.getElementById('p4-img');
+        img.src = state.dest.img; 
+        img.onerror = () => { img.src = `https://placehold.co/600x400?text=${state.dest.name}`; };
+        document.getElementById('evalResult').innerHTML = ""; 
+    }
+    
+    async function toggleEvalMic() {
         if(!state.isRec) {
+            // iOS 唤醒
+            const awake = await wakeUpAudio();
+            if(!awake) return;
+
             document.getElementById('evalMic').classList.add('active'); state.isRec = true;
             const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
             const ac = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
             recognizer = new SpeechSDK.SpeechRecognizer(sc, ac);
             recognizer.recognizeOnceAsync(res => {
                 document.getElementById('evalMic').classList.remove('active'); state.isRec = false;
-                const said = res.text.toLowerCase(); const target = state.dest.name.toLowerCase();
-                const isMatch = said.includes(target.split(' ')[0]);
+                const said = res.text.toLowerCase().replace(/[.,]/g, ''); 
+                const target = state.dest.name.toLowerCase();
+                const isMatch = said.includes(target.split(' ')[0]) || said.includes(target.split(' ')[1] || 'xyz');
                 document.getElementById('evalResult').innerHTML = `<span style="color:${isMatch?'green':'red'}">${res.text}</span>`;
                 if(isMatch) { speak("Correct!"); document.getElementById('p4Next').style.display = 'block'; }
             });
@@ -353,9 +450,13 @@
         state.guideResults = [];
     }
 
-    function toggleGuideMic() {
+    async function toggleGuideMic() {
         const btn = document.getElementById('guideMic');
         if(!state.isRec) {
+            // iOS 唤醒
+            const awake = await wakeUpAudio();
+            if(!awake) return;
+
             btn.classList.add('active'); state.isRec = true;
             const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
             recognizer = new SpeechSDK.SpeechRecognizer(sc, SpeechSDK.AudioConfig.fromDefaultMicrophoneInput());

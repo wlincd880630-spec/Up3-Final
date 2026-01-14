@@ -7,7 +7,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&family=Merriweather:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.34.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
 
     <style>
         :root {
@@ -35,9 +35,20 @@
             background: rgba(0,0,0,0.7); z-index: -1;
         }
 
+        /* --- Home 按钮 --- */
+        .home-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 2000;
+            background: rgba(255, 255, 255, 0.15); color: white;
+            padding: 8px 16px; border-radius: 50px; text-decoration: none;
+            font-weight: 700; border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(5px); transition: 0.3s; display: flex; align-items: center; gap: 8px;
+            text-transform: uppercase; font-size: 0.9rem;
+        }
+        .home-btn:hover { background: var(--accent); border-color: var(--accent); }
+
         .container {
             width: 95%; max-width: 900px;
-            margin: 30px auto;
+            margin: 40px auto;
             display: flex; flex-direction: column; gap: 25px;
         }
 
@@ -48,6 +59,7 @@
             padding: 25px;
             border-radius: 15px;
             border: 1px solid rgba(255,255,255,0.2);
+            margin-top: 30px;
         }
         h1 { margin: 0; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
         .sub-text { font-size: 0.9rem; color: #ccc; margin-top: 5px; }
@@ -76,9 +88,12 @@
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
             color: white; padding: 6px 14px; border-radius: 20px;
             cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;
+            transition: 0.3s;
         }
         .btn-tool:hover { background: rgba(255,255,255,0.2); }
         .btn-tool.active { background: var(--accent); border-color: var(--accent); }
+        .btn-tool.playing { background: #27ae60; border-color: #27ae60; animation: pulse 1.5s infinite; }
+
         .speed-select {
             background: rgba(0,0,0,0.3); color: white; border: 1px solid #777;
             border-radius: 5px; padding: 5px; font-size: 0.85rem;
@@ -112,6 +127,7 @@
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); transition: 0.3s;
         }
+        .btn-record:active { transform: scale(0.95); }
         .btn-record.recording { animation: pulseRed 1.5s infinite; background: #c0392b; }
         .status-text { font-size: 0.9rem; color: #ccc; min-height: 20px; font-weight: 500;}
 
@@ -189,19 +205,19 @@
             70% { box-shadow: 0 0 0 20px rgba(231, 76, 60, 0); }
             100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
         }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
     <div class="overlay-bg"></div>
 
+    <a href="../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
+
     <div class="container">
         <div class="header-section">
-            <h1>Deep Analysis Contest 
-
-[Image of sound wave analysis]
-</h1>
-            <div class="sub-text">Click red words to see which sound (phoneme) was wrong</div>
+            <h1>Deep Analysis Contest</h1>
+            <div class="sub-text">Record your voice. Click red words to see phoneme errors.</div>
         </div>
 
         <div id="sentences-list"></div>
@@ -209,10 +225,11 @@
 
     <div class="nav-bar">
         <button class="nav-btn" onclick="window.location.href='page4_2.html'">❮ Previous</button>
-        <button class="nav-btn" onclick="alert('Module Complete!')">Finish 🏁</button>
+        <button class="nav-btn" onclick="alert('Congratulations! You have completed the full module!')">Finish 🏁</button>
     </div>
 
     <script>
+        // --- 1. Azure 配置 ---
         const AZURE_KEY = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
         const AZURE_REGION = "eastus2";
 
@@ -233,13 +250,41 @@
 
         let recognizers = {}; 
         let isRecording = {};
+        let synthesizer = null;
+        let activeBtn = null;
+
+        // 初始化 Azure 语音合成
+        function initSynthesizer() {
+            if (typeof SpeechSDK !== 'undefined') {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+                // 使用英式发音 (British)
+                speechConfig.speechSynthesisVoiceName = "en-GB-SoniaNeural"; 
+                synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+            }
+        }
 
         window.onload = function() {
+            initSynthesizer();
             const container = document.getElementById('sentences-list');
             fullTextSentences.forEach((text, index) => {
                 createSentenceCard(container, text, index + 1);
             });
         };
+
+        // --- 核心修复：强制唤醒麦克风权限 (解决 iOS 问题) ---
+        async function wakeUpAudio() {
+            try {
+                // 请求一个极短的流来唤醒 AudioContext
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                // 立即关闭流，只为了获取权限和唤醒硬件
+                stream.getTracks().forEach(track => track.stop());
+                return true;
+            } catch (e) {
+                console.error("Mic access denied or error:", e);
+                alert("Please allow microphone access to use this feature.");
+                return false;
+            }
+        }
 
         function createSentenceCard(container, text, num) {
             const card = document.createElement('div');
@@ -282,14 +327,65 @@
 
         // --- TTS & Blind Mode ---
         function playTTS(btn, text) {
+            // 停止录音如果正在进行
+            if (Object.values(isRecording).some(v => v)) {
+                alert("Please stop recording first.");
+                return;
+            }
+
+            if(activeBtn) {
+                activeBtn.classList.remove('playing');
+                activeBtn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+            }
+
+            if(synthesizer) {
+                synthesizer.close();
+                initSynthesizer(); // Reset
+            }
             window.speechSynthesis.cancel();
+
+            activeBtn = btn;
             const toolbar = btn.parentElement;
             const speedSelect = toolbar.querySelector('.speed-select');
-            let msg = new SpeechSynthesisUtterance(text);
+            
+            // 使用 Azure TTS
+            try {
+                if(!synthesizer) initSynthesizer();
+                
+                // 视觉反馈
+                btn.classList.add('playing');
+                btn.innerHTML = '<i class="fas fa-stop"></i>';
+
+                const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-GB">
+                    <voice name="en-GB-SoniaNeural">
+                        <prosody rate="${speedSelect.value}">${text}</prosody>
+                    </voice>
+                </speak>`;
+
+                synthesizer.speakSsmlAsync(
+                    ssml,
+                    result => {
+                        btn.classList.remove('playing');
+                        btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+                        synthesizer.close();
+                        synthesizer = null;
+                    },
+                    error => {
+                        console.log("Azure TTS error, fallback to browser");
+                        browserSpeak(text, btn, speedSelect.value);
+                    }
+                );
+            } catch(e) {
+                browserSpeak(text, btn, speedSelect.value);
+            }
+        }
+
+        function browserSpeak(text, btn, rate) {
+            const msg = new SpeechSynthesisUtterance(text);
             msg.lang = 'en-GB';
-            msg.rate = parseFloat(speedSelect.value);
-            msg.onstart = () => { btn.innerHTML = '<i class="fas fa-stop"></i>'; btn.classList.add('active'); };
-            msg.onend = () => { btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen'; btn.classList.remove('active'); };
+            msg.rate = parseFloat(rate);
+            msg.onstart = () => { btn.innerHTML = '<i class="fas fa-stop"></i>'; btn.classList.add('playing'); };
+            msg.onend = () => { btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen'; btn.classList.remove('playing'); };
             window.speechSynthesis.speak(msg);
         }
 
@@ -309,14 +405,28 @@
             if(el.parentElement.classList.contains('blind-mode')) el.classList.add('revealed');
         }
 
-        // --- Azure Recording ---
+        // --- Azure Recording with iOS Fix ---
         async function handleRecording(id, referenceText) {
             const btn = document.getElementById(`btn-rec-${id}`);
             const status = document.getElementById(`status-${id}`);
+            
+            // 如果正在播放音频，先停止
+            if(activeBtn) {
+                window.speechSynthesis.cancel();
+                if(synthesizer) { synthesizer.close(); synthesizer = null; }
+                activeBtn.classList.remove('playing');
+                activeBtn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+            }
+
             if (isRecording[id]) {
                 stopAzureRecording(id);
                 return;
             }
+
+            // 关键：iOS 唤醒
+            const awake = await wakeUpAudio();
+            if (!awake) return;
+
             startAzureRecording(id, referenceText, btn, status);
         }
 
@@ -352,6 +462,7 @@
                 };
 
                 recognizer.canceled = (s, e) => {
+                    console.log("Canceled: " + e.reason);
                     stopAzureRecording(id);
                 };
 
@@ -366,7 +477,7 @@
                         status.innerText = "Analysis Complete";
                         status.style.color = "#2ecc71";
                     } else {
-                        status.innerText = "No clear voice. Try again.";
+                        status.innerText = "No voice detected. Try again.";
                         status.style.color = "#ccc";
                     }
                 };
@@ -405,9 +516,8 @@
             const prosody = Math.round(result.prosodyScore);
             const total = Math.round((accuracy * 0.4) + (fluency * 0.2) + (completeness * 0.2) + (prosody * 0.2));
 
-            // Generate Word Feedback with Phoneme Data
             let wordsHtml = "";
-            let wordDataMap = {}; // store phoneme data by index
+            let wordDataMap = {}; 
 
             if (jsonResult && jsonResult.NBest && jsonResult.NBest[0] && jsonResult.NBest[0].Words) {
                 const words = jsonResult.NBest[0].Words;
@@ -417,16 +527,12 @@
                     const errorType = w.PronunciationAssessment.ErrorType;
                     const phonemes = w.Phonemes || [];
                     
-                    // Store phoneme data for onclick event
-                    // Using encodeURIComponent to safely put JSON in HTML attribute is one way,
-                    // but storing in a temporary map is cleaner.
                     const wordId = `w-${Date.now()}-${idx}`;
                     wordDataMap[wordId] = { text: wordText, phonemes: phonemes };
 
                     if (errorType === "None") {
                         return `<span class="w-ok">${wordText}</span>`;
                     } else if (errorType === "Mispronunciation") {
-                        // Pass the ID to the onclick function
                         return `<span class="w-bad" onclick="showPhonemes(this, '${wordId}')">${wordText}</span>`;
                     } else if (errorType === "Omission") {
                         return `<span class="w-miss">${wordText}</span>`;
@@ -440,7 +546,6 @@
 
             const card = document.createElement('div');
             card.className = 'score-card';
-            // We attach the data map to the card element for easy access
             card.dataset.wordData = JSON.stringify(wordDataMap);
 
             card.innerHTML = `
@@ -471,7 +576,6 @@
 
         // Show Phonemes
         window.showPhonemes = function(el, wordId) {
-            // Find parent card
             const card = el.closest('.score-card');
             const analysisBox = card.querySelector('.phoneme-analysis');
             const dataMap = JSON.parse(card.dataset.wordData);
@@ -482,7 +586,7 @@
             let badgesHtml = data.phonemes.map(p => {
                 const score = p.PronunciationAssessment.AccuracyScore;
                 const phText = p.Phoneme;
-                const isGood = score >= 60; // Threshold
+                const isGood = score >= 60; 
                 const cls = isGood ? 'ph-good' : 'ph-bad';
                 return `<span class="ph-badge ${cls}">${phText} ${Math.floor(score)}</span>`;
             }).join("");

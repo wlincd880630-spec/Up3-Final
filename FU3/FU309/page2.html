@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Unit 3 - Travel Adventures | Page 2</title>
-    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.34.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
     <style>
@@ -318,7 +318,7 @@
             <a href="page1.html" class="nav-btn">Page 1</a>
             <a href="page2.html" class="nav-btn active">Page 2</a>
             <a href="page3.html" class="nav-btn">Page 3</a>
-            <a href="page4.html" class="nav-btn">Page 4</a>
+            <a href="./page4/page4_1.html" class="nav-btn">Page 4</a>
         </div>
     </nav>
 
@@ -358,13 +358,14 @@
 
     <script>
         // --- 1. Azure Speech SDK 配置 ---
-        const azureKey = ""; // 在此填入您的 Key
-        const azureRegion = ""; 
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9"; 
+        const azureRegion = "eastus2"; 
         let synthesizer;
 
         function initSpeechSDK() {
             if (typeof SpeechSDK !== 'undefined' && azureKey && azureRegion) {
                 const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                // 设置高品质神经语音
                 speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
                 synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
             }
@@ -376,23 +377,33 @@
         };
 
         function playAudio(text, btnElement) {
+            // Visual feedback on
             if(btnElement) btnElement.classList.add('playing');
 
+            // Try Azure first
             if (synthesizer) {
                 synthesizer.speakTextAsync(
                     text,
                     result => {
+                        // Success or fail callback
+                        if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                            // Audio finished
+                        } else {
+                            console.warn("Azure TTS canceled/failed: " + result.errorDetails);
+                            browserSpeak(text, btnElement); // Fallback
+                        }
                         if(btnElement) btnElement.classList.remove('playing');
                         synthesizer.close();
                         synthesizer = undefined;
-                        initSpeechSDK();
+                        initSpeechSDK(); // Re-init for next usage
                     },
                     error => {
-                        console.log("Azure error, fallback");
-                        browserSpeak(text, btnElement);
+                        console.error("Azure error: " + error);
+                        browserSpeak(text, btnElement); // Fallback
                     }
                 );
             } else {
+                // If SDK not loaded or init failed
                 browserSpeak(text, btnElement);
             }
         }
@@ -401,8 +412,8 @@
             window.speechSynthesis.cancel();
             const ut = new SpeechSynthesisUtterance(text);
             const voices = window.speechSynthesis.getVoices();
-            // 尝试寻找英音或美音
-            ut.voice = voices.find(v => v.lang.includes('GB') || v.name.includes('UK') || v.lang.includes('US')) || null;
+            // Try to find a good English voice
+            ut.voice = voices.find(v => v.lang.includes('US') || v.name.includes('Google US')) || null;
             ut.rate = 0.9;
             ut.onend = () => { if(btnElement) btnElement.classList.remove('playing'); };
             window.speechSynthesis.speak(ut);

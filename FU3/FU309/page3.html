@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Unit 3 - Practice | Page 3</title>
-    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.34.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
     <style>
@@ -345,7 +345,7 @@
             <a href="page1.html" class="nav-btn">Page 1</a>
             <a href="page2.html" class="nav-btn">Page 2</a>
             <a href="page3.html" class="nav-btn active">Page 3</a>
-            <a href="page4.html" class="nav-btn">Page 4</a>
+            <a href="./page4/page4_1.html" class="nav-btn">Page 4</a>
         </div>
     </nav>
 
@@ -544,16 +544,16 @@
     </div>
 
     <script>
-        // --- 1. Azure Speech SDK 配置 ---
-        // 请在此填入您的 Azure Key 和 Region
-        const azureKey = ""; 
-        const azureRegion = ""; 
-        
-        let synthesizer;
+        // --- 1. Azure Speech SDK Configuration ---
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9"; 
+        const azureRegion = "eastus2"; 
+        let synthesizer = null;
+        let activeBtn = null;
 
         function initSpeechSDK() {
             if (typeof SpeechSDK !== 'undefined' && azureKey && azureRegion) {
                 const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                // Set high quality neural voice
                 speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural"; 
                 synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
             }
@@ -563,25 +563,49 @@
             initSpeechSDK();
         };
 
-        // 统一播放函数
         function playAudio(text, btnElement) {
-            if(btnElement) btnElement.classList.add('playing');
+            // Visual feedback
+            if(btnElement) {
+                activeBtn = btnElement;
+                activeBtn.classList.add('playing');
+            }
 
+            // Stop any existing playback
             if (synthesizer) {
+                try { synthesizer.close(); } catch(e) {}
+                synthesizer = null;
+            }
+            window.speechSynthesis.cancel(); // Stop browser TTS too
+
+            // Try Azure first
+            try {
+                if (typeof SpeechSDK === 'undefined') throw new Error("SDK not loaded");
+                
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+
                 synthesizer.speakTextAsync(
                     text,
                     result => {
-                        if(btnElement) btnElement.classList.remove('playing');
+                        if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                            // Success
+                        } else {
+                            console.warn("Azure TTS canceled/failed: " + result.errorDetails);
+                            browserSpeak(text, btnElement); // Fallback
+                        }
+                        if(activeBtn) activeBtn.classList.remove('playing');
                         synthesizer.close();
-                        synthesizer = undefined;
-                        initSpeechSDK(); // 重新初始化
+                        synthesizer = null;
                     },
                     error => {
-                        console.log("Azure error, fallback");
-                        browserSpeak(text, btnElement);
+                        console.error("Azure error: " + error);
+                        browserSpeak(text, btnElement); // Fallback
+                        if(activeBtn) activeBtn.classList.remove('playing');
                     }
                 );
-            } else {
+            } catch (e) {
                 browserSpeak(text, btnElement);
             }
         }
@@ -590,9 +614,10 @@
             window.speechSynthesis.cancel();
             const ut = new SpeechSynthesisUtterance(text);
             const voices = window.speechSynthesis.getVoices();
-            ut.voice = voices.find(v => v.lang.includes('GB') || v.name.includes('UK') || v.lang.includes('US')) || null;
+            // Try to find a good English voice
+            ut.voice = voices.find(v => v.lang.includes('US') || v.name.includes('Google US')) || null;
             ut.rate = 0.9;
-            ut.onend = () => { if(btnElement) btnElement.classList.remove('playing'); };
+            ut.onend = () => { if(activeBtn) activeBtn.classList.remove('playing'); };
             window.speechSynthesis.speak(ut);
         }
 

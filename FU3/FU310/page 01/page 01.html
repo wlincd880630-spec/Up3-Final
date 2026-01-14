@@ -2,10 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>London: The Movie City</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.34.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Nunito:wght@400;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -15,21 +18,42 @@
             --secondary-color: #4ECDC4;
             --accent-color: #FFE66D;
             --text-color: #2d3436;
+            --glass-bg: rgba(255, 255, 255, 0.95);
         }
 
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Nunito', sans-serif; overflow: hidden; background-color: #1a1a1a; }
         #map { width: 100%; height: 100%; z-index: 1; }
 
+        /* --- 悬浮按钮通用样式 --- */
+        .float-btn {
+            position: fixed; z-index: 4000;
+            background: rgba(255, 255, 255, 0.9); color: var(--text-color);
+            padding: 10px 20px; border-radius: 50px; text-decoration: none;
+            font-family: 'Nunito', sans-serif; font-weight: 700;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 2px solid var(--primary-color);
+            transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;
+            font-size: 0.95rem; text-transform: uppercase;
+        }
+        .float-btn:hover { transform: scale(1.05); background: white; box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+
+        /* Home 按钮 (左上) */
+        .home-btn { top: 20px; left: 20px; }
+
+        /* Next 按钮 (右下) */
+        .next-btn { bottom: 30px; right: 30px; background: var(--primary-color); color: white; border-color: white; }
+        .next-btn:hover { background: #ff5252; color: white; }
+
         /* --- Teacher Panel --- */
         .teacher-panel {
-            position: absolute; bottom: 30px; right: 30px; width: 420px; /* 稍微加宽一点以容纳长句 */
+            position: absolute; bottom: 40px; left: 40px; width: 420px;
             max-width: 90%;
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px);
+            background: var(--glass-bg); backdrop-filter: blur(12px);
             border-radius: 20px; padding: 25px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 3000;
             transform: translateY(100px); opacity: 0;
             animation: slideUp 0.8s forwards 0.5s;
             border-left: 8px solid var(--primary-color);
+            transition: all 0.3s ease;
         }
         @keyframes slideUp { to { transform: translateY(0); opacity: 1; } }
 
@@ -49,40 +73,42 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: 0.2s;
         }
         .tts-btn:hover { background: var(--primary-color); transform: scale(1.1); }
+        .tts-btn.playing { animation: pulse 1s infinite; background: var(--primary-color); }
 
-        .dialogue-text { font-size: 1.15rem; color: #333; line-height: 1.5; margin: 20px 0 25px 0; min-height: 50px; padding-right: 20px; }
+        .dialogue-text { font-size: 1.15rem; color: #333; line-height: 1.5; margin: 25px 0 20px 0; min-height: 50px; }
         
         .action-btn {
             background: linear-gradient(45deg, var(--primary-color), #ff8e53);
-            border: none; padding: 15px 30px; color: white;
-            font-family: 'Fredoka', sans-serif; font-size: 1.3rem;
+            border: none; padding: 12px 25px; color: white;
+            font-family: 'Fredoka', sans-serif; font-size: 1.1rem;
             border-radius: 50px; cursor: pointer; width: 100%;
             transition: transform 0.2s; box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-            animation: pulse 2s infinite;
+            animation: pulseShadow 2s infinite;
         }
         .action-btn:active { transform: scale(0.98); }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(255, 107, 107, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); } }
+        @keyframes pulseShadow { 0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(255, 107, 107, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
         /* --- Markers --- */
         .custom-label-pin {
             background: var(--secondary-color); color: #fff; 
-            font-size: 26px; font-weight: 900;
-            font-family: 'Fredoka', sans-serif; text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
-            padding: 12px 30px; width: max-content; max-width: 400px;
-            border-radius: 50px; border: 5px solid #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            font-size: 20px; font-weight: 900;
+            font-family: 'Fredoka', sans-serif; text-shadow: 1px 1px 0px rgba(0,0,0,0.2);
+            padding: 8px 20px; width: max-content; max-width: 300px;
+            border-radius: 50px; border: 4px solid #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.5);
             text-align: center; position: relative; 
             transform: translate(-50%, -110%);
             animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000;
         }
         .custom-label-pin::after {
-            content: ''; position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%);
-            border-width: 12px 12px 0; border-style: solid; border-color: var(--secondary-color) transparent transparent transparent;
+            content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
+            border-width: 10px 10px 0; border-style: solid; border-color: var(--secondary-color) transparent transparent transparent;
         }
 
         .movie-poster-pin {
-            width: 160px; height: 240px; 
+            width: 140px; height: 210px; 
             background-size: cover; background-position: center; background-repeat: no-repeat;
-            border-radius: 10px; border: 5px solid #fff; 
+            border-radius: 10px; border: 4px solid #fff; 
             box-shadow: 0 20px 50px rgba(0,0,0,0.7);
             cursor: pointer; transition: transform 0.3s; 
             animation: float 3s ease-in-out infinite;
@@ -102,28 +128,90 @@
         }
         .video-modal::before {
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); z-index: -1;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: -1;
         }
-        .modal-info-bar { text-align: center; margin-bottom: 20px; animation: slideDown 0.8s; }
-        .info-movie-title { font-family: 'Cinzel', serif; color: var(--accent-color); font-size: 2.5rem; margin: 0; text-shadow: 0 2px 10px rgba(255,230,109,0.4); }
-        .info-location-name { font-family: 'Nunito', sans-serif; color: #fff; font-size: 1.5rem; margin-top: 5px; text-shadow: 0 2px 5px rgba(0,0,0,0.8); }
+        .modal-info-bar { text-align: center; margin-bottom: 20px; animation: slideDown 0.8s; width: 90%; }
+        .info-movie-title { font-family: 'Cinzel', serif; color: var(--accent-color); font-size: 2rem; margin: 0; text-shadow: 0 2px 10px rgba(255,230,109,0.4); }
+        .info-location-name { font-family: 'Nunito', sans-serif; color: #fff; font-size: 1.2rem; margin-top: 5px; opacity: 0.9; }
         
         .video-container {
-            width: 80%; max-width: 1000px; background: #000; border-radius: 16px; overflow: hidden;
+            width: 90%; max-width: 900px; aspect-ratio: 16/9; background: #000; border-radius: 16px; overflow: hidden;
             box-shadow: 0 30px 80px rgba(0,0,0,0.9); border: 2px solid rgba(255,255,255,0.3);
             transform: scale(0.5); opacity: 0;
         }
         .video-modal.active .video-container { animation: zoomExpand 0.6s forwards; }
-        video { width: 100%; display: block; outline: none; }
-        .close-btn { position: absolute; top: 30px; right: 40px; color: #fff; font-size: 3rem; cursor: pointer; text-shadow: 0 2px 5px rgba(0,0,0,0.8); }
+        video { width: 100%; height: 100%; object-fit: contain; display: block; outline: none; }
+        .close-btn { position: absolute; top: 30px; right: 40px; color: #fff; font-size: 2.5rem; cursor: pointer; text-shadow: 0 2px 5px rgba(0,0,0,0.8); z-index: 5001; }
         .close-btn:hover { color: var(--primary-color); }
 
         @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes zoomExpand { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
+        /* =========================================
+           移动端深度适配 (Mobile Media Queries)
+           ========================================= */
+        @media (max-width: 768px) {
+            /* Home 按钮缩小 */
+            .home-btn { top: 10px; left: 10px; padding: 6px 14px; font-size: 0.8rem; }
+            
+            /* Next 按钮调整位置，防止挡住内容 */
+            .next-btn { bottom: 20px; right: 20px; padding: 8px 16px; font-size: 0.9rem; }
+
+            /* 老师对话框优化 */
+            .teacher-panel {
+                width: 92%;
+                left: 4%;
+                right: auto;
+                bottom: 80px; /* 留出底部 Next 按钮的空间 */
+                padding: 15px;
+                border-radius: 15px;
+            }
+            .teacher-avatar {
+                width: 55px; height: 55px;
+                top: -25px; left: 15px;
+                border-width: 3px;
+            }
+            .dialogue-text {
+                font-size: 1rem;
+                line-height: 1.4;
+                margin: 20px 0 10px 0;
+            }
+            .action-btn {
+                font-size: 1rem;
+                padding: 10px;
+            }
+            .tts-btn {
+                width: 30px; height: 30px;
+                top: 10px; right: 10px;
+            }
+
+            /* 海报标记缩小 */
+            .movie-poster-pin {
+                width: 80px; height: 120px; /* 手机上大幅缩小 */
+                border-width: 2px;
+            }
+            
+            /* 文字标记缩小 */
+            .custom-label-pin {
+                font-size: 14px;
+                padding: 6px 12px;
+                border-width: 2px;
+            }
+
+            /* 视频弹窗优化 */
+            .video-container { width: 95%; }
+            .close-btn { top: 15px; right: 15px; font-size: 2rem; }
+            .info-movie-title { font-size: 1.4rem; }
+            .info-location-name { font-size: 0.9rem; }
+        }
+
     </style>
 </head>
 <body>
+
+    <a href="../../../index.html" class="float-btn home-btn"><i class="fas fa-home"></i> Home</a>
+
+    <a href="../page 02/page 02.html" class="float-btn next-btn" id="nav-next" style="display:none;">Next: Part 2 <i class="fas fa-arrow-right"></i></a>
 
     <div id="map"></div>
 
@@ -147,7 +235,7 @@
             <div class="info-location-name"><i class="fas fa-map-marker-alt"></i> <span id="display-location-name">Location Name</span></div>
         </div>
         <div class="video-container">
-            <video id="movie-player" controls><source src="" type="video/mp4"></video>
+            <video id="movie-player" controls playsinline><source src="" type="video/mp4"></video>
         </div>
     </div>
 
@@ -157,30 +245,64 @@
         const speechKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
         const speechRegion = "eastus2";
         let synthesizer;
+        let activeBtn = null;
 
         function azureSpeak(text) {
-            if (typeof SpeechSDK === 'undefined') {
-                alert("Azure SDK loading...");
-                return;
-            }
+            // Stop previous
             if (synthesizer) {
                 try { synthesizer.close(); } catch(e){}
                 synthesizer = undefined;
             }
-            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
-            speechConfig.speechSynthesisVoiceName = "en-GB-RyanNeural"; 
+            window.speechSynthesis.cancel();
 
-            const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
-            synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+            // Visual feedback
+            const btn = document.querySelector('.tts-btn');
+            if(btn) btn.classList.add('playing');
 
-            synthesizer.speakTextAsync(text,
-                result => { synthesizer.close(); synthesizer = undefined; },
-                err => { console.error(err); synthesizer.close(); synthesizer = undefined; }
-            );
+            if (typeof SpeechSDK === 'undefined') {
+                browserSpeak(text);
+                return;
+            }
+
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+                // 使用英音 Ryan (地道伦敦腔)
+                speechConfig.speechSynthesisVoiceName = "en-GB-RyanNeural"; 
+
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+
+                synthesizer.speakTextAsync(text,
+                    result => {
+                        if(btn) btn.classList.remove('playing');
+                        if (result.reason !== SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                            browserSpeak(text); // Fallback if Azure fails
+                        }
+                        synthesizer.close(); synthesizer = undefined;
+                    },
+                    err => {
+                        console.error(err);
+                        if(btn) btn.classList.remove('playing');
+                        browserSpeak(text); // Fallback on error
+                        synthesizer.close(); synthesizer = undefined;
+                    }
+                );
+            } catch (e) {
+                console.error(e);
+                browserSpeak(text);
+            }
+        }
+
+        function browserSpeak(text) {
+            const btn = document.querySelector('.tts-btn');
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'en-GB';
+            u.onend = () => { if(btn) btn.classList.remove('playing'); };
+            window.speechSynthesis.speak(u);
         }
 
         function speakCurrentText() {
-            const text = document.getElementById('teacher-text').innerText;
+            const text = document.getElementById('teacher-text').innerText.replace(/<[^>]*>/g, ''); // Remove HTML tags
             azureSpeak(text);
         }
 
@@ -229,7 +351,9 @@
         ];
 
         // --- Map Init ---
-        const map = L.map('map', {zoomControl: false}).setView([51.505, -0.1], 13);
+        // 初始缩放调整，手机上稍微远一点
+        const initZoom = window.innerWidth < 768 ? 12 : 13;
+        const map = L.map('map', {zoomControl: false}).setView([51.505, -0.1], initZoom);
         
         const noLabelLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CartoDB', maxZoom: 19
@@ -262,7 +386,9 @@
             const bounds = L.latLngBounds(locations.map(loc => [loc.lat, loc.lng]));
             map.flyToBounds(bounds.pad(0.2), {duration: 1.5});
             
-            teacherText.innerHTML = "Here are some famous landmarks...<br><strong>Now do you have an idea about the place?</strong>";
+            const txt = "Here are some famous landmarks... Now do you have an idea about the place?";
+            teacherText.innerHTML = txt;
+            azureSpeak(txt);
             nextBtn.innerHTML = "I know! Reveal the City";
             currentStep = 1;
         }
@@ -270,19 +396,28 @@
         // Step 2
         function revealLondon() {
             map.removeLayer(noLabelLayer); map.addLayer(labelLayer);
+            const txt = "Yes! This is a map of LONDON! Today, we will discover a unique feature of London that is truly worth exploring. What is that?";
             teacherText.innerHTML = "Yes! <strong>This is a map of LONDON!</strong><br>Today, we will discover a unique feature of London that is truly worth exploring.<br>What is that?";
+            azureSpeak(txt);
             nextBtn.innerHTML = "Show the Secret Feature";
             currentStep = 2;
         }
 
-        // Step 3 (Updated Text)
+        // Step 3
         function showMoviePosters() {
             const posterMarkers = [];
+            // 根据屏幕大小调整图标尺寸
+            const isMobile = window.innerWidth < 768;
+            const iconW = isMobile ? 80 : 160;
+            const iconH = isMobile ? 120 : 240;
+            const anchorX = iconW / 2;
+            const anchorY = iconH + 20;
+
             locations.forEach((loc, index) => {
                 const posterIcon = L.divIcon({
                     className: 'poster-wrap',
-                    html: `<div class='movie-poster-pin' style='background-image: url("${loc.poster}"), url("https://via.placeholder.com/150x200?text=Poster");'></div>`,
-                    iconSize: [160, 240], iconAnchor: [80, 310] 
+                    html: `<div class='movie-poster-pin' style='background-image: url("${loc.poster}"), url("https://via.placeholder.com/150x200?text=Poster"); width:${iconW}px; height:${iconH}px;'></div>`,
+                    iconSize: [iconW, iconH], iconAnchor: [anchorX, anchorY] 
                 });
 
                 const marker = L.marker([loc.lat, loc.lng], {icon: posterIcon, zIndexOffset: 2000}).addTo(map);
@@ -290,10 +425,13 @@
                 posterMarkers.push(marker);
             });
 
-            // 核心修改：加上了引导语
+            const txt = "London appears in movies shown around the world! So, a special feature of visiting London is exploring these famous movie locations! Let’s watch some clips! Click the posters.";
             teacherText.innerHTML = "London appears in movies shown around the world!<br>So, a special feature of visiting London is exploring these famous <strong>movie locations</strong>!<br><strong>Let’s watch some clips! Click the posters.</strong>";
+            azureSpeak(txt);
             
+            // 隐藏 Next 按钮，显示底部导航链接
             nextBtn.style.display = 'none';
+            document.getElementById('nav-next').style.display = 'flex'; // 显示 Next Page 导航
 
             const group = new L.featureGroup(posterMarkers);
             map.flyToBounds(group.getBounds().pad(0.4)); 
@@ -312,6 +450,7 @@
             displayLoc.innerText = loc.name;
             player.src = loc.video;
             videoModal.style.display = 'flex';
+            // Force reflow
             void videoModal.offsetWidth; 
             videoModal.classList.add('active');
             player.play();

@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Part 2: First Reading & Listening</title>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.34.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&family=Merriweather:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;600;800&family=Merriweather:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
         :root {
@@ -36,10 +38,22 @@
             z-index: -1;
         }
 
+        /* --- Home 按钮 (新增) --- */
+        .home-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 2000;
+            background: rgba(255, 255, 255, 0.15); color: white;
+            padding: 8px 16px; border-radius: 50px; text-decoration: none;
+            font-weight: 700; border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(5px); transition: 0.3s; display: flex; align-items: center; gap: 8px;
+            text-transform: uppercase; font-size: 0.9rem;
+        }
+        .home-btn:hover { background: var(--accent); border-color: var(--accent); }
+
         .container {
             width: 90%; max-width: 900px;
             margin: 40px auto;
             display: flex; flex-direction: column; gap: 30px;
+            position: relative; z-index: 10;
         }
 
         /* 标题区 */
@@ -50,6 +64,7 @@
             padding: 20px;
             border-radius: 15px;
             border: 1px solid rgba(255,255,255,0.1);
+            margin-top: 40px; /* 留出 Home 按钮空间 */
         }
         h1 { margin: 0; font-size: 2rem; text-transform: uppercase; letter-spacing: 2px; }
         .sub-text { font-family: 'Merriweather', serif; color: #bdc3c7; margin-top: 10px; }
@@ -84,7 +99,9 @@
             transition: 0.3s;
         }
         .tts-btn:hover { background: var(--accent); border-color: var(--accent); transform: scale(1.1); }
-        .playing { animation: pulse 1.5s infinite; background: var(--accent); }
+        .tts-btn.playing { animation: pulse 1.5s infinite; background: var(--accent); border-color: var(--accent); }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
         /* 挖空样式 (Cloze) */
         .cloze-gap {
@@ -174,6 +191,8 @@
             background: transparent; border: 1px solid white; color: white;
             padding: 8px 20px; border-radius: 20px; cursor: pointer;
             transition: 0.3s;
+            text-decoration: none;
+            font-size: 1rem;
         }
         .nav-btn:hover { background: white; color: black; }
 
@@ -182,12 +201,16 @@
             .passage-card { font-size: 1rem; padding: 15px; }
             h1 { font-size: 1.5rem; }
             .tts-btn { width: 35px; height: 35px; font-size: 1rem; }
+            .home-btn { top: 15px; left: 15px; font-size: 0.8rem; padding: 6px 12px; }
+            .header-section { margin-top: 60px; }
         }
     </style>
 </head>
 <body>
 
     <div class="overlay-bg"></div>
+
+    <a href="../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
 
     <div class="container">
         
@@ -299,72 +322,135 @@
     </div>
 
     <div class="nav-bar">
-        <button class="nav-btn" onclick="window.location.href='page4_1.html'">❮ Previous</button>
-        <button class="nav-btn" onclick="window.location.href='page4_3.html'">Next Step ❯</button>
+        <a href="page4_1.html" class="nav-btn">❮ Previous</a>
+        <a href="page4_3.html" class="nav-btn">Next Step ❯</a>
     </div>
 
     <script>
-        // 1. TTS 朗读功能 (Smooth Reading FIX V2)
-        function readParagraph(btn, textId) {
-            window.speechSynthesis.cancel();
-            
-            // 重置按钮
-            document.querySelectorAll('.tts-btn').forEach(b => {
-                b.classList.remove('playing');
-                b.innerText = '🔊';
-            });
+        // --- 1. Azure Speech SDK 配置 ---
+        const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9"; 
+        const azureRegion = "eastus2"; 
+        let synthesizer = null;
+        let activeBtn = null;
 
+        // 初始化 SDK
+        function initSpeechSDK() {
+            if (typeof SpeechSDK !== 'undefined' && azureKey && azureRegion) {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                // 设置高质量神经语音 (British English since the text mentions British adventurer)
+                speechConfig.speechSynthesisVoiceName = "en-GB-SoniaNeural"; 
+                synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+            }
+        }
+
+        window.onload = function() {
+            initSpeechSDK();
+        };
+
+        // 统一播放函数
+        function speak(text, btnElement) {
+            // 停止之前的播放
+            if (synthesizer) {
+                try { synthesizer.close(); } catch(e) {}
+                synthesizer = null;
+            }
+            window.speechSynthesis.cancel();
+
+            // 视觉反馈
+            if(activeBtn) {
+                activeBtn.classList.remove('playing');
+                if(activeBtn.tagName === 'BUTTON' && activeBtn.classList.contains('tts-btn')) activeBtn.innerText = '🔊';
+            }
+            
+            activeBtn = btnElement;
+            if(btnElement) {
+                btnElement.classList.add('playing');
+                if(btnElement.classList.contains('tts-btn')) btnElement.innerText = '⏸';
+            }
+
+            try {
+                // 尝试 Azure
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-GB-SoniaNeural";
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+
+                synthesizer.speakTextAsync(
+                    text,
+                    result => {
+                        if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                            // Success
+                        } else {
+                            console.warn("Azure TTS canceled/failed.");
+                            browserSpeak(text, btnElement);
+                        }
+                        resetBtn(btnElement);
+                        synthesizer.close();
+                        synthesizer = null;
+                    },
+                    error => {
+                        console.error("Azure Error:", error);
+                        browserSpeak(text, btnElement);
+                    }
+                );
+            } catch (e) {
+                browserSpeak(text, btnElement);
+            }
+        }
+
+        function browserSpeak(text, btnElement) {
+            window.speechSynthesis.cancel();
+            const ut = new SpeechSynthesisUtterance(text);
+            ut.lang = 'en-GB';
+            ut.rate = 0.9;
+            ut.onend = () => { resetBtn(btnElement); };
+            window.speechSynthesis.speak(ut);
+        }
+
+        function resetBtn(btn) {
+            if(btn) {
+                btn.classList.remove('playing');
+                if(btn.classList.contains('tts-btn')) btn.innerText = '🔊';
+            }
+            activeBtn = null;
+        }
+
+        // --- 2. 朗读段落功能 ---
+        function readParagraph(btn, textId) {
             // 获取容器
             let container = document.getElementById(textId);
             
-            // --- 核心修复 ---
-            // 1. 克隆以避免影响显示
+            // 1. 克隆节点以获取完整文本 (含挖空答案)
             let clone = container.cloneNode(true);
             
-            // 2. 替换所有填空为答案
+            // 2. 将挖空处替换为答案文本
             let gaps = clone.querySelectorAll('.cloze-gap');
             gaps.forEach(gap => {
                 let answer = gap.getAttribute('data-answer');
                 gap.innerText = answer; 
             });
 
-            // 3. 获取纯文本
+            // 3. 获取纯文本并清洗 (去除换行符，防止停顿)
             let textToRead = clone.textContent;
-
-            // 4. 【关键步骤】清理文本：将所有换行符和连续空格替换为单个空格
-            // HTML源码里的换行符会被 textContent 保留，导致 TTS 停顿。必须去除。
             textToRead = textToRead.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
 
-            let msg = new SpeechSynthesisUtterance(textToRead);
-            msg.lang = 'en-GB'; 
-            msg.rate = 0.9;
-            
-            msg.onstart = function() {
-                btn.classList.add('playing');
-                btn.innerText = '⏸';
-            };
-            msg.onend = function() {
-                btn.classList.remove('playing');
-                btn.innerText = '🔊';
-            };
-
-            window.speechSynthesis.speak(msg);
+            // 4. 调用统一播放函数
+            speak(textToRead, btn);
         }
 
-        // 2. 填空揭晓功能
+        // --- 3. 填空揭晓功能 ---
         function revealWord(el) {
             if (!el.classList.contains('cloze-revealed')) {
                 let answer = el.getAttribute('data-answer');
                 el.innerText = answer;
                 el.classList.add('cloze-revealed');
                 
-                let msg = new SpeechSynthesisUtterance(answer);
-                msg.lang = 'en-GB';
-                window.speechSynthesis.speak(msg);
+                // 朗读单词
+                speak(answer, null);
             }
         }
 
-        // 3. 阅读理解问答逻辑
+        // --- 4. 阅读理解问答逻辑 ---
         function checkAnswer(btn) {
             let answerBox = btn.nextElementSibling;
             answerBox.style.display = 'block';

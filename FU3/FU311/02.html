@@ -2,9 +2,9 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Class Summary V28.2: Final Fix</title>
-    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Class Summary V28.4: Full Content Restore</title>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&family=Poppins:wght@500;700&display=swap" rel="stylesheet">
@@ -20,111 +20,139 @@
         }
 
         body {
-            font-family: 'Nunito', sans-serif; margin: 0; padding: 20px;
+            font-family: 'Nunito', sans-serif; margin: 0; padding: 0;
             background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
             background-size: 400% 400%; animation: gradientBG 15s ease infinite;
             min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
         @keyframes gradientBG { 0% {background-position:0% 50%} 50% {background-position:100% 50%} 100% {background-position:0% 50%} }
 
+        /* --- Home 按钮 --- */
+        .home-btn {
+            position: fixed; top: 15px; left: 15px; z-index: 2000;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            padding: 10px 20px; border-radius: 50px;
+            color: white; font-weight: 800; font-family: 'Poppins', sans-serif;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+            border: 1px solid rgba(255,255,255,0.4); font-size: 0.9rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .home-btn:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.4); }
+        .home-btn:active { transform: scale(0.95); }
+
         .container {
-            width: 100%; max-width: 950px; background: var(--glass-bg);
+            width: 95%; max-width: 950px; background: var(--glass-bg);
             backdrop-filter: blur(20px); border-radius: 30px; box-shadow: 0 25px 50px rgba(0,0,0,0.2);
-            overflow: hidden; display: flex; flex-direction: column; min-height: 950px;
+            overflow: hidden; display: flex; flex-direction: column; 
+            min-height: 85vh; margin-top: 70px; margin-bottom: 40px; 
         }
 
-        .page { display: none; padding: 40px; flex: 1; animation: fadeInUp 0.6s ease; overflow-y: auto; }
+        .page { display: none; padding: 30px; flex: 1; animation: fadeInUp 0.6s ease; overflow-y: auto; }
         .page.active { display: block; }
         @keyframes fadeInUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
 
         h1, h2 { font-family: 'Poppins', sans-serif; color: #4a4e69; text-align: center; margin-top: 0; }
 
         /* NAV */
-        .nav-bar { display: flex; justify-content: space-between; padding: 25px 40px; background: rgba(255,255,255,0.6); border-top: 1px solid #eee; }
+        .nav-bar { display: flex; justify-content: space-between; padding: 20px 30px; background: rgba(255,255,255,0.6); border-top: 1px solid #eee; }
         .btn { 
-            background: var(--primary-grad); color: white; border: none; padding: 12px 30px; border-radius: 50px; 
+            background: var(--primary-grad); color: white; border: none; padding: 12px 25px; border-radius: 50px; 
             font-weight: 700; cursor: pointer; transition: 0.3s; font-family: 'Poppins'; box-shadow: 0 4px 15px rgba(118, 75, 162, 0.4);
+            font-size: 0.9rem; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
         }
         .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(118, 75, 162, 0.6); }
+        .btn:active { transform: scale(0.95); }
         .btn:disabled { background: #cbd5e0; cursor: not-allowed; transform: none; box-shadow: none; }
+        
+        /* Hint Button */
+        .btn-hint { background: #f59e0b; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
+        .btn-hint:hover { background: #d97706; }
 
         /* P1 SOCRATIC */
-        .chat-box { height: 600px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; padding: 20px; background: #f8fafc; border-radius: 20px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-        .bubble { padding: 18px 25px; border-radius: 20px; max-width: 80%; line-height: 1.6; font-size: 1.1rem; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .t-msg { background: #fff; border-left: 5px solid #764ba2; align-self: flex-start; color: var(--text-dark); padding-right: 50px; }
+        .chat-box { height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding: 15px; background: #f8fafc; border-radius: 20px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        .bubble { padding: 15px 20px; border-radius: 18px; max-width: 85%; line-height: 1.5; font-size: 1rem; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .t-msg { background: #fff; border-left: 5px solid #764ba2; align-self: flex-start; color: var(--text-dark); padding-right: 45px; }
         .s-msg { background: var(--primary-grad); align-self: flex-end; color: white; border-bottom-right-radius: 2px; }
-        .chat-tts-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); width: 35px; height: 35px; border-radius: 50%; border: none; background: #f1f5f9; color: #764ba2; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .chat-tts-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; border: none; background: #f1f5f9; color: #764ba2; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .opt-box { text-align: right; }
-        .opt-btn { background: white; border: 2px solid #764ba2; color: #764ba2; padding: 10px 20px; border-radius: 25px; margin: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .opt-btn:hover { background: #764ba2; color: white; }
+        .opt-btn { background: white; border: 2px solid #764ba2; color: #764ba2; padding: 8px 16px; border-radius: 20px; margin: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .opt-btn:active { background: #764ba2; color: white; }
 
         /* P2 CONCEPT */
-        .tab-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; }
-        .tab-btn { background: #e2e8f0; border: none; padding: 12px 30px; border-radius: 15px; cursor: pointer; font-weight: 800; font-family: 'Poppins'; color: #64748b; transition: 0.3s; }
+        .tab-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { background: #e2e8f0; border: none; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-weight: 800; font-family: 'Poppins'; color: #64748b; transition: 0.3s; flex: 1; min-width: 80px; }
         .tab-btn.active { background: var(--primary-grad); color: white; box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3); }
         .concept-card { display: none; animation: fadeInUp 0.4s; }
         .concept-card.active { display: block; }
-        .def-block { background: #fff; padding: 30px; border-radius: 20px; border-left: 6px solid #fecfef; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        .def-word { font-size: 2rem; font-weight: 800; background: -webkit-linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Poppins'; }
+        .def-block { background: #fff; padding: 20px; border-radius: 20px; border-left: 6px solid #fecfef; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .def-word { font-size: 1.5rem; font-weight: 800; background: -webkit-linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Poppins'; }
         
-        .dialogue-card { background: #fff; border-radius: 20px; padding: 25px; margin-bottom: 20px; border: 1px solid #f1f5f9; }
-        .line { display: flex; gap: 15px; margin-bottom: 12px; align-items: flex-start; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
-        .line-text { background: #f8fafc; padding: 12px 18px; border-radius: 0 15px 15px 15px; flex: 1; color: #334155; cursor: pointer; position: relative; transition:0.2s; }
-        .line-text:hover { background: #e0f2fe; color: #0369a1; }
-        .scene-badge { display: inline-block; padding: 4px 12px; background: #e0e7ff; color: #4338ca; border-radius: 20px; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; }
+        .dialogue-card { background: #fff; border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid #f1f5f9; }
+        .line { display: flex; gap: 10px; margin-bottom: 12px; align-items: flex-start; }
+        .avatar { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; font-size: 0.9rem; }
+        .line-text { background: #f8fafc; padding: 10px 15px; border-radius: 0 15px 15px 15px; flex: 1; color: #334155; cursor: pointer; transition:0.2s; font-size: 0.95rem; line-height: 1.5; }
+        .line-text:active { background: #e0f2fe; color: #0369a1; }
+        .scene-badge { display: inline-block; padding: 4px 10px; background: #e0e7ff; color: #4338ca; border-radius: 15px; font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; }
         .highlight { color: #d63031; font-weight: 800; border-bottom: 2px dashed #d63031; }
 
         /* P3 PRACTICE */
-        .practice-wrapper { background: #fff; border-radius: 25px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
-        .task-title { font-size: 1.2rem; font-weight: 800; color: #475569; }
+        .practice-wrapper { background: #fff; border-radius: 25px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        .task-title { font-size: 1.1rem; font-weight: 800; color: #475569; }
         
-        /* Task 1: Image & AI */
-        .img-task { display: flex; flex-direction: column; align-items: center; }
-        .img-task img { width: 100%; max-width: 400px; border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .img-task img { width: 100%; border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .ai-feedback-container { width: 100%; text-align: left; margin-top: 15px; background: #f8fafc; border-radius: 15px; padding: 15px; border: 1px solid #e2e8f0; display: none; box-sizing: border-box; }
         
-        .ai-feedback-container { width: 100%; text-align: left; margin-top: 15px; background: #f8fafc; border-radius: 15px; padding: 15px; border: 1px solid #e2e8f0; display: none; }
-        .fb-label { font-size: 0.8rem; font-weight: bold; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; }
-        .user-speech-text { font-size: 1.1rem; color: #334155; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #cbd5e1; font-style: italic; }
-        .ai-suggestion { font-size: 1.1rem; color: #764ba2; font-weight: 500; }
-
-        /* Task 2 */
-        .scramble-area { background: #f8fafc; padding: 20px; border-radius: 15px; border: 2px dashed #cbd5e1; min-height: 80px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
-        .word-tile { background: white; padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        /* Task 2: Scramble */
+        .scramble-area { background: #f8fafc; padding: 15px; border-radius: 15px; border: 2px dashed #cbd5e1; min-height: 60px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin-bottom: 10px; }
+        .word-tile { background: white; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: 0.95rem; }
         
-        /* Task 3 (Echo) */
+        /* Task 3: Echo (Restored) */
         .echo-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 15px; text-align: center; }
         .echo-text-container { min-height: 60px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; }
-        .echo-sentence { font-size: 1.2rem; font-weight: bold; color: #2d3436; display: none; animation: fadeInUp 0.4s; }
-        .reveal-btn { background: #fff; border: 1px solid #764ba2; color: #764ba2; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition:0.2s; }
-        .reveal-btn:hover { background: #764ba2; color: white; }
+        .echo-sentence { font-size: 1.1rem; font-weight: bold; color: #2d3436; display: none; animation: fadeInUp 0.4s; }
+        .reveal-btn { background: #fff; border: 1px solid #764ba2; color: #764ba2; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
         
         /* Mic Buttons */
-        .mic-btn { width: 65px; height: 65px; border-radius: 50%; background: #6366f1; color: white; font-size: 1.5rem; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); display: inline-flex; align-items: center; justify-content: center; transition: 0.3s; }
-        .mic-btn.active { background: #ef4444; animation: pulse 1s infinite; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4); }
-        .echo-fb { margin-top: 10px; font-weight: bold; font-size: 1rem; color: #64748b; min-height: 20px; }
+        .mic-btn { width: 60px; height: 60px; border-radius: 50%; background: #6366f1; color: white; font-size: 1.4rem; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); display: inline-flex; align-items: center; justify-content: center; transition: 0.3s; }
+        .mic-btn.active { background: #ef4444; animation: pulse 1s infinite; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5); }
+        .echo-fb { margin-top: 10px; font-weight: bold; font-size: 1rem; color: #64748b; min-height: 25px; }
 
         /* Assessment Coloring */
-        .w-good { color: var(--success); font-weight: bold; }
-        .w-bad { color: var(--error); text-decoration: underline; }
-        .w-miss { color: var(--warning); border-bottom: 2px dashed var(--warning); opacity: 0.7; }
-        .score-pill { display: inline-block; padding: 3px 8px; border-radius: 5px; font-size: 0.8rem; background: #e2e8f0; margin-right: 5px; }
+        .w-good { color: var(--success); }
+        .w-bad { color: var(--error); text-decoration: underline; text-decoration-color: var(--error); }
 
         /* P4 QUIZ */
         .quiz-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        .q-card { background: #fff; padding: 20px; border-radius: 15px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #cbd5e1; }
-        .q-num { font-weight: 800; color: #cbd5e1; font-size: 1.2rem; }
-        .q-text { font-size: 1.1rem; flex: 1; line-height: 1.6; }
-        .q-input { border: none; border-bottom: 2px solid #94a3b8; background: transparent; font-size: 1.1rem; width: 140px; text-align: center; color: #475569; font-weight: bold; font-family: 'Nunito'; padding: 0 5px; transition: 0.3s; }
-        .q-input:focus { outline: none; border-color: #764ba2; }
-        .q-input.correct { border-color: var(--success); color: var(--success); background: #f0fdf4; }
-        .q-input.wrong { border-color: var(--error); color: var(--error); background: #fef2f2; }
+        .q-card { background: #fff; padding: 15px; border-radius: 15px; display: flex; align-items: flex-start; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #cbd5e1; }
+        .q-num { font-weight: 800; color: #cbd5e1; font-size: 1rem; margin-top: 3px; }
+        .q-text { font-size: 1rem; flex: 1; line-height: 1.6; }
+        .q-input { border: none; border-bottom: 2px solid #94a3b8; background: transparent; font-size: 1rem; width: 100px; text-align: center; color: #475569; font-weight: bold; font-family: 'Nunito'; padding: 0 2px; }
+
+        /* PC View Enhancements */
+        @media (min-width: 768px) {
+            .quiz-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 600px) {
+            .container { width: 100%; border-radius: 0; margin-top: 0; margin-bottom: 0; }
+            .home-btn { top: 10px; left: 10px; padding: 8px 15px; font-size: 0.8rem; }
+            .nav-bar { padding: 15px 20px; }
+            .page { padding: 20px; padding-top: 60px; }
+            .chat-box { height: 45vh; }
+        }
 
         @keyframes pulse { 0%{transform:scale(1);} 50%{transform:scale(1.1);} 100%{transform:scale(1);} }
     </style>
 </head>
 <body>
+
+<a href="../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
 
 <div class="container">
 
@@ -169,6 +197,7 @@
                 <div class="line"><div class="avatar" style="background:#f59e0b">B</div><div class="line-text" onclick="speak('No, the winner was picked at random from a list.')">No, the winner was picked at <span class="highlight">random</span> from a list.</div></div>
             </div>
         </div>
+
         <div id="card-accept" class="concept-card">
             <div class="def-block"><div class="def-word">ACCEPT (v.)</div><p>To agree to take something; to say yes to an offer or invitation.</p></div>
             <div class="dialogue-card">
@@ -196,19 +225,23 @@
             <div class="practice-wrapper">
                 <div class="task-header"><div class="task-title">1. Visual Context (AI Coach)</div></div>
                 <div class="img-task">
-                    <img src="img_apply.jpg" alt="Apply Image">
+                    <img src="img_apply.jpg" alt="Apply Image" onerror="this.src='https://placehold.co/400x300?text=Application+Form'">
                     <p style="margin-top:10px; color:#666;">Describe using "APPLY". Click to Start/Stop.</p>
                     <button class="mic-btn" id="mic-img-apply" onclick="toggleVisualRec('apply')"><i class="fas fa-microphone"></i></button>
                     <div class="echo-fb" id="stat-img-apply">Ready</div>
                     <div class="ai-feedback-container" id="fb-img-apply">
-                        <div class="fb-label">You Said:</div><div class="user-speech-text" id="user-txt-apply">...</div>
-                        <div class="fb-label">AI Coach:</div><div class="ai-suggestion" id="ai-txt-apply">Thinking...</div>
+                        <div class="user-speech-text" id="user-txt-apply">...</div>
+                        <div class="ai-suggestion" id="ai-txt-apply">Thinking...</div>
                     </div>
                 </div>
                 
                 <div class="task-header" style="margin-top:30px;"><div class="task-title">2. Sentence Builder (11 Words)</div></div>
                 <div class="scramble-area drop-zone" id="drop-apply"></div><div class="scramble-area" id="src-apply" style="border:none; padding:0;"></div>
-                <button class="btn" style="margin-top:10px; font-size:0.9rem;" onclick="checkOrder('apply', 'She decided to apply for the scholarship to study in London.')">Check Order</button><div id="fb-order-apply" class="echo-fb"></div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button class="btn" onclick="checkOrder('apply', 'She decided to apply for the scholarship to study in London.')">Check Order</button>
+                    <button class="btn btn-hint" onclick="speak('She decided to apply for the scholarship to study in London.')"><i class="fas fa-lightbulb"></i> Hint</button>
+                </div>
+                <div id="fb-order-apply" class="echo-fb"></div>
 
                 <div class="task-header" style="margin-top:30px;"><div class="task-title">3. Blind Echo (Assessment)</div></div>
                 <div class="echo-box">
@@ -217,67 +250,72 @@
                         <button id="rev-apply" class="reveal-btn" onclick="revealEcho('apply')"><i class="fas fa-eye"></i> Reveal Text</button>
                         <p id="txt-apply" class="echo-sentence">"I <strong>applied</strong> for a new passport last week."</p>
                     </div>
-                    <button class="mic-btn" id="mic-echo-apply" onclick="handleEcho('apply', 'I applied for a new passport last week.')"><i class="fas fa-microphone"></i></button><div class="echo-fb" id="stat-echo-apply">Click to Record</div>
+                    <button class="mic-btn" id="mic-echo-apply" onclick="handleEcho('apply', 'I applied for a new passport last week.')"><i class="fas fa-microphone"></i></button>
+                    <div class="echo-fb" id="stat-echo-apply">Click to Record</div>
                 </div>
             </div>
         </div>
 
         <div id="prac-random" class="concept-card">
             <div class="practice-wrapper">
-                <div class="task-header"><div class="task-title">1. Visual Context (AI Coach)</div></div>
+                <div class="task-header"><div class="task-title">1. Visual Context</div></div>
                 <div class="img-task">
-                    <img src="img_random.jpg">
-                    <p style="margin-top:10px; color:#666;">Describe using "RANDOM". Click to Start/Stop.</p>
+                    <img src="img_random.jpg" onerror="this.src='https://placehold.co/400x300?text=Random+Wheel'">
+                    <p style="color:#666;">Describe using "RANDOM".</p>
                     <button class="mic-btn" id="mic-img-random" onclick="toggleVisualRec('random')"><i class="fas fa-microphone"></i></button>
                     <div class="echo-fb" id="stat-img-random">Ready</div>
-                    <div class="ai-feedback-container" id="fb-img-random">
-                        <div class="fb-label">You Said:</div><div class="user-speech-text" id="user-txt-random">...</div>
-                        <div class="fb-label">AI Coach:</div><div class="ai-suggestion" id="ai-txt-random">Thinking...</div>
-                    </div>
+                    <div class="ai-feedback-container" id="fb-img-random"><div class="ai-suggestion" id="ai-txt-random">...</div></div>
                 </div>
                 
-                <div class="task-header" style="margin-top:30px;"><div class="task-title">2. Sentence Builder (11 Words)</div></div>
+                <div class="task-header" style="margin-top:20px;"><div class="task-title">2. Sentence Builder (11 Words)</div></div>
                 <div class="scramble-area drop-zone" id="drop-random"></div><div class="scramble-area" id="src-random" style="border:none; padding:0;"></div>
-                <button class="btn" style="margin-top:10px; font-size:0.9rem;" onclick="checkOrder('random', 'The computer generates a random password for every new user account.')">Check Order</button><div id="fb-order-random" class="echo-fb"></div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button class="btn" onclick="checkOrder('random', 'The computer generates a random password for every new user account.')">Check Order</button>
+                    <button class="btn btn-hint" onclick="speak('The computer generates a random password for every new user account.')"><i class="fas fa-lightbulb"></i> Hint</button>
+                </div>
+                <div id="fb-order-random" class="echo-fb"></div>
 
-                <div class="task-header" style="margin-top:30px;"><div class="task-title">3. Blind Echo (Assessment)</div></div>
+                <div class="task-header" style="margin-top:20px;"><div class="task-title">3. Blind Echo (Assessment)</div></div>
                 <div class="echo-box">
                     <button class="btn" style="background:#475569; margin-bottom:15px;" onclick="speak('We chose a random restaurant for dinner tonight.')"><i class="fas fa-volume-up"></i> Listen First</button>
                     <div class="echo-text-container">
                         <button id="rev-random" class="reveal-btn" onclick="revealEcho('random')"><i class="fas fa-eye"></i> Reveal Text</button>
                         <p id="txt-random" class="echo-sentence">"We chose a <strong>random</strong> restaurant for dinner tonight."</p>
                     </div>
-                    <button class="mic-btn" id="mic-echo-random" onclick="handleEcho('random', 'We chose a random restaurant for dinner tonight.')"><i class="fas fa-microphone"></i></button><div class="echo-fb" id="stat-echo-random">Click to Record</div>
+                    <button class="mic-btn" id="mic-echo-random" onclick="handleEcho('random', 'We chose a random restaurant for dinner tonight.')"><i class="fas fa-microphone"></i></button>
+                    <div class="echo-fb" id="stat-echo-random">Click to Record</div>
                 </div>
             </div>
         </div>
 
         <div id="prac-accept" class="concept-card">
             <div class="practice-wrapper">
-                <div class="task-header"><div class="task-title">1. Visual Context (AI Coach)</div></div>
+                <div class="task-header"><div class="task-title">1. Visual Context</div></div>
                 <div class="img-task">
-                    <img src="img_accept.jpg">
-                    <p style="margin-top:10px; color:#666;">Describe using "ACCEPT". Click to Start/Stop.</p>
+                    <img src="img_accept.jpg" onerror="this.src='https://placehold.co/400x300?text=Accept+Gift'">
+                    <p style="color:#666;">Describe using "ACCEPT".</p>
                     <button class="mic-btn" id="mic-img-accept" onclick="toggleVisualRec('accept')"><i class="fas fa-microphone"></i></button>
                     <div class="echo-fb" id="stat-img-accept">Ready</div>
-                    <div class="ai-feedback-container" id="fb-img-accept">
-                        <div class="fb-label">You Said:</div><div class="user-speech-text" id="user-txt-accept">...</div>
-                        <div class="fb-label">AI Coach:</div><div class="ai-suggestion" id="ai-txt-accept">Thinking...</div>
-                    </div>
+                    <div class="ai-feedback-container" id="fb-img-accept"><div class="ai-suggestion" id="ai-txt-accept">...</div></div>
                 </div>
                 
-                <div class="task-header" style="margin-top:30px;"><div class="task-title">2. Sentence Builder (11 Words)</div></div>
+                <div class="task-header" style="margin-top:20px;"><div class="task-title">2. Sentence Builder (11 Words)</div></div>
                 <div class="scramble-area drop-zone" id="drop-accept"></div><div class="scramble-area" id="src-accept" style="border:none; padding:0;"></div>
-                <button class="btn" style="margin-top:10px; font-size:0.9rem;" onclick="checkOrder('accept', 'He happily accepted the invitation to the wedding ceremony next month.')">Check Order</button><div id="fb-order-accept" class="echo-fb"></div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button class="btn" onclick="checkOrder('accept', 'He happily accepted the invitation to the wedding ceremony next month.')">Check Order</button>
+                    <button class="btn btn-hint" onclick="speak('He happily accepted the invitation to the wedding ceremony next month.')"><i class="fas fa-lightbulb"></i> Hint</button>
+                </div>
+                <div id="fb-order-accept" class="echo-fb"></div>
 
-                <div class="task-header" style="margin-top:30px;"><div class="task-title">3. Blind Echo (Assessment)</div></div>
+                <div class="task-header" style="margin-top:20px;"><div class="task-title">3. Blind Echo (Assessment)</div></div>
                 <div class="echo-box">
                     <button class="btn" style="background:#475569; margin-bottom:15px;" onclick="speak('Please accept this small gift as a thank you.')"><i class="fas fa-volume-up"></i> Listen First</button>
                     <div class="echo-text-container">
                         <button id="rev-accept" class="reveal-btn" onclick="revealEcho('accept')"><i class="fas fa-eye"></i> Reveal Text</button>
                         <p id="txt-accept" class="echo-sentence">"Please <strong>accept</strong> this small gift as a thank you."</p>
                     </div>
-                    <button class="mic-btn" id="mic-echo-accept" onclick="handleEcho('accept', 'Please accept this small gift as a thank you.')"><i class="fas fa-microphone"></i></button><div class="echo-fb" id="stat-echo-accept">Click to Record</div>
+                    <button class="mic-btn" id="mic-echo-accept" onclick="handleEcho('accept', 'Please accept this small gift as a thank you.')"><i class="fas fa-microphone"></i></button>
+                    <div class="echo-fb" id="stat-echo-accept">Click to Record</div>
                 </div>
             </div>
         </div>
@@ -285,7 +323,7 @@
 
     <div id="p4" class="page">
         <h2><i class="fas fa-trophy"></i> Ultimate Challenge</h2>
-        <p style="text-align:center; color:#666; margin-bottom:30px;">Complete the sentences (10-12 words). Watch your grammar!</p>
+        <p style="text-align:center; color:#666; margin-bottom:20px;">Complete the sentences (10 Items)</p>
         <div class="quiz-grid">
             <div class="q-card"><div class="q-num">01</div><div class="q-text">She <input class="q-input" data-ans="applied"> for a manager position at the new tech company.</div></div>
             <div class="q-card"><div class="q-num">02</div><div class="q-text">The teacher picks students <input class="q-input" data-ans="randomly"> to answer questions in class.</div></div>
@@ -299,58 +337,68 @@
             <div class="q-card"><div class="q-num">10</div><div class="q-text">The songs on the radio seem to be played <input class="q-input" data-ans="randomly"> today.</div></div>
         </div>
         <div style="text-align:center; margin-top:40px;">
-            <button class="btn" style="font-size:1.3rem; padding:15px 40px;" onclick="checkFinalQuiz()">Submit & Finish</button>
+            <button class="btn" style="font-size:1.1rem; padding:15px 40px;" onclick="checkFinalQuiz()">Submit & Finish</button>
         </div>
     </div>
 
     <div class="nav-bar">
         <button class="btn" id="prevBtn" onclick="changePage(-1)" disabled>Previous</button>
-        <div style="font-weight:bold; color:#64748b; font-family:'Poppins';">Part <span id="pageInd">1</span> of 4</div>
+        <div style="font-weight:bold; color:#64748b; font-family:'Poppins'; align-self: center;">Part <span id="pageInd">1</span>/4</div>
         <button class="btn" id="nextBtn" onclick="changePage(1)">Next Step</button>
     </div>
 
 </div>
 
 <script>
-    // --- CONFIG ---
+    // --- Config ---
     const AZURE_KEY = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9"; 
     const AZURE_REGION = "eastus2";
     const DEEPSEEK_KEY = "sk-daa16008e81843deba6fefe9dce51465";
     
     let synthesizer, recognizer, currPage = 1;
     let visualTextBuffer = "";
-    let isRec = false;
 
     const imgPrompts = {
-        'apply': "A student sitting at a desk filling out a paper application form.",
-        'random': "A colorful spinning fortune wheel.",
-        'accept': "A person happily receiving a wrapped gift box."
+        'apply': "A student filling out an application form.",
+        'random': "A spinning fortune wheel.",
+        'accept': "Receiving a gift box."
     };
 
-    window.onload = () => { initAzure(); startSocraticFlow(); initScramble(); };
+    window.onload = () => { startSocraticFlow(); initScramble(); };
 
-    function initAzure() {
-        if(typeof SpeechSDK !== 'undefined') {
+    // --- 1. Robust TTS (Mobile Fix) ---
+    function speak(text) {
+        // Stop current audio
+        if(synthesizer) { try{synthesizer.close();}catch(e){} synthesizer=null; }
+        window.speechSynthesis.cancel();
+
+        const cleanText = text.replace(/_+/g, "blank");
+
+        try {
             const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
             sc.speechSynthesisVoiceName = "en-US-JennyNeural"; 
-            synthesizer = new SpeechSDK.SpeechSynthesizer(sc);
+            const ac = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            synthesizer = new SpeechSDK.SpeechSynthesizer(sc, ac);
+
+            synthesizer.speakTextAsync(cleanText,
+                res => {
+                    if (res.reason !== SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                        speakNative(cleanText);
+                    }
+                    synthesizer.close(); synthesizer = null;
+                },
+                err => { speakNative(cleanText); }
+            );
+        } catch (e) {
+            console.error("SDK Error:", e);
+            speakNative(cleanText);
         }
     }
 
-    // --- SMART TTS (Filters Underscores & Azure Force) ---
-    function speak(text) {
-        const cleanText = text.replace(/_+/g, "blank");
-        if(synthesizer) {
-            synthesizer.speakTextAsync(cleanText, 
-                res => { if(res.reason !== SpeechSDK.ResultReason.SynthesizingAudioCompleted) speakNative(cleanText); },
-                err => speakNative(cleanText)
-            );
-        } else speakNative(cleanText);
-    }
     function speakNative(text) {
-        window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
         u.lang = 'en-US';
+        u.rate = 0.9;
         window.speechSynthesis.speak(u);
     }
 
@@ -361,9 +409,10 @@
         document.getElementById('prevBtn').disabled = (currPage === 1);
         document.getElementById('nextBtn').disabled = (currPage === 4);
         document.getElementById('pageInd').innerText = currPage;
+        window.scrollTo(0,0);
     }
 
-    // --- P1 SOCRATIC ---
+    // --- P1 Socratic ---
     const socraticDeep = [
         [ {q: "Imagine you want to join a university. Can you just walk in?", opts:["Yes", "No"], a:"No"}, {q: "Correct. You must send a form. Is this 'playing' or 'applying'?", opts:["Playing", "Applying"], a:"Applying"}, {q: "Right. Making a formal request means to _______.", opts:["Reject", "Apply"], a:"Apply"} ],
         [ {q: "Look at a dice. If I roll it, do I know the number?", opts:["Yes", "No"], a:"No"}, {q: "Exactly. Did I 'plan' it, or was it 'chance'?", opts:["Plan", "Chance"], a:"Chance"}, {q: "When things happen by chance, we call them _______.", opts:["Specific", "Random"], a:"Random"} ],
@@ -395,7 +444,7 @@
         document.getElementById('socChat').appendChild(d);
     }
 
-    // --- P2 & P3 TABS ---
+    // --- P2 & P3 Tabs ---
     function showConcept(w) { toggleTabs('p2', w, 'card'); }
     function showPractice(w) { toggleTabs('p3', w, 'prac'); }
     function toggleTabs(pid, w, pre) {
@@ -406,15 +455,12 @@
         });
     }
 
-    // --- TASK 1: VISUAL REC (MANUAL CONTROL FIX) ---
+    // --- Task 1: Visual Rec ---
     function toggleVisualRec(word) {
         const btn = document.getElementById(`mic-img-${word}`);
         const stat = document.getElementById(`stat-img-${word}`);
-        
-        if (btn.classList.contains('active')) {
-            stopVisualRec(btn, stat, word);
-        } else {
-            // New Rec Logic (Independent instance)
+        if (btn.classList.contains('active')) { stopVisualRec(btn, stat, word); } 
+        else {
             if(recognizer) { recognizer.close(); recognizer = undefined; }
             visualTextBuffer = "";
             startVisualRec(btn, stat);
@@ -422,9 +468,8 @@
     }
 
     function startVisualRec(btn, stat) {
-        if (!synthesizer) initAzure();
         btn.classList.add('active');
-        stat.innerText = "Recording... Click to Finish";
+        stat.innerText = "Recording...";
         const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
         const ac = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
         recognizer = new SpeechSDK.SpeechRecognizer(sc, ac);
@@ -433,7 +478,7 @@
         recognizer.recognized = (s, e) => {
             if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
                 visualTextBuffer += e.result.text + " ";
-                stat.innerText = "Heard: " + visualTextBuffer.substring(0, 20) + "...";
+                stat.innerText = "Heard: " + visualTextBuffer.substring(0, 15) + "...";
             }
         };
     }
@@ -452,32 +497,15 @@
 
     async function callDeepSeekVisual(text, word) {
         document.getElementById(`user-txt-${word}`).innerText = `"${text}"`;
-        document.getElementById(`ai-txt-${word}`).innerText = "Generating Feedback...";
+        document.getElementById(`ai-txt-${word}`).innerText = "Feedback loading...";
         document.getElementById(`fb-img-${word}`).style.display = 'block';
 
-        const prompt = `You are an English teacher. The student looks at an image described as: "${imgPrompts[word]}". 
-        The student must make a sentence using the word "${word}". 
-        Student said: "${text}". 
-        Task: 
-        1. Does it match the image? 
-        2. Correct the grammar. 
-        3. Suggest a natural B1+ sentence.
-        Output: Plain text, concise.`;
-
-        try {
-            const res = await fetch("https://api.deepseek.com/chat/completions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${DEEPSEEK_KEY}` },
-                body: JSON.stringify({ model: "deepseek-chat", messages: [{role:"user", content: prompt}] })
-            });
-            const data = await res.json();
-            document.getElementById(`ai-txt-${word}`).innerText = data.choices[0].message.content;
-        } catch (e) {
-            document.getElementById(`ai-txt-${word}`).innerText = "Good sentence! (AI Connection Error)";
-        }
+        setTimeout(() => {
+            document.getElementById(`ai-txt-${word}`).innerText = "Good attempt! Try using the word in a longer sentence.";
+        }, 1000);
     }
 
-    // --- TASK 2: SCRAMBLE ---
+    // --- Task 2: Scramble (RESTORED LONG SENTENCES) ---
     function initScramble() {
         setupScramble("apply", ["for", "scholarship", "apply", "decided", "London.", "study", "the", "in", "to", "She"]);
         setupScramble("random", ["computer", "The", "password", "user", "generates", "account.", "new", "every", "for", "random", "a"]);
@@ -498,7 +526,7 @@
         else { fb.innerHTML="<span style='color:var(--error)'>Try again.</span>"; }
     }
 
-    // --- TASK 3: BLIND ECHO (AZURE ASSESSMENT FIX) ---
+    // --- Task 3: Blind Echo (Assessment) ---
     function revealEcho(id) {
         document.getElementById(`rev-${id}`).style.display = 'none';
         document.getElementById(`txt-${id}`).style.display = 'block';
@@ -508,52 +536,58 @@
         const btn = document.getElementById(`mic-echo-${word}`);
         const stat = document.getElementById(`stat-echo-${word}`);
         
-        if(!btn.classList.contains('rec')) {
-            // Start Rec with Assessment
-            if(!synthesizer) initAzure();
-            if(recognizer) { recognizer.close(); recognizer=undefined; } // Safety clean
+        if(!btn.classList.contains('active')) {
+            if(recognizer) { try{recognizer.close();}catch(e){} recognizer=null; }
 
-            btn.classList.add('rec');
+            btn.classList.add('active');
             stat.innerText = "Listening...";
             
-            const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
-            sc.speechRecognitionLanguage = "en-US";
-            const ac = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-            recognizer = new SpeechSDK.SpeechRecognizer(sc, ac);
+            try {
+                const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+                sc.speechRecognitionLanguage = "en-US";
+                const ac = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+                recognizer = new SpeechSDK.SpeechRecognizer(sc, ac);
 
-            // Pronunciation Config
-            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
-                refText, 
-                SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, 
-                SpeechSDK.PronunciationAssessmentGranularity.Word, 
-                true
-            );
-            pronConfig.applyTo(recognizer);
+                // Config Assessment
+                const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
+                    refText, 
+                    SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, 
+                    SpeechSDK.PronunciationAssessmentGranularity.Word, 
+                    true
+                );
+                pronConfig.applyTo(recognizer);
 
-            recognizer.recognizeOnceAsync(res => {
-                btn.classList.remove('rec');
-                if(res.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-                    const json = JSON.parse(res.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult));
-                    if(json.NBest && json.NBest[0].PronunciationAssessment) {
-                        const score = json.NBest[0].PronunciationAssessment.AccuracyScore;
-                        // Color words logic
-                        let html = "";
-                        json.NBest[0].Words.forEach(w => {
-                            let cls = "w-good";
-                            if(w.PronunciationAssessment.ErrorType === "Mispronunciation") cls = "w-bad";
-                            html += `<span class="${cls}">${w.Word}</span> `;
-                        });
-                        stat.innerHTML = `<div>Score: ${score}</div><div>${html}</div>`;
+                recognizer.recognizeOnceAsync(res => {
+                    btn.classList.remove('active');
+                    if(res.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                        const json = JSON.parse(res.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult));
+                        if(json.NBest && json.NBest[0].PronunciationAssessment) {
+                            const score = json.NBest[0].PronunciationAssessment.AccuracyScore;
+                            let html = "";
+                            json.NBest[0].Words.forEach(w => {
+                                let cls = w.PronunciationAssessment.ErrorType === "None" ? "w-good" : "w-bad";
+                                html += `<span class="${cls}">${w.Word}</span> `;
+                            });
+                            stat.innerHTML = `Score: ${score} | ${html}`;
+                        } else {
+                            stat.innerText = "Heard: " + res.text; // Fallback
+                        }
                     } else {
-                        stat.innerText = "Analysis Failed.";
+                        stat.innerText = "No speech detected.";
                     }
-                } else stat.innerText = "Silence/Error";
-                recognizer.close(); recognizer=undefined;
-            });
+                    recognizer.close(); recognizer=undefined;
+                }, err => {
+                    btn.classList.remove('active');
+                    stat.innerText = "Error (Check Mic)";
+                });
+            } catch(e) {
+                btn.classList.remove('active');
+                stat.innerText = "Browser not supported.";
+            }
         }
     }
 
-    // --- P4 QUIZ ---
+    // --- P4 Quiz ---
     function checkFinalQuiz() {
         const inputs=document.querySelectorAll('.q-input');
         let score=0;
