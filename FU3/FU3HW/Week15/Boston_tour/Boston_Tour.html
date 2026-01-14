@@ -6,7 +6,7 @@
     <title>Boston: The Cradle of Liberty Masterclass</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.34.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
             
             --font-head: 'Playfair Display', serif;
             --font-body: 'Montserrat', sans-serif;
-            --font-accent: 'Libre Bakesville', serif;
+            --font-accent: 'Libre Baskerville', serif;
             
             --border-radius: 8px;
             --shadow: 0 10px 30px rgba(0,0,0,0.4);
@@ -31,42 +31,60 @@
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
+        /* 核心修复：改为原生滚动，解决平板无法拖动的问题 */
         body, html {
             margin: 0; padding: 0;
-            width: 100%; height: 100%;
+            width: 100%; 
+            min-height: 100%; /* 允许页面自然生长 */
             background-color: var(--charcoal);
             font-family: var(--font-body);
             color: #e0e0e0;
-            overflow: hidden;
+            overflow-x: hidden; /* 只隐藏横向滚动 */
+            /* 移除 overflow: hidden 和 fixed height，恢复原生滚动能力 */
         }
 
         h1, h2, h3 { font-family: var(--font-head); }
 
         /* === Home Button === */
         .home-btn {
-            position: fixed; top: 20px; left: 20px; z-index: 2000;
-            background: rgba(15, 31, 56, 0.8); color: var(--gold);
+            position: fixed; top: 20px; left: 20px; z-index: 3000;
+            background: rgba(15, 31, 56, 0.9); color: var(--gold);
             padding: 8px 18px; border-radius: 4px; text-decoration: none;
             font-weight: 700; border: 1px solid var(--gold);
             backdrop-filter: blur(5px); transition: 0.3s; display: flex; align-items: center; gap: 8px;
             font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
-        .home-btn:hover { background: var(--gold); color: var(--navy); box-shadow: 0 0 15px rgba(197, 160, 89, 0.4); }
+        .home-btn:hover { background: var(--gold); color: var(--navy); }
 
         /* === Layout === */
         #app {
-            width: 100%; height: 100%; position: relative;
+            width: 100%; 
+            min-height: 100vh; 
+            position: relative;
             background: radial-gradient(circle at center, #1b2845 0%, #050505 100%);
+            background-attachment: fixed; /* 背景固定，内容滚动 */
         }
 
+        /* 核心修复：改为 block 布局，移除绝对定位 */
         .view-section {
-            position: absolute; inset: 0;
-            display: none; flex-direction: column;
-            opacity: 0; transition: opacity 0.5s ease;
-            padding: 80px 20px 40px; /* Top padding for Home btn */
-            overflow-y: auto; overflow-x: hidden;
+            display: none; 
+            width: 100%;
+            min-height: 100vh; /* 确保至少占满一屏 */
+            padding: 80px 20px 60px; /* 底部增加 padding 防止被遮挡 */
+            animation: fadeIn 0.5s ease;
         }
-        .view-section.active { display: flex; opacity: 1; z-index: 10; }
+        
+        .view-section.active { 
+            display: block; 
+        }
+
+        /* 登录页特殊处理：使用 Flex 居中 */
+        #view-login.active {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* === Decorative Border === */
         .frame-border {
@@ -82,14 +100,16 @@
             font-family: var(--font-head); font-size: 1.1rem;
             cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            margin: 5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+            margin: 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px; justify-content: center;
         }
         .btn-retro:hover { background: var(--gold); color: var(--navy); box-shadow: 0 0 20px rgba(197, 160, 89, 0.3); }
         .btn-retro:active { transform: translateY(2px); }
 
         /* === Vocabulary Cards === */
         .vocab-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            display: grid; 
+            /* 优化：适应平板竖屏，卡片最小宽 250px */
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto;
         }
         .vocab-card {
@@ -136,6 +156,7 @@
             cursor: pointer; flex-shrink: 0; transition: 0.2s;
         }
         .play-btn:hover { background: var(--gold); color: var(--navy); box-shadow: 0 0 10px var(--gold); transform: scale(1.1); }
+        .play-btn.playing { background: var(--brick); border-color: var(--brick); color: #fff; animation: pulse 1s infinite; }
 
         .click-hint { 
             position: absolute; top: 0; left: 0; 
@@ -241,6 +262,8 @@
             font-weight: bold; border-radius: 50px; opacity: 0; transition: 0.3s; z-index: 2000; pointer-events: none;
             box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         }
+        
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -253,7 +276,7 @@
 
 <div id="app">
 
-    <section id="view-login" class="view-section active" style="justify-content:center; align-items:center;">
+    <section id="view-login" class="view-section active">
         <div style="text-align:center; background:var(--glass-dark); padding:50px; border:2px solid var(--gold); border-radius:12px; width:95%; max-width:600px; position:relative; overflow:hidden;">
             <div style="position:absolute; top:-50px; right:-50px; width:100px; height:100px; background:var(--brick); transform:rotate(45deg);"></div>
             
@@ -273,7 +296,7 @@
                 <button class="btn-retro" style="margin-left:15px; font-size:0.8rem; padding:8px 15px; border-color:var(--gold);" onclick="resumeGame()">Resume</button>
             </div>
 
-            <input type="text" id="username" placeholder="Enter Your Name" style="background:transparent; border:none; border-bottom:2px solid var(--gold); color:#fff; text-align:center; padding:15px; font-size:1.5rem; width:80%; outline:none; font-family:var(--font-head);">
+            <input type="text" id="username" placeholder="Enter Your Name" style="background:transparent; border:none; border-bottom:2px solid var(--gold); color:#fff; text-align:center; padding:15px; font-size:1.5rem; width:80%; outline:none; font-family:var(--font-head); margin-bottom:30px;">
             <br><br><br>
             <button class="btn-retro" onclick="startNew()">Start Journey <i class="fas fa-arrow-right"></i></button>
         </div>
@@ -463,6 +486,7 @@ const words = [
     {w:"Prominent", cn:"著名的", def:"Important and famous.", ex:"He is a prominent scientist in this field.", exCn:"他是这个领域一位杰出的科学家。"},
     {w:"Preserve", cn:"保护", def:"To keep safe.", ex:"We must preserve our traditions for the future.", exCn:"我们必须为了未来保护我们的传统。"}
 ];
+
 const spotsData = [
     {t:"Quincy Market", img:"quincy_market.jpg", desc:"Constructed in 1826, Quincy Market is a historic food paradise. Its Roman-style architecture features massive granite columns. Inside, you can find a huge variety of local food and enjoy street performances outside."},
     {t:"The Freedom Trail", img:"freedom_trail.jpg", desc:"This is a 2.5-mile red path on the sidewalk. It connects 16 historically significant sites, including museums, churches, and meeting houses. Walking this trail is like walking through the history of the American Revolution."},
@@ -473,6 +497,8 @@ const spotsData = [
     {t:"Newbury Street", img:"newbury.jpg", desc:"A famous 1.5-kilometer street for shopping and dining. It is lined with beautiful 19th-century buildings. You can find everything from trendy coffee shops to expensive boutiques here."},
     {t:"Union Oyster House", img:"union_oyster.jpg", desc:"This is America's oldest continuously operating restaurant, open since 1826. It is a National Historic Landmark where you can enjoy traditional New England seafood in a historic setting."}
 ];
+
+
 const subs = [
     {s: 1.22, e: 5.66, t: "Boston is beautiful, cozy, and full of surprises."},
     {s: 5.70, e: 9.14, t: "The capital of New England with its Cambridge and Harvard, the"},
@@ -624,9 +650,24 @@ const iqs = [
 
 // ================= APP LOGIC =================
 let state = { user: "", progress: 0, vocab: [], genScore: 0, intRes: [], v1Time: 0, v2Time: 0 };
-let synthesizer; // Global synthesizer instance
+let synthesizer; 
+let activeBtn = null;
 const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
 const azureRegion = "eastus2"; 
+
+// --- Audio Wakeup for Mobile ---
+async function wakeUpAudio() {
+    try {
+        // Just resuming AudioContext without Mic permission since this is TTS only
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+            const ctx = new AudioContext();
+            await ctx.resume();
+        }
+    } catch (e) {
+        console.warn("Audio Context Wakeup failed:", e);
+    }
+}
 
 window.onload = () => {
     // Check for saved state
@@ -638,52 +679,70 @@ window.onload = () => {
     renderSpots();
 };
 
-// --- Azure Speech Function ---
-function speak(text) {
-    // 1. Cancel previous speech
+function speak(text, btn) {
+    if(btn) {
+        if(activeBtn) {
+            activeBtn.classList.remove('playing');
+            activeBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        }
+        activeBtn = btn;
+        btn.classList.add('playing');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
     if (synthesizer) {
         try { synthesizer.close(); } catch(e) {}
         synthesizer = undefined;
     }
     
-    // 2. Browser Fallback (Cancel native TTS too just in case)
     window.speechSynthesis.cancel();
 
-    // 3. Initialize Azure
+    // Mobile Wakeup
+    wakeUpAudio();
+
     try {
         const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
-        speechConfig.speechSynthesisVoiceName = "en-US-AndrewNeural"; // Professional Male Voice
+        speechConfig.speechSynthesisVoiceName = "en-US-AndrewNeural"; 
         
         const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
         synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
         
         synthesizer.speakTextAsync(text, 
             result => {
-                if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
-                    // console.log("Speech synthesis finished.");
-                } else {
-                    console.error("Speech synthesis canceled, " + result.errorDetails);
+                if (btn) {
+                    btn.classList.remove('playing');
+                    btn.innerHTML = '<i class="fas fa-volume-up"></i>';
                 }
                 synthesizer.close();
                 synthesizer = undefined;
             },
             err => {
                 console.error(err);
-                synthesizer.close();
-                synthesizer = undefined;
+                if (btn) btn.classList.remove('playing');
+                // Fallback
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'en-US';
+                window.speechSynthesis.speak(u);
             });
     } catch (e) {
         console.error("Azure SDK Error: ", e);
-        // Fallback to browser TTS if Azure fails (e.g. offline)
         const u = new SpeechSynthesisUtterance(text);
         u.lang = 'en-US';
         window.speechSynthesis.speak(u);
+        if (btn) btn.classList.remove('playing');
     }
 }
 
 function startNew() {
     const u = document.getElementById('username').value.trim();
-    if(u) { state.user = u; nextStage('view-vocab'); }
+    if(u) { 
+        state.user = u; 
+        wakeUpAudio().then(() => {
+            nextStage('view-vocab'); 
+        });
+    } else {
+        alert("Please enter a name.");
+    }
 }
 
 function resumeGame() {
@@ -711,6 +770,9 @@ function nextStage(id) {
     const map = {'view-vocab':20, 'view-intro':40, 'view-vid1':60, 'view-vid2':80, 'view-report':100};
     document.getElementById('global-bar').style.width = map[id]+'%';
     localStorage.setItem('bosState', JSON.stringify(state));
+    
+    // Ensure top scroll
+    window.scrollTo(0,0);
 }
 
 // Vocab Logic
@@ -737,7 +799,7 @@ function createCard(d, type, container) {
                 <div class="sent-en">${d.ex}</div>
                 <span class="sent-cn">${d.exCn}</span>
             </div>
-            <button class="play-btn" onclick="event.stopPropagation(); speak('${d.ex.replace(/'/g, "\\'")}')">
+            <button class="play-btn" onclick="event.stopPropagation(); speak('${d.ex.replace(/'/g, "\\'")}', this)">
                 <i class="fas fa-volume-up"></i>
             </button>
         </div>
@@ -769,7 +831,7 @@ function renderSpots() {
             <img src="${s.img}" class="spot-img" onerror="this.src='https://placehold.co/220x140/0f1f38/c5a059?text=Boston+Landmark'">
             <div class="spot-info">
                 <div class="spot-title">${s.t}</div>
-                <div class="spot-desc" onclick="speak('${s.desc.replace(/'/g, "\\'")}')">
+                <div class="spot-desc" onclick="speak('${s.desc.replace(/'/g, "\\'")}', this)">
                     ${s.desc} <span style="font-size:0.9rem; color:var(--gold);">🔊</span>
                 </div>
             </div>
@@ -926,6 +988,19 @@ function restartAll() {
         localStorage.removeItem('bosState');
         location.reload();
     }
+}
+
+// Vocab export
+function exportVocab() {
+    let txt = "BOSTON VOCABULARY LIST\n\n";
+    entities.forEach(e => txt += `[${e.w}] ${e.cn}\n${e.def}\nEx: ${e.ex}\n\n`);
+    words.forEach(w => txt += `[${w.w}] ${w.cn}\n${w.def}\nEx: ${w.ex}\n\n`);
+    
+    const blob = new Blob([txt], {type: 'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Boston_Vocab_List.txt';
+    a.click();
 }
 </script>
 </body>
