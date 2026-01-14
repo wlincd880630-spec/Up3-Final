@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dream Lab: Neural Link (Full Content Restore)</title>
+    <title>Dream Lab: Neural Link</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -29,25 +29,24 @@
             --glow-border: 0 0 15px rgba(34, 211, 238, 0.3);
         }
 
-        /* === 基础设置 === */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        /* === 核心修复：原生滚动布局 === */
         html, body {
             margin: 0; padding: 0;
             font-family: var(--font-body);
             background-color: var(--bg-deep);
             color: white;
-            /* 允许滚动，核心修复 */
-            min-height: 100vh;
-            overflow-x: hidden;
-            overflow-y: auto;
-            -webkit-tap-highlight-color: transparent;
+            min-height: 100%;
+            overflow-x: hidden; /* 仅隐藏横向滚动 */
+            /* 移除 display: flex，回归文档流 */
         }
 
         body {
-            display: flex; flex-direction: column; align-items: center;
-            padding-bottom: 80px; /* 底部留白给导航 */
+            padding-bottom: 80px; /* 底部导航留白 */
         }
 
-        /* --- Home 按钮 --- */
+        /* --- Home 按钮 (层级提高) --- */
         .home-btn {
             position: fixed; top: 15px; left: 15px; z-index: 9999;
             background: rgba(15, 23, 42, 0.9); color: var(--neon-cyan);
@@ -55,14 +54,16 @@
             font-family: var(--font-tech); font-weight: 700; letter-spacing: 1px;
             border: 1px solid var(--neon-cyan); box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
             backdrop-filter: blur(10px); display: flex; align-items: center; gap: 8px;
-            text-transform: uppercase; font-size: 0.8rem;
+            text-transform: uppercase; font-size: 0.8rem; cursor: pointer;
         }
 
-        /* --- 主终端容器 --- */
+        /* --- 主终端容器 (自适应高度) --- */
         #terminal {
             width: 95vw; max-width: 1600px; 
-            /* 桌面高度固定，移动端自动撑开 */
-            height: auto; min-height: 85vh;
+            margin: 20px auto;
+            min-height: 85vh; /* 最小高度 */
+            height: auto;     /* 允许内容撑开 */
+            
             background: var(--panel-bg);
             border: 2px solid rgba(255,255,255,0.1);
             border-top: 4px solid var(--neon-cyan);
@@ -70,14 +71,12 @@
             border-radius: 12px;
             box-shadow: var(--glow-border), inset 0 0 100px rgba(0,0,0,0.8);
             position: relative; 
-            display: flex; flex-direction: column;
-            margin-top: 20px;
             backdrop-filter: blur(20px);
         }
 
         /* --- HUD 顶部 --- */
         .hud-top {
-            height: 60px; flex-shrink: 0;
+            height: 60px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex; align-items: center; justify-content: space-between; 
             padding: 0 20px;
@@ -95,16 +94,23 @@
         }
         .pip.active { background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
 
-        /* --- 视图区域 --- */
-        .viewport { flex: 1; position: relative; width: 100%; min-height: 600px; }
+        /* --- 屏幕内容 (改为相对定位) --- */
+        .viewport { width: 100%; position: relative; }
         
         .screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; flex-direction: column; align-items: center; 
-            padding: 40px; box-sizing: border-box; overflow-y: auto; overflow-x: hidden;
+            display: none; 
+            width: 100%; 
+            padding: 40px; 
+            flex-direction: column; align-items: center;
             opacity: 0; transition: opacity 0.5s;
+            animation: fadeIn 0.5s ease;
         }
-        .screen.active { display: flex; opacity: 1; z-index: 10; }
+        .screen.active { 
+            display: flex; 
+            opacity: 1; 
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         /* --- 通用组件 --- */
         .tech-card {
@@ -144,19 +150,19 @@
         .tts-btn { color: var(--neon-amber); }
         .eye-btn { color: var(--neon-cyan); }
 
-        /* 视频容器 */
+        /* 视频容器 (优化) */
         .vid-container-portrait {
             height: 350px; max-width: 100%; aspect-ratio: 9/16; margin: 20px auto;
             border: 2px solid var(--neon-cyan); border-radius: 8px; overflow: hidden; background: #000;
         }
         .vid-container-landscape {
-            width: 100%; aspect-ratio: 16/9; border: 2px solid #334155; border-radius: 8px; background: #000;
+            width: 100%; aspect-ratio: 16/9; border: 2px solid #334155; border-radius: 8px; background: #000; overflow: hidden;
         }
-        video { width: 100%; height: 100%; object-fit: contain; }
+        video { width: 100%; height: 100%; object-fit: contain; display: block; }
 
         /* 布局容器 */
-        .split-view { display: flex; width: 100%; height: 100%; gap: 20px; }
-        .col-half { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        .split-view { display: flex; width: 100%; gap: 20px; }
+        .col-half { flex: 1; display: flex; flex-direction: column; }
         .flex-align-container { display: flex; width: 100%; gap: 20px; align-items: stretch; }
         .flex-col {
             flex: 1; display: flex; flex-direction: column;
@@ -164,11 +170,11 @@
             border: 1px solid rgba(255,255,255,0.1);
         }
 
-        /* Mapping Boxes (恢复原版设计，增加手机适配) */
+        /* Mapping Boxes */
         .mapping-container { width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 15px; }
         .mapping-row { 
             display: flex; gap: 8px; margin: 15px 0; justify-content: center; width: 100%; 
-            flex-wrap: wrap; /* 关键：允许换行 */
+            flex-wrap: wrap; 
         }
         .map-box {
             width: 50px; height: 70px; 
@@ -224,9 +230,10 @@
 
         /* --- 底部导航 --- */
         .nav-bot { 
-            height: 70px; width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 30px;
-            border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
-            box-sizing: border-box;
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
+            height: 70px; display: flex; align-items: center; justify-content: space-around;
+            border-top: 1px solid rgba(255,255,255,0.1); background: rgba(2, 6, 23, 0.95);
+            backdrop-filter: blur(10px);
         }
         .nav-btn {
             width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.05);
@@ -237,58 +244,33 @@
         /* === 移动端深度适配 === */
         @media (max-width: 1024px) {
             #terminal { 
-                width: 100vw; height: auto; min-height: 100vh; 
-                border-radius: 0; border: none; margin-top: 0;
+                width: 100%; margin: 0; border: none; border-radius: 0; min-height: 100vh;
             }
-            
-            /* 顶部栏固定 */
             .hud-top { 
-                position: sticky; top: 0; z-index: 100; 
-                background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(10px);
-                justify-content: center;
+                position: sticky; top: 0; z-index: 200; 
+                background: rgba(2, 6, 23, 0.95); justify-content: center;
             }
-            .logo { font-size: 1.2rem; margin-left: 0; }
             .progress-track { display: none; }
-
-            /* 屏幕内容 */
-            .screen { 
-                position: relative; height: auto; display: none; opacity: 1 !important;
-                padding: 20px 15px 40px 15px;
-            }
-            .screen.active { display: flex; }
-            .viewport { height: auto; min-height: auto; }
-
-            /* 强制单列布局 */
-            .split-view, .flex-align-container { flex-direction: column; gap: 30px; }
-            .col-half, .flex-col { width: 100%; flex: none; overflow: visible; }
             
-            /* Sound Boxes 适配 */
+            /* 屏幕内容优化 */
+            .screen { padding: 20px 15px 40px; }
+            .split-view, .flex-align-container { flex-direction: column; gap: 30px; }
+            .col-half, .flex-col { width: 100%; flex: none; }
+            
             .mapping-row { gap: 5px; }
-            .map-box { width: 40px; height: 55px; font-size: 1.4rem; } /* 稍微缩小以容纳更多 */
+            .map-box { width: 40px; height: 55px; font-size: 1.4rem; } 
             .map-box.long { width: 70px; font-size: 1.1rem; }
 
-            /* Profiles 单列 */
             .profile-grid { grid-template-columns: 1fr; gap: 20px; }
-            .profile-unit { flex-direction: row; text-align: left; } /* 保持横向排列，图片在左 */
+            .profile-unit { flex-direction: row; text-align: left; }
             .p-img-frame { width: 80px; height: 80px; }
-            .p-info h4 { font-size: 1.2rem; }
-            .p-info p { font-size: 0.95rem; }
-
-            /* 按钮全宽 */
             .tech-btn { width: 100%; }
-
-            /* 底部导航固定 */
-            .nav-bot { 
-                position: fixed; bottom: 0; left: 0; right: 0; 
-                background: rgba(2, 6, 23, 0.95); border-top: 1px solid #333; z-index: 2000;
-                justify-content: space-around;
-            }
         }
     </style>
 </head>
 <body>
 
-<a href="../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
+<a href="../../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
 
 <div id="terminal">
     <div class="overload-flash" id="flash-effect"></div>
@@ -407,7 +389,7 @@
                     </div>
                     <div style="margin-top:20px; text-align:center;">
                         <button class="tech-btn btn-pink" onclick="document.getElementById('target-sent-box').style.display='block'; this.style.display='none'">Target Sentence</button>
-                        <div id="target-sent-box" class="target-sentence-box">
+                        <div id="target-sent-box" class="target-sentence-box" style="display:none; margin-top:20px;">
                             <div style="font-size:1.1rem; font-weight:bold; color:white; margin-bottom:10px;">I can't imagine what you have been through.</div>
                             <div style="color:#94a3b8; font-style:italic;">(Rephrase: I have no idea how hard your experience was.)</div>
                             <div class="icon-btn tts-btn" style="margin:10px auto;" onclick="speak('I can\'t imagine what you have been through.', this)"><i class="fas fa-volume-up"></i></div>
@@ -740,16 +722,44 @@
     let synthesizer = null;
     let activeBtn = null;
 
+    // Mobile Audio Wakeup
+    async function wakeUpAudio() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                const ctx = new AudioContext();
+                await ctx.resume();
+            }
+        } catch (e) {
+            console.warn("Audio Wakeup:", e);
+        }
+    }
+
     function speak(text, btnElement) {
-        if (synthesizer) { synthesizer.close(); synthesizer = null; }
+        if (synthesizer) { try{synthesizer.close();}catch(e){} synthesizer=null; }
         if(activeBtn) activeBtn.classList.remove('playing');
+        
+        // Ensure audio context is ready on mobile
+        wakeUpAudio();
+
         try {
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
             speechConfig.speechSynthesisVoiceName = "en-US-AriaNeural"; 
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
             synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
             if(btnElement) { activeBtn = btnElement; activeBtn.classList.add('playing'); }
-            synthesizer.speakTextAsync(text, res => { if(activeBtn) activeBtn.classList.remove('playing'); synthesizer.close(); synthesizer = null; });
+            
+            synthesizer.speakTextAsync(text, 
+                res => { 
+                    if(activeBtn) activeBtn.classList.remove('playing'); 
+                    synthesizer.close(); 
+                    synthesizer = null; 
+                },
+                err => {
+                    console.error(err);
+                    if(activeBtn) activeBtn.classList.remove('playing');
+                }
+            );
         } catch (e) { console.error(e); }
     }
 
@@ -795,8 +805,6 @@
         
         // 手机端自动滚回顶部
         window.scrollTo(0,0);
-        document.body.scrollTop = 0;
-        document.documentElement.scrollTop = 0;
     }
 
     function toggleText(id) {
@@ -827,12 +835,12 @@
         }, 600);
     }
 
-    // Video Playback (Fixed Path Case Sensitivity)
+    // Video Playback (Relative Path Fix)
     function playClip(src) {
         const v = document.getElementById('vid-player');
-        // 关键修复：路径必须是 Vid/ (大写V) 匹配 GitHub 文件夹
+        // 相对路径修复：统一使用 Vid/ 目录
         v.src = 'Vid/' + src; 
-        v.play().catch(e => alert("Video play failed: " + e.message));
+        v.play().catch(e => alert("Video play failed. Check filename case sensitivity on GitHub."));
     }
 
     // Mapping
