@@ -281,7 +281,7 @@
                 return true;
             } catch (e) {
                 console.error("Mic access denied or error:", e);
-                alert("Please allow microphone access to use this feature.");
+                alert("Please allow microphone access to use this feature. (Check settings)");
                 return false;
             }
         }
@@ -425,7 +425,10 @@
 
             // 关键：iOS 唤醒
             const awake = await wakeUpAudio();
-            if (!awake) return;
+            if (!awake) {
+                status.innerText = "Error: Mic access required";
+                return;
+            }
 
             startAzureRecording(id, referenceText, btn, status);
         }
@@ -463,6 +466,9 @@
 
                 recognizer.canceled = (s, e) => {
                     console.log("Canceled: " + e.reason);
+                    if(e.reason === SpeechSDK.CancellationReason.Error) {
+                        status.innerText = "Err: " + e.errorDetails;
+                    }
                     stopAzureRecording(id);
                 };
 
@@ -485,6 +491,7 @@
                 console.error(err);
                 isRecording[id] = false;
                 btn.classList.remove('recording');
+                status.innerText = "SDK Init Error";
             }
         }
 
