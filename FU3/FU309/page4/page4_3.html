@@ -17,7 +17,7 @@
             --text-color: #ecf0f1;
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; /* 移除手机点击高亮框 */ }
 
         body {
             margin: 0; padding: 0;
@@ -35,21 +35,24 @@
             background: rgba(0,0,0,0.7); z-index: -1;
         }
 
-        /* --- Home 按钮 --- */
+        /* --- Home 按钮 (修复版) --- */
         .home-btn {
-            position: fixed; top: 20px; left: 20px; z-index: 2000;
+            position: fixed; top: 20px; left: 20px; z-index: 3000; /* 提高层级 */
             background: rgba(255, 255, 255, 0.15); color: white;
-            padding: 8px 16px; border-radius: 50px; text-decoration: none;
+            padding: 10px 20px; border-radius: 50px; text-decoration: none;
             font-weight: 700; border: 1px solid rgba(255,255,255,0.3);
             backdrop-filter: blur(5px); transition: 0.3s; display: flex; align-items: center; gap: 8px;
             text-transform: uppercase; font-size: 0.9rem;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
-        .home-btn:hover { background: var(--accent); border-color: var(--accent); }
+        .home-btn:hover { background: var(--accent); border-color: var(--accent); transform: scale(1.05); }
+        .home-btn:active { transform: scale(0.95); }
 
         .container {
             width: 95%; max-width: 900px;
             margin: 40px auto;
             display: flex; flex-direction: column; gap: 25px;
+            margin-top: 80px; /* 留出顶部空间给 Home 按钮 */
         }
 
         .header-section {
@@ -59,7 +62,6 @@
             padding: 25px;
             border-radius: 15px;
             border: 1px solid rgba(255,255,255,0.2);
-            margin-top: 30px;
         }
         h1 { margin: 0; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
         .sub-text { font-size: 0.9rem; color: #ccc; margin-top: 5px; }
@@ -86,11 +88,12 @@
         }
         .btn-tool {
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
-            color: white; padding: 6px 14px; border-radius: 20px;
+            color: white; padding: 8px 16px; border-radius: 20px; /* 加大点击区域 */
             cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;
             transition: 0.3s;
         }
         .btn-tool:hover { background: rgba(255,255,255,0.2); }
+        .btn-tool:active { transform: scale(0.95); }
         .btn-tool.active { background: var(--accent); border-color: var(--accent); }
         .btn-tool.playing { background: #27ae60; border-color: #27ae60; animation: pulse 1.5s infinite; }
 
@@ -126,9 +129,11 @@
             color: white; font-size: 1.8rem; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); transition: 0.3s;
+            touch-action: manipulation; /* 优化触屏点击 */
         }
         .btn-record:active { transform: scale(0.95); }
         .btn-record.recording { animation: pulseRed 1.5s infinite; background: #c0392b; }
+        .btn-record.preparing { background: #f1c40f; border-color: #f39c12; animation: spin 1s infinite linear; }
         .status-text { font-size: 0.9rem; color: #ccc; min-height: 20px; font-weight: 500;}
 
         /* Scores */
@@ -206,13 +211,14 @@
             100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
         }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div class="overlay-bg"></div>
 
-    <a href="../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
+    <a href="../../../index.html" class="home-btn"><i class="fas fa-home"></i> Home</a>
 
     <div class="container">
         <div class="header-section">
@@ -253,11 +259,9 @@
         let synthesizer = null;
         let activeBtn = null;
 
-        // 初始化 Azure 语音合成
         function initSynthesizer() {
             if (typeof SpeechSDK !== 'undefined') {
                 const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
-                // 使用英式发音 (British)
                 speechConfig.speechSynthesisVoiceName = "en-GB-SoniaNeural"; 
                 synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
             }
@@ -271,17 +275,15 @@
             });
         };
 
-        // --- 核心修复：强制唤醒麦克风权限 (解决 iOS 问题) ---
+        // --- 核心修复：强制唤醒麦克风 ---
         async function wakeUpAudio() {
             try {
-                // 请求一个极短的流来唤醒 AudioContext
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                // 立即关闭流，只为了获取权限和唤醒硬件
                 stream.getTracks().forEach(track => track.stop());
                 return true;
             } catch (e) {
                 console.error("Mic access denied or error:", e);
-                alert("Please allow microphone access to use this feature. (Check settings)");
+                alert("Microphone Error: Please allow microphone access in your browser settings.");
                 return false;
             }
         }
@@ -317,7 +319,7 @@
                         <button class="btn-record" id="btn-rec-${num}" onclick="handleRecording(${num}, '${text.replace(/'/g, "\\'")}')">
                             <i class="fas fa-microphone"></i>
                         </button>
-                        <div class="status-text" id="status-${num}">Click mic to start contest</div>
+                        <div class="status-text" id="status-${num}">Tap to Record</div>
                     </div>
                     <div class="scores-container" id="scores-${num}"></div>
                 </div>
@@ -327,7 +329,6 @@
 
         // --- TTS & Blind Mode ---
         function playTTS(btn, text) {
-            // 停止录音如果正在进行
             if (Object.values(isRecording).some(v => v)) {
                 alert("Please stop recording first.");
                 return;
@@ -338,21 +339,15 @@
                 activeBtn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
             }
 
-            if(synthesizer) {
-                synthesizer.close();
-                initSynthesizer(); // Reset
-            }
             window.speechSynthesis.cancel();
+            if(synthesizer) { synthesizer.close(); synthesizer = null; }
 
             activeBtn = btn;
             const toolbar = btn.parentElement;
             const speedSelect = toolbar.querySelector('.speed-select');
             
-            // 使用 Azure TTS
             try {
-                if(!synthesizer) initSynthesizer();
-                
-                // 视觉反馈
+                initSynthesizer();
                 btn.classList.add('playing');
                 btn.innerHTML = '<i class="fas fa-stop"></i>';
 
@@ -367,8 +362,7 @@
                     result => {
                         btn.classList.remove('playing');
                         btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
-                        synthesizer.close();
-                        synthesizer = null;
+                        synthesizer.close(); synthesizer = null;
                     },
                     error => {
                         console.log("Azure TTS error, fallback to browser");
@@ -405,12 +399,12 @@
             if(el.parentElement.classList.contains('blind-mode')) el.classList.add('revealed');
         }
 
-        // --- Azure Recording with iOS Fix ---
+        // --- Azure Recording with iOS UX Fix ---
         async function handleRecording(id, referenceText) {
             const btn = document.getElementById(`btn-rec-${id}`);
             const status = document.getElementById(`status-${id}`);
             
-            // 如果正在播放音频，先停止
+            // 停止播放
             if(activeBtn) {
                 window.speechSynthesis.cancel();
                 if(synthesizer) { synthesizer.close(); synthesizer = null; }
@@ -418,22 +412,35 @@
                 activeBtn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
             }
 
+            // 如果正在录音，则停止
             if (isRecording[id]) {
                 stopAzureRecording(id);
                 return;
             }
 
-            // 关键：iOS 唤醒
+            // 1. 立即给用户反馈 (黄灯等待)
+            btn.classList.add('preparing');
+            btn.innerHTML = '<i class="fas fa-sync fa-spin"></i>';
+            status.innerText = "Starting Mic...";
+            status.style.color = "#f1c40f";
+
+            // 2. 唤醒麦克风 (Async)
             const awake = await wakeUpAudio();
             if (!awake) {
-                status.innerText = "Error: Mic access required";
+                btn.classList.remove('preparing');
+                btn.innerHTML = '<i class="fas fa-microphone"></i>';
+                status.innerText = "Error: Mic Denied";
+                status.style.color = "#e74c3c";
                 return;
             }
 
+            // 3. 开始录音 (红灯)
             startAzureRecording(id, referenceText, btn, status);
         }
 
         function startAzureRecording(id, referenceText, btn, status) {
+            // 移除准备状态，进入录音状态
+            btn.classList.remove('preparing');
             isRecording[id] = true;
             btn.classList.add('recording');
             btn.innerHTML = '<i class="fas fa-stop"></i>';
@@ -513,10 +520,8 @@
             }
         }
 
-        // --- Result Display with Phonemes ---
         function displayScore(id, result, jsonResult) {
             const container = document.getElementById(`scores-${id}`);
-            
             const accuracy = Math.round(result.accuracyScore);
             const fluency = Math.round(result.fluencyScore);
             const completeness = Math.round(result.completenessScore);
@@ -528,89 +533,58 @@
 
             if (jsonResult && jsonResult.NBest && jsonResult.NBest[0] && jsonResult.NBest[0].Words) {
                 const words = jsonResult.NBest[0].Words;
-                
                 wordsHtml = words.map((w, idx) => {
                     const wordText = w.Word;
                     const errorType = w.PronunciationAssessment.ErrorType;
                     const phonemes = w.Phonemes || [];
-                    
                     const wordId = `w-${Date.now()}-${idx}`;
                     wordDataMap[wordId] = { text: wordText, phonemes: phonemes };
 
-                    if (errorType === "None") {
-                        return `<span class="w-ok">${wordText}</span>`;
-                    } else if (errorType === "Mispronunciation") {
-                        return `<span class="w-bad" onclick="showPhonemes(this, '${wordId}')">${wordText}</span>`;
-                    } else if (errorType === "Omission") {
-                        return `<span class="w-miss">${wordText}</span>`;
-                    } else if (errorType === "Insertion") {
-                        return `<span style="color:#d35400; font-style:italic">(${wordText})</span>`;
-                    } else {
-                        return `<span>${wordText}</span>`;
-                    }
+                    if (errorType === "None") return `<span class="w-ok">${wordText}</span>`;
+                    else if (errorType === "Mispronunciation") return `<span class="w-bad" onclick="showPhonemes(this, '${wordId}')">${wordText}</span>`;
+                    else if (errorType === "Omission") return `<span class="w-miss">${wordText}</span>`;
+                    else return `<span>${wordText}</span>`;
                 }).join(" ");
             }
 
             const card = document.createElement('div');
             card.className = 'score-card';
             card.dataset.wordData = JSON.stringify(wordDataMap);
-
             card.innerHTML = `
                 <div class="score-top-row">
-                    <div class="total-badge" style="background:${getColor(total)}">
-                        ${total}<span>Total</span>
-                    </div>
+                    <div class="total-badge" style="background:${getColor(total)}">${total}<span>Total</span></div>
                     <div class="metrics-grid">
                         <div class="metric-row"><span class="m-label">Accuracy</span><span class="m-val">${accuracy}</span></div>
                         <div class="metric-row"><span class="m-label">Fluency</span><span class="m-val">${fluency}</span></div>
                         <div class="metric-row"><span class="m-label">Complete</span><span class="m-val">${completeness}</span></div>
                         <div class="metric-row"><span class="m-label">Prosody</span><span class="m-val">${prosody}</span></div>
                     </div>
-                    <button class="btn-delete" onclick="this.closest('.score-card').remove()">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <button class="btn-delete" onclick="this.closest('.score-card').remove()"><i class="fas fa-times"></i></button>
                 </div>
-                
-                <div class="feedback-detail">
-                    <div style="margin-bottom:5px; font-size:0.8rem; color:#aaa;">TAP RED WORDS FOR DETAILS:</div>
-                    ${wordsHtml}
-                </div>
-                
+                <div class="feedback-detail">${wordsHtml}</div>
                 <div class="phoneme-analysis"></div>
             `;
             container.prepend(card);
         }
 
-        // Show Phonemes
         window.showPhonemes = function(el, wordId) {
             const card = el.closest('.score-card');
             const analysisBox = card.querySelector('.phoneme-analysis');
             const dataMap = JSON.parse(card.dataset.wordData);
             const data = dataMap[wordId];
-
             if(!data) return;
 
             let badgesHtml = data.phonemes.map(p => {
                 const score = p.PronunciationAssessment.AccuracyScore;
-                const phText = p.Phoneme;
-                const isGood = score >= 60; 
-                const cls = isGood ? 'ph-good' : 'ph-bad';
-                return `<span class="ph-badge ${cls}">${phText} ${Math.floor(score)}</span>`;
+                const cls = score >= 60 ? 'ph-good' : 'ph-bad';
+                return `<span class="ph-badge ${cls}">${p.Phoneme} ${Math.floor(score)}</span>`;
             }).join("");
 
-            analysisBox.innerHTML = `
-                <div class="ph-title">Sound Analysis for: <strong style="color:white">${data.text}</strong></div>
-                <div class="ph-badges">${badgesHtml}</div>
-                <div style="font-size:0.75rem; color:#888; margin-top:5px;">Scores < 60 are marked red.</div>
-            `;
+            analysisBox.innerHTML = `<div class="ph-title">Sound Analysis: <strong style="color:white">${data.text}</strong></div><div class="ph-badges">${badgesHtml}</div>`;
             analysisBox.style.display = 'block';
         }
 
-        function getColor(score) {
-            if(score >= 85) return '#27ae60';
-            if(score >= 60) return '#f1c40f';
-            return '#e74c3c';
-        }
+        function getColor(score) { return score >= 85 ? '#27ae60' : (score >= 60 ? '#f1c40f' : '#e74c3c'); }
     </script>
 </body>
 </html>
