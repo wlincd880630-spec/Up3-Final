@@ -11,7 +11,7 @@ const DATA = {
     // --- 1. 系统配置 ---
     config: {
         title: "Week 17: Italy 2026 Winter Games",
-videoFile: "Italy_is_going_big.mp4",
+videoFile: "./Italy_is_going_big.mp4",
         
         // Azure Speech API
         azureKey: "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9",
