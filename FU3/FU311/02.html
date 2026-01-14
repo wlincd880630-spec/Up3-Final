@@ -112,7 +112,7 @@
         .scramble-area { background: #f8fafc; padding: 15px; border-radius: 15px; border: 2px dashed #cbd5e1; min-height: 60px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin-bottom: 10px; }
         .word-tile { background: white; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: 0.95rem; }
         
-        /* Task 3: Echo (Restored) */
+        /* Task 3: Echo */
         .echo-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 15px; text-align: center; }
         .echo-text-container { min-height: 60px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; }
         .echo-sentence { font-size: 1.1rem; font-weight: bold; color: #2d3436; display: none; animation: fadeInUp 0.4s; }
@@ -121,7 +121,7 @@
         /* Mic Buttons */
         .mic-btn { width: 60px; height: 60px; border-radius: 50%; background: #6366f1; color: white; font-size: 1.4rem; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); display: inline-flex; align-items: center; justify-content: center; transition: 0.3s; }
         .mic-btn.active { background: #ef4444; animation: pulse 1s infinite; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5); }
-        .echo-fb { margin-top: 10px; font-weight: bold; font-size: 1rem; color: #64748b; min-height: 25px; }
+        .echo-fb { margin-top: 10px; font-weight: bold; font-size: 1rem; color: #64748b; min-height: 25px; line-height: 1.5; }
 
         /* Assessment Coloring */
         .w-good { color: var(--success); }
@@ -353,22 +353,27 @@
     // --- Config ---
     const AZURE_KEY = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9"; 
     const AZURE_REGION = "eastus2";
-    const DEEPSEEK_KEY = "sk-daa16008e81843deba6fefe9dce51465";
     
     let synthesizer, recognizer, currPage = 1;
     let visualTextBuffer = "";
 
-    const imgPrompts = {
-        'apply': "A student filling out an application form.",
-        'random': "A spinning fortune wheel.",
-        'accept': "Receiving a gift box."
-    };
-
     window.onload = () => { startSocraticFlow(); initScramble(); };
 
-    // --- 1. Robust TTS (Mobile Fix) ---
+    // --- 核心: 强制唤醒麦克风 (修复移动端/Vercel录音问题) ---
+    async function wakeUpAudio() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop());
+            return true;
+        } catch (e) {
+            console.error("Mic access denied or error:", e);
+            alert("请允许麦克风权限以使用语音功能。\nPlease allow microphone access.");
+            return false;
+        }
+    }
+
+    // --- 1. Robust TTS ---
     function speak(text) {
-        // Stop current audio
         if(synthesizer) { try{synthesizer.close();}catch(e){} synthesizer=null; }
         window.speechSynthesis.cancel();
 
@@ -390,7 +395,6 @@
                 err => { speakNative(cleanText); }
             );
         } catch (e) {
-            console.error("SDK Error:", e);
             speakNative(cleanText);
         }
     }
@@ -455,12 +459,19 @@
         });
     }
 
-    // --- Task 1: Visual Rec ---
-    function toggleVisualRec(word) {
+    // --- Task 1: Visual Rec (Fixed) ---
+    async function toggleVisualRec(word) {
         const btn = document.getElementById(`mic-img-${word}`);
         const stat = document.getElementById(`stat-img-${word}`);
-        if (btn.classList.contains('active')) { stopVisualRec(btn, stat, word); } 
-        else {
+        
+        if (btn.classList.contains('active')) { 
+            stopVisualRec(btn, stat, word); 
+        } else {
+            // Wakeup Fix
+            stat.innerText = "Starting...";
+            const awake = await wakeUpAudio();
+            if(!awake) { stat.innerText = "Error: Mic Blocked"; return; }
+
             if(recognizer) { recognizer.close(); recognizer = undefined; }
             visualTextBuffer = "";
             startVisualRec(btn, stat);
@@ -505,7 +516,7 @@
         }, 1000);
     }
 
-    // --- Task 2: Scramble (RESTORED LONG SENTENCES) ---
+    // --- Task 2: Scramble ---
     function initScramble() {
         setupScramble("apply", ["for", "scholarship", "apply", "decided", "London.", "study", "the", "in", "to", "She"]);
         setupScramble("random", ["computer", "The", "password", "user", "generates", "account.", "new", "every", "for", "random", "a"]);
@@ -526,64 +537,77 @@
         else { fb.innerHTML="<span style='color:var(--error)'>Try again.</span>"; }
     }
 
-    // --- Task 3: Blind Echo (Assessment) ---
+    // --- Task 3: Blind Echo (Assessment Fixed) ---
     function revealEcho(id) {
         document.getElementById(`rev-${id}`).style.display = 'none';
         document.getElementById(`txt-${id}`).style.display = 'block';
     }
 
-    function handleEcho(word, refText) {
+    async function handleEcho(word, refText) {
         const btn = document.getElementById(`mic-echo-${word}`);
         const stat = document.getElementById(`stat-echo-${word}`);
         
-        if(!btn.classList.contains('active')) {
-            if(recognizer) { try{recognizer.close();}catch(e){} recognizer=null; }
+        // Prevent double click or stop
+        if(btn.classList.contains('active')) return;
 
-            btn.classList.add('active');
-            stat.innerText = "Listening...";
-            
-            try {
-                const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
-                sc.speechRecognitionLanguage = "en-US";
-                const ac = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-                recognizer = new SpeechSDK.SpeechRecognizer(sc, ac);
+        // 1. Wake up audio
+        stat.innerText = "Starting Mic...";
+        const awake = await wakeUpAudio();
+        if(!awake) {
+            stat.innerText = "Error: Mic Blocked";
+            return;
+        }
 
-                // Config Assessment
-                const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
-                    refText, 
-                    SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, 
-                    SpeechSDK.PronunciationAssessmentGranularity.Word, 
-                    true
-                );
-                pronConfig.applyTo(recognizer);
+        // 2. Clean up previous
+        if(recognizer) { try{recognizer.close();}catch(e){} recognizer=null; }
 
-                recognizer.recognizeOnceAsync(res => {
-                    btn.classList.remove('active');
-                    if(res.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-                        const json = JSON.parse(res.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult));
-                        if(json.NBest && json.NBest[0].PronunciationAssessment) {
-                            const score = json.NBest[0].PronunciationAssessment.AccuracyScore;
-                            let html = "";
-                            json.NBest[0].Words.forEach(w => {
-                                let cls = w.PronunciationAssessment.ErrorType === "None" ? "w-good" : "w-bad";
-                                html += `<span class="${cls}">${w.Word}</span> `;
-                            });
-                            stat.innerHTML = `Score: ${score} | ${html}`;
-                        } else {
-                            stat.innerText = "Heard: " + res.text; // Fallback
-                        }
-                    } else {
-                        stat.innerText = "No speech detected.";
-                    }
-                    recognizer.close(); recognizer=undefined;
-                }, err => {
-                    btn.classList.remove('active');
-                    stat.innerText = "Error (Check Mic)";
-                });
-            } catch(e) {
+        btn.classList.add('active');
+        stat.innerText = "Listening...";
+        
+        try {
+            const sc = SpeechSDK.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+            sc.speechRecognitionLanguage = "en-US";
+            const ac = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+            recognizer = new SpeechSDK.SpeechRecognizer(sc, ac);
+
+            // Config Assessment
+            const pronConfig = new SpeechSDK.PronunciationAssessmentConfig(
+                refText, 
+                SpeechSDK.PronunciationAssessmentGradingSystem.HundredMark, 
+                SpeechSDK.PronunciationAssessmentGranularity.Word, 
+                true
+            );
+            pronConfig.applyTo(recognizer);
+
+            recognizer.recognizeOnceAsync(res => {
                 btn.classList.remove('active');
-                stat.innerText = "Browser not supported.";
-            }
+                if(res.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                    const json = JSON.parse(res.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult));
+                    if(json.NBest && json.NBest[0].PronunciationAssessment) {
+                        const score = json.NBest[0].PronunciationAssessment.AccuracyScore;
+                        let html = "";
+                        json.NBest[0].Words.forEach(w => {
+                            let cls = w.PronunciationAssessment.ErrorType === "None" ? "w-good" : "w-bad";
+                            html += `<span class="${cls}">${w.Word}</span> `;
+                        });
+                        stat.innerHTML = `Score: ${score} | ${html}`;
+                    } else {
+                        stat.innerText = "Heard: " + res.text; // Fallback
+                    }
+                } else if(res.reason === SpeechSDK.ResultReason.NoMatch) {
+                    stat.innerText = "No speech detected.";
+                } else if(res.reason === SpeechSDK.ResultReason.Canceled) {
+                    stat.innerText = "Error: Check Console";
+                    console.log(res);
+                }
+                recognizer.close(); recognizer=undefined;
+            }, err => {
+                btn.classList.remove('active');
+                stat.innerText = "Error (Check Mic)";
+            });
+        } catch(e) {
+            btn.classList.remove('active');
+            stat.innerText = "Browser not supported.";
         }
     }
 
