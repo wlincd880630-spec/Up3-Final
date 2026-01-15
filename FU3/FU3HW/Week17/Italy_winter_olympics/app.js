@@ -1,6 +1,6 @@
 /**
- * Week 17: Italy 2026 - Final Logic Engine (V7.2)
- * Update: Added Auto-Scroll Carousel for Desktop Comfort
+ * Week 17: Italy 2026 - Final Logic Engine (V7.2 - iOS Compatible)
+ * Update: Fixed TTS for iPhone/iPad (Safari Audio Policy)
  */
 
 const App = {
@@ -19,7 +19,7 @@ const App = {
     runtime: {
         cardIdx: 0,
         cardStart: 0,
-        speechSynth: null,
+        // speechSynth: null, // Removed: Do not use persistent instance on mobile
         quizQueue: [],
         quizCurrent: 0,
         currentVideoQs: [],
@@ -27,35 +27,78 @@ const App = {
         isPart1: true,
         isReplaying: false,
         replayEndTime: 0,
-        carouselInterval: null // ★ 新增：轮播定时器
+        carouselInterval: null
     },
 
     // --- 初始化 ---
     init() {
-        this.initAzure();
+        // this.initAzure(); // Removed: Azure init moved to speak() for better mobile stability
         this.renderLanding();
         this.updateScoreDisplay();
         window.addEventListener('beforeunload', () => this.saveState());
     },
 
-    // --- Azure TTS ---
-    initAzure() {
-        if (window.SpeechSDK && DATA.config.azureKey) {
-            try {
-                const config = SpeechSDK.SpeechConfig.fromSubscription(DATA.config.azureKey, DATA.config.azureRegion);
-                config.speechSynthesisVoiceName = "en-US-AvaMultilingualNeural"; 
-                this.runtime.speechSynth = new SpeechSDK.SpeechSynthesizer(config);
-            } catch(e) { console.warn("Azure Init Error", e); }
-        }
-    },
-
+    // --- Azure TTS & Fallback (iOS Fixed) ---
     speak(text) {
         if (!text) return;
-        if (this.runtime.speechSynth) {
-            this.runtime.speechSynth.speakTextAsync(text);
-        } else {
+
+        // 1. 尝试使用 Azure TTS
+        if (window.SpeechSDK && DATA.config.azureKey) {
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(DATA.config.azureKey, DATA.config.azureRegion);
+                // 使用多语言神经语音，效果更好
+                speechConfig.speechSynthesisVoiceName = "en-US-AvaMultilingualNeural"; 
+                
+                // 【关键修复 1】 iOS 必须显式声明音频输出配置
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+
+                // 【关键修复 2】 每次发音创建新的 synthesizer，防止移动端连接断开/超时
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+
+                synthesizer.speakTextAsync(
+                    text,
+                    result => {
+                        // 发音结束或失败后，必须关闭以释放资源
+                        synthesizer.close();
+                        
+                        // 如果 Azure 合成失败 (Reason 不是 Completed)，转用原生发音
+                        if (result.reason !== SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                            console.warn("Azure TTS canceled or failed, switching to native.", result);
+                            this.fallbackSpeak(text);
+                        }
+                    },
+                    error => {
+                        console.error("Azure TTS Network Error:", error);
+                        synthesizer.close();
+                        this.fallbackSpeak(text);
+                    }
+                );
+                return; // 如果 Azure 启动成功，直接返回，不执行下面的 fallback
+            } catch (e) {
+                console.warn("Azure SDK Init Error", e);
+                // 如果出错，继续向下执行 fallback
+            }
+        }
+        
+        // 2. 如果没有 SDK 或 Azure 失败，使用原生语音
+        this.fallbackSpeak(text);
+    },
+
+    // 辅助函数：浏览器原生 TTS (离线、免费、iOS 完美支持)
+    fallbackSpeak(text) {
+        if ('speechSynthesis' in window) {
+            // 【关键修复 3】 iOS 需要先 cancel 掉之前的，否则可能会卡住
+            window.speechSynthesis.cancel();
+            
             const u = new SpeechSynthesisUtterance(text);
             u.lang = 'en-US';
+            u.rate = 1.0; 
+            
+            // 尝试找一个好的英语声音 (iOS 上的 Samantha 效果不错)
+            const voices = window.speechSynthesis.getVoices();
+            const iosVoice = voices.find(v => v.name.includes("Samantha")) || voices.find(v => v.lang === 'en-US');
+            if (iosVoice) u.voice = iosVoice;
+
             window.speechSynthesis.speak(u);
         }
     },
@@ -98,23 +141,20 @@ const App = {
             </div>
         `).join('');
 
-        // ★★★ 启动自动播放 ★★★
+        // 启动自动播放
         this.startCarouselAutoPlay(box);
     },
 
     startCarouselAutoPlay(box) {
-        // 清除旧定时器防止叠加
         if(this.runtime.carouselInterval) clearInterval(this.runtime.carouselInterval);
         
         const autoScroll = () => {
             const item = box.querySelector('.intro-slide');
             if(!item) return;
             
-            // 计算滚动距离：单张卡片宽度 + CSS中的gap(15px)
             const step = item.offsetWidth + 15; 
             const maxScroll = box.scrollWidth - box.clientWidth;
             
-            // 如果已经滚到底部 (允许5px误差)，则回到开头
             if (box.scrollLeft >= maxScroll - 5) {
                 box.scrollTo({ left: 0, behavior: 'smooth' });
             } else {
@@ -122,13 +162,10 @@ const App = {
             }
         };
 
-        // 每 3000ms (3秒) 滚动一次
         this.runtime.carouselInterval = setInterval(autoScroll, 3000);
         
-        // 鼠标放上去暂停，移开继续
         box.onmouseenter = () => clearInterval(this.runtime.carouselInterval);
         box.onmouseleave = () => this.runtime.carouselInterval = setInterval(autoScroll, 3000);
-        // 手机触摸同理
         box.ontouchstart = () => clearInterval(this.runtime.carouselInterval);
         box.ontouchend = () => this.runtime.carouselInterval = setInterval(autoScroll, 3000);
     },
@@ -156,7 +193,6 @@ const App = {
     },
 
     goTo(stepIndex) {
-        // 停止轮播，节省资源
         if(this.runtime.carouselInterval) clearInterval(this.runtime.carouselInterval);
 
         if (this.state.step === 1 && stepIndex !== 1) this.trackCardTime();
@@ -206,7 +242,7 @@ const App = {
         document.getElementById('global-score-num').innerText = total;
     },
 
-    // --- 词汇 (无变化) ---
+    // --- 词汇 ---
     renderCard() {
         const word = DATA.vocab[this.runtime.cardIdx];
         if (!word) return;
@@ -338,7 +374,7 @@ const App = {
         html2pdf().set(opt).from(element).save();
     },
 
-    // --- Quiz (无变化) ---
+    // --- Quiz ---
     startQuiz(tierIdx) {
         const tier = DATA.config.quizTiers[tierIdx];
         this.state.scores.quiz_base = tier.base;
@@ -434,7 +470,7 @@ const App = {
         `).join('');
     },
 
-    // --- Video (无变化) ---
+    // --- Video ---
     initVideo(isPart1) {
         document.getElementById('sec-video').classList.remove('hidden');
         this.runtime.isPart1 = isPart1;
