@@ -1,6 +1,6 @@
 /**
- * Week 17: Italy 2026 - Final Logic Engine (V7.2 - iOS Compatible)
- * Update: Fixed TTS for iPhone/iPad (Safari Audio Policy)
+ * Week 17: Italy 2026 - Final Logic Engine (V7.3 - HUD Feature Added)
+ * Update: Added Floating Question Preview (HUD) logic.
  */
 
 const App = {
@@ -513,7 +513,28 @@ const App = {
             }
             
             this.checkVideoTriggers(t, v);
+            // New: Update HUD
+            if (!v.paused) this.updateHUD(t);
         };
+    },
+
+    // NEW: Update Floating HUD
+    updateHUD(t) {
+        const box = document.getElementById('quiz-preview-box');
+        const text = document.getElementById('qp-text');
+        
+        // Find next unanswered question
+        const nextQ = this.runtime.currentVideoQs.find(q => {
+            const qId = (this.runtime.isPart1 ? 'g_' : 'd_') + q.time;
+            return q.time > t && !this.state.answeredVideoQs.includes(qId);
+        });
+
+        if (nextQ) {
+            text.textContent = nextQ.q;
+            box.classList.remove('hidden');
+        } else {
+            box.classList.add('hidden');
+        }
     },
 
     checkVideoTriggers(t, v) {
@@ -532,6 +553,9 @@ const App = {
     showVideoModal(q) {
         const modal = document.getElementById('vid-modal');
         modal.classList.remove('hidden');
+        // NEW: Hide HUD when modal is open
+        document.getElementById('quiz-preview-box').classList.add('hidden');
+        
         this.runtime.activeVideoQ = q;
         
         const box = document.getElementById('vm-content');

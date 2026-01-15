@@ -1,4 +1,4 @@
-/* * Week 17: Italy 2026 Master Class - Style V7.1 (Fixes: Layout, Carousel, PDF) */
+/* * Week 17: Italy 2026 Master Class - Style V7.2 (Added HUD) */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,700;1,400&display=swap');
 
@@ -437,8 +437,6 @@ input[type=range].locked::-webkit-slider-thumb {
 .quiz-input:focus { border-color: var(--blue); }
 
 /* --- 10. PDF 导出/打印专用样式 (Fix for Blank PDF) --- */
-/* 当 JS 调用 html2pdf 或用户按 Ctrl+P 时生效 */
-
 @media print {
     body {
         background: white !important;
@@ -464,7 +462,6 @@ input[type=range].locked::-webkit-slider-thumb {
     }
 }
 
-/* 这是一个辅助类，JS 生成 PDF 时会把内容包裹在这个类里 */
 .pdf-export-view {
     background: white;
     color: black;
@@ -474,3 +471,61 @@ input[type=range].locked::-webkit-slider-thumb {
 .pdf-export-view h2 { color: black; border-bottom: 2px solid black; }
 .pdf-export-view p { color: #333; margin-bottom: 10px; }
 .pdf-export-view hr { border-color: #eee; }
+
+/* --- 11. 视频悬浮预告 (HUD) --- */
+.quiz-preview {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 320px; /* 宽度适中，容纳较长问题 */
+    background: rgba(0, 0, 0, 0.85); /* 深色背景 */
+    border-left: 4px solid var(--gold); /* 金色装饰条 */
+    padding: 15px;
+    border-radius: 8px;
+    z-index: 20; /* 视频上方，但在弹窗下方 */
+    color: #fff;
+    pointer-events: none; /* 允许点击穿透视频 */
+    transition: opacity 0.5s ease;
+    backdrop-filter: blur(4px); /* 磨砂玻璃效果 */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    text-align: left;
+}
+
+.quiz-preview.hidden {
+    opacity: 0;
+}
+
+.qp-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.qp-text {
+    font-size: 1rem;
+    line-height: 1.4;
+    font-weight: 500;
+    color: #f0f0f0;
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .quiz-preview {
+        top: 10px;
+        right: 10px;
+        left: 10px; /* 撑满移动端宽度 */
+        width: auto;
+        padding: 10px;
+    }
+    .qp-text {
+        font-size: 0.9rem;
+    }
+}
