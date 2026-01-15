@@ -126,7 +126,7 @@
         .ex-cn { display: none; color: #64748b; font-size: 1rem; margin-top: 8px; font-style: italic; }
         .ex-cn.show { display: block; }
 
-        /* VIDEO & CUSTOM SUBTITLES (New for Safari Compatibility) */
+        /* VIDEO & CUSTOM SUBTITLES */
         .video-box { 
             background: black; width: 100%; border-radius: 10px; overflow: hidden; 
             border: 3px solid var(--gold-main); position: relative;
@@ -139,7 +139,7 @@
             text-align: center; color: white; pointer-events: none;
             font-size: 16px; line-height: 1.4; text-shadow: 1px 1px 2px black;
             background: rgba(0,0,0,0.6); padding: 5px; border-radius: 5px;
-            display: none; /* Hidden by default, shown by JS */
+            display: none;
             z-index: 10;
         }
 
@@ -179,7 +179,7 @@
         .status-ok { color: var(--correct); font-weight: bold; }
         .status-err { color: var(--wrong); font-weight: bold; }
 
-        /* PRINT STYLE (Browser Native Fix) */
+        /* PRINT STYLE */
         @media print {
             body * { visibility: hidden; }
             #print-area, #print-area * { visibility: visible; }
@@ -562,8 +562,7 @@
         w: x[0], t: x[1], d: x[2], s: x[3], cn: x[4], e1: x[5], e1cn: x[6], e2: x[7], e2cn: x[8]
     }));
 
-    // --- VTT SUBTITLES (For Safari, parsed by JS) ---
-    // Note: Safari does not support Blob VTT. We use a custom overlay.
+    // --- VTT SUBTITLES ---
     const vttContent = `WEBVTT
 
 00:00:02.240 --> 00:00:06.000
@@ -734,21 +733,61 @@ enigmas and untold stories.`;
         ans: {}
     };
 
-    // --- AZURE TTS ---
+    // --- AZURE TTS (UPDATED FOR iOS COMPATIBILITY) ---
     const azureKey = "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9"; 
     const azureRegion = "eastus2"; 
-    let synthesizer;
-
+    
     function speak(text) {
-        if(!synthesizer && typeof SpeechSDK!=='undefined' && azureKey) {
-            const conf = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
-            conf.speechSynthesisVoiceName = "en-US-JennyNeural";
-            synthesizer = new SpeechSDK.SpeechSynthesizer(conf);
-        }
-        if(synthesizer) {
-            synthesizer.speakTextAsync(text, r=>{}, e=>console.log(e));
+        // Try Azure first
+        if(typeof SpeechSDK !== 'undefined' && azureKey) {
+            try {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+                speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+                // iOS Fix: Explicitly use default speaker output
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+                
+                // create new synthesizer for each call to avoid stale connections on mobile
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+                
+                synthesizer.speakTextAsync(
+                    text,
+                    result => {
+                        synthesizer.close(); // Close to release resources
+                        if (result.reason !== SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                            console.warn("Azure TTS incomplete, falling back.");
+                            fallbackSpeak(text);
+                        }
+                    },
+                    err => {
+                        console.error("Azure TTS Error:", err);
+                        synthesizer.close();
+                        fallbackSpeak(text);
+                    }
+                );
+            } catch (e) {
+                console.error("Azure Init Failed:", e);
+                fallbackSpeak(text);
+            }
         } else {
-            const u = new SpeechSynthesisUtterance(text); u.lang='en-US'; window.speechSynthesis.speak(u);
+            fallbackSpeak(text);
+        }
+    }
+
+    function fallbackSpeak(text) {
+        if ('speechSynthesis' in window) {
+            // iOS Fix: Cancel any ongoing speech first
+            window.speechSynthesis.cancel();
+            
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'en-US';
+            u.rate = 1.0;
+            
+            // Try to find a good voice (Samantha is common on iOS)
+            const voices = window.speechSynthesis.getVoices();
+            const iosVoice = voices.find(v => v.name === 'Samantha') || voices.find(v => v.lang === 'en-US');
+            if (iosVoice) u.voice = iosVoice;
+            
+            window.speechSynthesis.speak(u);
         }
     }
 
@@ -1056,12 +1095,10 @@ enigmas and untold stories.`;
         h += row("8. What is one likely reason suggested for their abandonment of the site?", state.ans.d6, "C (Disaster)", state.ans.d6 === 'C' ? 5 : 0);
         h += row("9. The large bronze trees discovered at the site likely symbolize:", state.ans.d7, "C (Earth-Heaven)", state.ans.d7 === 'C' ? 5 : 0);
         
-        // ⬇️ 修改点1：使用单引号包裹题干，避免 "unique worldview" 的双引号冲突
         h += row('10. The "unique worldview" of Sanxingdui implies:', state.ans.d8, "B (Independent)", state.ans.d8 === 'B' ? 5 : 0);
         
         h += row("11. The presence of elephant tusks (ivory) suggests that the people:", state.ans.d9, "B (Had access to distant regions and engaged in long-distance trade.)", state.ans.d9 === 'B' ? 5 : 0);
         
-        // ⬇️ 修改点2：重新计算连线题得分，以便正确显示绿色/红色和具体分数
         let mScore = 0;
         state.matchLines.forEach(l => {
             if(l.l==='L-A' && l.r==='R-2') mScore+=1.25; 
