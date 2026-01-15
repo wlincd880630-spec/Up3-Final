@@ -468,16 +468,16 @@ videoFile: "./Italy_is_going_big.mp4",
             { time: 650, type: 'choice', q: "Where will the Closing Ceremony be held?", opts: ["San Siro Stadium", "Roman Colosseum", "Arena di Verona", "Cortina Ice Rink"], ans: 2, replay: { start: 540, end: 552 } }
         ],
         detailed: [
-            { time: 135, type: 'choice', q: "Which group of sports is held in Cortina?", opts: ["Hockey & Skating", "Alpine Skiing, Curling, Bobsled", "Snowboarding only", "Figure Skating"], ans: 1, replay: { start: 130, end: 134 } },
-            { time: 235, type: 'text', q: "In what year did Cortina first host the Winter Olympics? (Enter year)", match: ["1956", "56"], replay: { start: 73, end: 77 } },
-            { time: 290, type: 'choice', q: "What major renovation was done to the 1956 Ice Stadium?", opts: ["Demolished completely", "Added a blue roof", "Converted to hotel", "Added a glass floor"], ans: 1, replay: { start: 275, end: 282 } },
-            { time: 345, type: 'bool', q: "True or False: Milan has canals similar to Venice, though fewer.", opts: ["True", "False"], ans: 0, replay: { start: 358, end: 365 } },
-            { time: 375, type: 'choice', q: "What were Milan's canals originally used for?", opts: ["Swimming competitions", "Transporting goods", "Ice skating in winter", "Fishing only"], ans: 1, replay: { start: 374, end: 380 } },
-            { time: 415, type: 'choice', q: "How many gondolas can you currently find in Milan?", opts: ["Hundreds", "None", "Exactly one", "Fifty"], ans: 2, replay: { start: 403, end: 408 } },
-            { time: 465, type: 'text', q: "The restaurant owner's cousin competed in how many Olympics?", match: ["5", "five"], replay: { start: 456, end: 460 } },
-            { time: 520, type: 'choice', q: "Which female US athlete has a pizza named after her?", opts: ["Shaun White", "Lindsey Vonn", "Mikaela Shiffrin", "Simone Biles"], ans: 1, replay: { start: 504, end: 510 } },
-            { time: 585, type: 'bool', q: "True or False: The Verona Arena is actually older than the Roman Colosseum.", opts: ["True", "False"], ans: 0, replay: { start: 565, end: 570 } },
-            { time: 605, type: 'choice', q: "What unique event once happened in the Verona Arena?", opts: ["Space shuttle launch", "Flooded for naval battles", "Hockey game", "Formula 1 racing"], ans: 1, replay: { start: 580, end: 588 } }
+            { time: 80, type: 'text', q: "In what year did Cortina first host the Winter Olympics? (Enter year)", match: ["1956", "56"], replay: { start: 73, end: 79} },
+            { time: 140, type: 'choice', q: "Which group of sports is held in Cortina?", opts: ["Hockey & Skating", "Alpine Skiing, Curling, Bobsled", "Snowboarding only", "Figure Skating"], ans: 1, replay: { start: 130, end: 138 } },
+            { time: 295, type: 'choice', q: "What major renovation was done to the 1956 Ice Stadium?", opts: ["Demolished completely", "Added a blue roof", "Converted to hotel", "Added a glass floor"], ans: 1, replay: { start: 275, end: 293 } },
+            { time: 349, type: 'bool', q: "True or False: Milan has canals similar to Venice, though fewer.", opts: ["True", "False"], ans: 0, replay: { start: 358, end: 365 } },
+            { time: 380, type: 'choice', q: "What were Milan's canals originally used for?", opts: ["Swimming competitions", "Transporting goods", "Ice skating in winter", "Fishing only"], ans: 1, replay: { start: 374, end: 380 } },
+            { time: 420, type: 'choice', q: "How many gondolas can you currently find in Milan?", opts: ["Hundreds", "None", "Exactly one", "Fifty"], ans: 2, replay: { start: 403, end: 408 } },
+            { time: 470, type: 'text', q: "The restaurant owner's cousin competed in how many Olympics?", match: ["5", "five"], replay: { start: 456, end: 460 } },
+            { time: 530, type: 'choice', q: "Which female US athlete has a pizza named after her?", opts: ["Shaun White", "Lindsey Vonn", "Mikaela Shiffrin", "Simone Biles"], ans: 1, replay: { start: 504, end: 510 } },
+            { time: 590, type: 'bool', q: "True or False: The Verona Arena is actually older than the Roman Colosseum.", opts: ["True", "False"], ans: 0, replay: { start: 565, end: 570 } },
+            { time: 610, type: 'choice', q: "What unique event once happened in the Verona Arena?", opts: ["Space shuttle launch", "Flooded for naval battles", "Hockey game", "Formula 1 racing"], ans: 1, replay: { start: 580, end: 588 } }
         ]
     }
 };
