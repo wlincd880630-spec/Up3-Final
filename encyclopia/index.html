@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跨学科英语</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/canvas-confetti/1.6.0/confetti.browser.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/sweetalert2/11.7.32/sweetalert2.all.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #6c5ce7; --primary-light: #a29bfe; --accent: #fd79a8; --success: #00b894;
+            --text-main: #2d3436; --text-sub: #636e72; --glass-bg: rgba(255, 255, 255, 0.98);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        body {
+            margin: 0; padding: 0; font-family: 'Microsoft YaHei', sans-serif;
+            height: 100vh; overflow: hidden; color: var(--text-main);
+            background: linear-gradient(-45deg, #a18cd1, #fbc2eb, #8fd3f4, #84fab0);
+            background-size: 400% 400%; animation: gradientBG 15s ease infinite;
+        }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        .app-layout { display: flex; gap: 25px; padding: 30px; height: calc(100vh - 60px); max-width: 1400px; margin: 0 auto; }
+        .main-panel {
+            flex: 1; background: var(--glass-bg); backdrop-filter: blur(30px); border-radius: 30px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.05); border: var(--glass-border); display: flex;
+            flex-direction: column; overflow-y: auto; overflow-x: hidden; position: relative;
+            transition: all 0.4s ease;
+        }
+        .ai-panel {
+            width: 0; opacity: 0; background: white; border-radius: 30px;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.05); overflow-y: auto; padding: 0;
+            transition: all 0.4s ease; transform: translateX(30px);
+        }
+        .app-layout.split-mode .main-panel { flex: 0 0 60%; }
+        .app-layout.split-mode .ai-panel { width: 38%; opacity: 1; padding: 30px; transform: translateX(0); }
+
+        #setup-view, #quiz-view, #review-view { display: none; padding: 40px; height: 100%; box-sizing: border-box; }
+        .setup-container { max-width: 700px; margin: 0 auto; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .xp-badge { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 8px 20px; border-radius: 50px; font-weight: bold; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3); display: flex; align-items: center; gap: 10px; }
+        .card-box { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); margin-bottom: 20px; border: 2px solid transparent; transition: 0.2s; }
+        .card-box:hover { border-color: var(--primary-light); }
+        .hero-btn { background: var(--primary); color: white; border: none; padding: 18px; width: 100%; border-radius: 18px; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 10px 25px rgba(108, 92, 231, 0.4); transition: all 0.3s; }
+        .hero-btn:hover { transform: scale(1.02); }
+
+        /* 图片容器优化 */
+        .q-image-box {
+            width: 100%; min-height: 0; max-height: 0; overflow: hidden; 
+            border-radius: 15px; margin-bottom: 10px;
+            transition: max-height 0.5s ease-in-out;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); position: relative; background: #f8f9fa;
+        }
+        .q-image-box.show { max-height: 600px; } 
+        .q-image-box img { width: 100%; height: auto; display: block; }
+        
+        /* 辅助工具栏 */
+        .media-toolbar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .media-btn {
+            flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn-gen { background: #e3f2fd; color: #0984e3; }
+        .btn-gen:hover { background: #74b9ff; color: white; }
+        .btn-search { background: #f1f2f6; color: #636e72; }
+        .btn-search:hover { background: #dfe6e9; color: #2d3436; }
+
+        /* 答题文字 */
+        .q-text-main { font-size: 1.6rem; font-weight: 600; line-height: 1.8; margin-bottom: 20px; color: var(--text-main); }
+        .q-instruction { background: #2d3436; color: #fff; padding: 6px 15px; border-radius: 20px; display: inline-block; font-size: 0.9rem; font-weight: 500; margin-bottom: 20px; }
+        .q-quote-block { display: block; margin-top: 15px; padding: 15px; background: rgba(108, 92, 231, 0.05); border-left: 4px solid var(--primary); border-radius: 8px; font-style: italic; color: #555; }
+
+        .word-span { cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; padding: 0 2px; border-radius: 4px; }
+        .word-span:hover { color: var(--primary); background: rgba(108, 92, 231, 0.1); }
+        .word-span:active { transform: scale(0.95); background: var(--primary); color: white; }
+
+        .option-card { background: white; border: 2px solid #f1f2f6; padding: 18px 25px; border-radius: 16px; margin-bottom: 15px; cursor: pointer; display: flex; align-items: center; gap: 15px; transition: 0.2s; font-size: 1.1rem; }
+        .option-card.interactive:hover { border-color: var(--primary); transform: translateX(8px); }
+        .option-card.correct { background: #d1e7dd; border-color: #00b894; color: #006241; }
+        .option-card.wrong { background: #fad3d3; border-color: #ff7675; color: #b71540; }
+        .option-card.disabled { opacity: 0.8; cursor: default; }
+        .tts-icon { width: 36px; height: 36px; border-radius: 50%; background: #f1f2f6; color: var(--text-sub); display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0; cursor: pointer; }
+        .tts-icon:hover { background: var(--primary); color: white; }
+        
+        .timer-track { height: 8px; background: #eee; border-radius: 10px; overflow: hidden; margin: 20px 0; }
+        .timer-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #fd79a8, #6c5ce7); transition: width linear; }
+        .action-btn { padding: 10px 18px; border-radius: 12px; border: none; background: white; color: var(--text-sub); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .action-btn:hover { color: var(--primary); background: #f8f9fa; }
+        .action-btn.primary { background: var(--primary); color: white; }
+        .ai-card { background: #f8f9fa; border-radius: 15px; padding: 20px; margin-bottom: 20px; border-left: 4px solid var(--primary); font-size: 1rem; line-height: 1.6; }
+
+        /* 悬浮按钮 */
+        .fab-container { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 15px; align-items: flex-end; z-index: 1000; }
+        .fab-pill { background: white; color: #2d3436; padding: 12px 25px; border-radius: 50px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; border: 1px solid rgba(0,0,0,0.05); }
+        .fab-pill:hover { transform: scale(1.05) translateX(-5px); }
+        .fab-ask { background: linear-gradient(135deg, #2d3436, #000); color: #00b894; }
+        .fab-dict { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; }
+
+        .custom-modal { position: fixed; top: 80px; right: 100px; width: 400px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); padding: 30px; z-index: 999; display: none; border: 1px solid rgba(255,255,255,0.8); animation: slideIn 0.3s ease; max-height: 80vh; overflow-y: auto; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; color: #b2bec3; font-size: 1.2rem; }
+        
+        .dict-word { font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin-bottom: 5px; }
+        .dict-phonetic { font-family: "Arial Unicode MS", sans-serif; color: #636e72; margin-bottom: 20px; font-style: italic; }
+        .dict-section { margin-bottom: 20px; }
+        .dict-label { font-size: 0.8rem; color: var(--primary); text-transform: uppercase; font-weight: 800; margin-bottom: 8px; letter-spacing: 1px; }
+        
+        .chat-input { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 10px; margin-bottom: 10px; font-family: inherit; resize: vertical; }
+        .chat-input:focus { border-color: var(--primary); outline: none; }
+        .chat-response { background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #00b894; line-height: 1.6; white-space: pre-wrap; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+
+<div class="app-layout" id="app-layout">
+    <div class="main-panel">
+        <div id="setup-view" class="setup-container animate__animated animate__fadeIn">
+            <div class="top-bar">
+                <div class="xp-badge"> <i class="fas fa-trophy"></i> <span id="total-xp-display">0</span> XP </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="action-btn" onclick="exportData()"><i class="fas fa-file-export"></i> 备份</button>
+                    <button class="action-btn" onclick="document.getElementById('import-file').click()"><i class="fas fa-file-import"></i> 恢复</button>
+                    <input type="file" id="import-file" hidden onchange="importData(this)">
+                </div>
+            </div>
+            <h1 style="color:var(--primary); font-weight:800; font-size:2.8rem; text-align:center; margin-bottom:40px;">跨学科英语<span style="font-size:1rem; color:#636e72; font-weight:normal;">v25.0</span> </h1>
+            <div class="card-box">
+                <label style="font-weight:700; display:block; margin-bottom:10px;">选择学科</label>
+                <select id="subject-sel" style="width:100%; padding:15px; border-radius:12px; border:2px solid #eee; outline:none; font-size:1rem;" onchange="updateUI()">
+                    <option value="">-- 点击选择 --</option>
+                </select>
+                <div id="progress-text" style="color:#b2bec3; font-size:0.9rem; margin-top:10px;">请选择学科查看进度</div>
+            </div>
+            <div style="display:flex; gap:20px;">
+                <div class="card-box" style="flex:1">
+                    <label style="font-weight:700;">模式</label>
+                    <select id="mode-sel" style="width:100%; padding:10px; border:2px solid #eee; border-radius:12px; margin-top:5px;"> <option value="new">🆕 闯关 (新题)</option> <option value="review">↺ 错题重练</option> </select>
+                </div>
+                <div class="card-box" style="flex:1">
+                    <label style="font-weight:700;">题量</label>
+                    <select id="count-sel" style="width:100%; padding:10px; border:2px solid #eee; border-radius:12px; margin-top:5px;"> <option value="10">10 题</option> <option value="20" selected>20 题</option> <option value="30">30 题</option> </select>
+                </div>
+            </div>
+            <button class="hero-btn" onclick="startQuiz()"> 开始挑战 <i class="fas fa-rocket" style="margin-left:10px;"></i> </button>
+            <button class="action-btn" style="width:100%; margin-top:15px; justify-content:center;" onclick="openReviewHall()"> <i class="fas fa-book-open"></i> 浏览已做题库 </button>
+        </div>
+
+        <div id="quiz-view">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+                <span style="font-weight:700; color:var(--primary); font-size:1.2rem;" id="q-counter">1 / 20</span>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="background:#fff; padding:8px 20px; border-radius:30px; font-weight:bold; box-shadow:0 2px 10px rgba(0,0,0,0.05);"> <i class="fas fa-star" style="color:#fdcb6e"></i> <span id="session-score">0</span> </div>
+                    <button onclick="exitView()" style="border:none; background:none; color:#999; cursor:pointer;"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            
+            <div class="timer-track"><div class="timer-fill" id="timer-bar"></div></div>
+            <div id="timer-msg" style="font-size:0.9rem; color:var(--accent); font-weight:600; margin-bottom:30px;"> <i class="fas fa-hourglass-half"></i> 至少阅读 6秒... </div>
+            
+            <div id="ai-image-container" class="q-image-box">
+                <img id="ai-generated-img" src="">
+            </div>
+            <div class="media-toolbar">
+                <button class="media-btn btn-gen" onclick="generateImageNow()">
+                    <i class="fas fa-palette"></i> 点击生成配图
+                </button>
+                <button class="media-btn btn-search" onclick="searchImage()">
+                    <i class="fas fa-search"></i> 百度搜图
+                </button>
+            </div>
+
+            <div id="q-container"></div>
+            <div id="options-box"></div>
+            <div style="margin-top:auto; padding-top:30px; display:flex; gap:15px; border-top:1px solid #eee;">
+                <button class="action-btn" onclick="playMainAudio()"> <i class="fas fa-volume-up"></i> 朗读 </button>
+                <button class="action-btn" onclick="toggleSplitView()"> <i class="fas fa-robot" style="color:var(--primary)"></i> AI 解析 </button>
+                <button class="action-btn primary" onclick="nextQuestion()" style="margin-left:auto;"> 下一题 <i class="fas fa-chevron-right"></i> </button>
+            </div>
+        </div>
+
+        <div id="review-view">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid #eee;">
+                <h3 style="margin:0; color:var(--primary);"><i class="fas fa-history"></i> 题库浏览</h3>
+                <button onclick="exitView()" style="border:none; background:#eee; padding:8px 15px; border-radius:20px; cursor:pointer;">返回首页</button>
+            </div>
+            <div id="review-list" style="height:calc(100% - 60px); overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <div class="ai-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0; color:var(--primary);">AI 题目解析</h3>
+            <span onclick="toggleSplitView()" style="cursor:pointer; color:#999;"><i class="fas fa-times"></i></span>
+        </div>
+        <div id="ai-content"> <div style="text-align:center; margin-top:60px; color:#b2bec3;">AI 待命中...</div> </div>
+    </div>
+</div>
+
+<div class="fab-container">
+    <div class="fab-pill fab-ask" onclick="showAskModal()"> <i class="fas fa-comment-dots"></i> 💬 问老师 </div>
+    <div class="fab-pill fab-dict" onclick="showDictInput()"> <i class="fas fa-search"></i> 🔍 查单词 </div>
+</div>
+
+<div id="dict-modal" class="custom-modal">
+    <div class="modal-close" onclick="closeModal('dict-modal')"><i class="fas fa-times"></i></div>
+    <div id="dict-result"></div>
+</div>
+
+<div id="ask-modal" class="custom-modal">
+    <div class="modal-close" onclick="closeModal('ask-modal')"><i class="fas fa-times"></i></div>
+    <h3 style="margin-bottom:15px; color:var(--text-main);">🙋 问问 AI 老师</h3>
+    <textarea id="ask-input" class="chat-input" rows="3" placeholder="请输入你的问题..."></textarea>
+    <button class="action-btn primary" style="width:100%" onclick="sendAsk()">发送提问</button>
+    <div id="ask-result" class="chat-box"></div>
+</div>
+
+<script src="data/database.js"></script>
+<script>
+    const CONFIG = {
+        deepseekKey: "sk-daa16008e81843deba6fefe9dce51465",
+        azureKey: "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9",
+        azureRegion: "eastus2"
+    };
+
+    let App = {
+        queue: [], cursor: 0, sessionScore: 0, canScore: false,
+        currentQ: null, aiCache: {}, 
+        userState: JSON.parse(localStorage.getItem('quiz_user_state_v9')) || { totalXP: 0, history: {} }
+    };
+    const IMAGE_KEYWORDS = ["image", "picture", "photo", "figure", "diagram", "graph", "shown below", "look at", "map", "chart"];
+
+    window.onload = function() {
+        if (typeof QUIZ_DATABASE === 'undefined') { Swal.fire('Error', 'Database Missing', 'error'); return; }
+        document.getElementById('setup-view').style.display = 'block';
+        document.getElementById('total-xp-display').innerText = App.userState.totalXP;
+        const sel = document.getElementById('subject-sel');
+        for (let sub in QUIZ_DATABASE) sel.add(new Option(sub, sub));
+    };
+
+    function updateUI() {
+        const sub = document.getElementById('subject-sel').value;
+        const box = document.getElementById('progress-text');
+        if (!sub) { box.innerText = "请选择学科查看进度"; return; }
+        let total = 0;
+        for (let g in QUIZ_DATABASE[sub]) total += QUIZ_DATABASE[sub][g].length;
+        const record = App.userState.history[sub] || { done: [] };
+        const pct = total ? Math.round((record.done.length / total) * 100) : 0;
+        box.innerHTML = `<span style="color:var(--text-main); font-weight:bold;">已完成: ${record.done.length} / ${total} (${pct}%)</span>`;
+    }
+
+    function startQuiz() {
+        const sub = document.getElementById('subject-sel').value;
+        const mode = document.getElementById('mode-sel').value;
+        const count = parseInt(document.getElementById('count-sel').value);
+        if(!sub) { Swal.fire('提示','请先选择学科','warning'); return; }
+        let rawList = getCleanQuestions(sub);
+        const doneList = (App.userState.history[sub] || {done:[]}).done;
+        let pool = (mode === 'new') ? rawList.filter(q => !doneList.includes(q._id)) : rawList.filter(q => doneList.includes(q._id));
+        if(pool.length === 0 && mode === 'new') pool = rawList;
+        if(pool.length === 0) { Swal.fire('提示','没有相关题目','info'); return; }
+        pool.sort(()=>Math.random()-0.5);
+        App.queue = pool.slice(0, count);
+        App.cursor = 0; App.sessionScore = 0; App.aiCache = {};
+        
+        document.getElementById('setup-view').style.display = 'none';
+        document.getElementById('quiz-view').style.display = 'block';
+        document.getElementById('review-view').style.display = 'none';
+        
+        loadQuestion();
+        startBackgroundAI(0); 
+    }
+
+    async function startBackgroundAI(startIndex) {
+        const buffer = Math.min(startIndex + 3, App.queue.length);
+        for(let i=startIndex; i<buffer; i++) {
+            const q = App.queue[i];
+            if(App.aiCache[q._id]) continue;
+            const safeQ = q.question.replace(/_+/g, '___');
+            const prompt = `Context: Education. Q: "${safeQ}" A: "${q.answer}". Output JSON: {"trans":"中文翻译","eng":"Simple English explanation","chn":"详细中文解析"}`;
+            fetch("https://api.deepseek.com/chat/completions", {
+                method:"POST", headers:{"Content-Type":"application/json", "Authorization":`Bearer ${CONFIG.deepseekKey}`},
+                body:JSON.stringify({model:"deepseek-chat", messages:[{role:"user", content:prompt}]})
+            })
+            .then(r => r.json())
+            .then(d => {
+                const res = JSON.parse(d.choices[0].message.content.replace(/```json|```/g,''));
+                App.aiCache[q._id] = res;
+            }).catch(e=>{});
+        }
+    }
+
+    function loadQuestion() {
+        document.getElementById('app-layout').classList.remove('split-mode');
+        if (App.cursor >= App.queue.length) { finishQuiz(); return; }
+        const q = App.queue[App.cursor];
+        App.currentQ = q; App.canScore = false;
+        document.getElementById('q-counter').innerText = `${App.cursor + 1} / ${App.queue.length}`;
+        document.getElementById('session-score').innerText = App.sessionScore;
+        document.getElementById('ai-content').innerHTML = '<div style="text-align:center;margin-top:60px;color:#999">AI 解析生成中...</div>';
+
+        // === 按需加载图片逻辑 ===
+        const imgBox = document.getElementById('ai-image-container');
+        const imgEl = document.getElementById('ai-generated-img');
+        
+        // 默认隐藏图片框，等待用户点击
+        imgBox.classList.remove('show');
+        imgEl.src = ""; 
+        // =======================
+
+        renderQuestionText(q, 'q-container');
+        const box = document.getElementById('options-box'); box.innerHTML = '';
+        q.options.forEach(opt => {
+            const div = document.createElement('div'); div.className = 'option-card interactive';
+            div.innerHTML = `<div class="tts-icon" onclick="event.stopPropagation(); playText('${opt}')"><i class="fas fa-volume-up"></i></div><div style="flex:1">${opt}</div>`;
+            div.onclick = () => submitAnswer(div, opt); box.appendChild(div);
+        });
+        
+        startTimer();
+        startBackgroundAI(App.cursor + 1);
+    }
+
+    // 手动生成图片
+    function generateImageNow() {
+        const q = App.currentQ;
+        // 如果数据库没有预设关键词，就用题目本身
+        const keyword = q.img_key || q.question;
+        const seed = Math.floor(Math.random() * 100);
+        
+        // 构造 Pollinations URL
+        // 技巧：截取前100个字符避免URL过长，且只取英文部分
+        const cleanKey = keyword.replace(/[^a-zA-Z\s]/g, '').substring(0, 80);
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanKey)}?nologo=true&width=800&height=600&model=turbo&seed=${seed}`;
+        
+        const imgBox = document.getElementById('ai-image-container');
+        const imgEl = document.getElementById('ai-generated-img');
+        
+        // 显示加载状态（这里简单处理，直接展示容器）
+        imgEl.src = url;
+        imgEl.onload = () => imgBox.classList.add('show');
+        imgEl.onerror = () => {
+            Swal.fire({toast:true, icon:'warning', title:'AI 绘图繁忙，请尝试百度搜图', timer:2000, showConfirmButton:false});
+        };
+    }
+
+    function searchImage() {
+        const keyword = (App.currentQ.img_key) || App.currentQ.question;
+        window.open(`https://image.baidu.com/search/index?tn=baiduimage&word=${encodeURIComponent(keyword)}`, '_blank');
+    }
+
+    function submitAnswer(div, val) {
+        if(div.parentElement.querySelector('.disabled')) return;
+        const q = App.currentQ; const isCorrect = (val === q.answer);
+        document.querySelectorAll('.option-card').forEach(el => el.classList.add('disabled'));
+        div.classList.add(isCorrect ? 'correct' : 'wrong');
+        if(!isCorrect) { document.querySelectorAll('.option-card').forEach(el => { if(el.innerText.includes(q.answer)) el.classList.add('correct'); }); }
+        else { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); }
+        if(App.canScore) { const points = isCorrect ? 4 : 2; App.sessionScore += points; App.userState.totalXP += points; document.getElementById('session-score').innerText = App.sessionScore; }
+        else { Swal.fire({toast:true, icon:'warning', title:'答题太快，不计分', timer:1500, showConfirmButton:false}); }
+        saveState(q);
+    }
+
+    function saveState(q) {
+        const sub = document.getElementById('subject-sel').value;
+        if(!App.userState.history[sub]) App.userState.history[sub] = {done:[]};
+        if(!App.userState.history[sub].done.includes(q._id)) App.userState.history[sub].done.push(q._id);
+        localStorage.setItem('quiz_user_state_v9', JSON.stringify(App.userState));
+    }
+
+    function getCleanQuestions(sub) { let list = []; for (let g in QUIZ_DATABASE[sub]) { QUIZ_DATABASE[sub][g].forEach((q, i) => { if(!q._id) q._id = `${sub}-${g}-${i}`; const txt = q.question.toLowerCase(); if(!IMAGE_KEYWORDS.some(k => txt.includes(k))) list.push(q); }); } return list; }
+    
+    function renderQuestionText(q, containerId) { document.getElementById(containerId).innerHTML = formatQuestionHTML(q); }
+    
+    function formatQuestionHTML(q) {
+        const match = q.question.match(/^(Choose|Pick|Select|Fill|Identify|Which).+?[\.\?\!](?=\s)/i);
+        let instruction = ""; let body = q.question;
+        if (match && match[0].length < 150) { instruction = match[0]; body = q.question.substring(match[0].length).trim(); } 
+        else { const parts = q.question.match(/^(.+?[\.\?\!])\s+([A-Z"'].+)$/); if (parts && parts[1].length < 100) { instruction = parts[1]; body = parts[2]; } }
+        let html = "";
+        if (instruction) html += `<div class="q-instruction">${instruction}</div>`;
+        if (body.includes(": '") || body.includes(": \"")) {
+            const splitBody = body.split(/:\s*(?=['"])/);
+            if (splitBody.length > 1) { html += `<div class="q-text-main">${wordClickable(splitBody[0] + ":")}</div><div class="q-quote-block">${wordClickable(splitBody[1])}</div>`; return html; }
+        }
+        html += `<div class="q-text-main">${wordClickable(body)}</div>`;
+        return html;
+    }
+
+    function wordClickable(str) { 
+        return str.split(' ').map(w => `<span class="word-span" onclick="playText(this.innerText)">${w}</span>`).join(' '); 
+    }
+
+    // ================= 查词 (V3) =================
+    function showDictInput() {
+        Swal.fire({
+            title: '查词助手',
+            input: 'text',
+            inputPlaceholder: '输入单词...',
+            confirmButtonText: '查询',
+            showCancelButton: true
+        }).then((res) => { if(res.value) lookupDict(res.value); });
+    }
+
+    async function lookupDict(word) {
+        const modal = document.getElementById('dict-modal');
+        const content = document.getElementById('dict-result');
+        modal.style.display = 'block';
+        content.innerHTML = '<div class="dict-loader"><i class="fas fa-spinner fa-spin fa-2x"></i><br>DeepSeek 正在查询...</div>';
+        playText(word);
+
+        const prompt = `Explain word "${word}" in JSON: { "phonetic": "音标", "en": "English definition", "cn": "中文含义", "ex": "Example sentence" }`;
+        
+        try {
+            const res = await fetch("https://api.deepseek.com/chat/completions", {
+                method:"POST", headers:{"Content-Type":"application/json", "Authorization":`Bearer ${CONFIG.deepseekKey}`},
+                body:JSON.stringify({model: "deepseek-chat", messages:[{role:"user", content:prompt}]})
+            });
+            const d = await res.json();
+            const i = JSON.parse(d.choices[0].message.content.replace(/```json|```/g,''));
+            
+            content.innerHTML = `
+                <div class="dict-word">${word}</div>
+                <div class="dict-phonetic">${i.phonetic} <i class="fas fa-volume-up" style="cursor:pointer; color:var(--primary)" onclick="playText('${word}')"></i></div>
+                <div class="dict-section"><div class="dict-label">中文含义</div><div class="dict-text">${i.cn}</div></div>
+                <div class="dict-section"><div class="dict-label">Definition</div><div class="dict-text">${i.en}</div></div>
+                <div class="dict-section"><div class="dict-label">Example</div><div class="dict-text" style="font-style:italic; background:#f5f6fa; padding:10px; border-radius:8px;">"${i.ex}"</div></div>
+            `;
+        } catch(e) { content.innerHTML = '<div style="color:red;text-align:center">查询失败，请稍后重试。</div>'; }
+    }
+
+    // ================= 问老师 (V3) =================
+    function showAskModal() {
+        document.getElementById('ask-modal').style.display = 'block';
+        document.getElementById('ask-input').value = "";
+        document.getElementById('ask-result').innerHTML = "";
+    }
+
+    async function sendAsk() {
+        const question = document.getElementById('ask-input').value;
+        const resBox = document.getElementById('ask-result');
+        if(!question.trim()) return;
+
+        resBox.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI 老师正在输入...';
+        
+        try {
+            const res = await fetch("https://api.deepseek.com/chat/completions", {
+                method:"POST", headers:{"Content-Type":"application/json", "Authorization":`Bearer ${CONFIG.deepseekKey}`},
+                body:JSON.stringify({model: "deepseek-chat", messages:[{role:"user", content:question}]})
+            });
+            const d = await res.json();
+            resBox.innerHTML = `<div class="chat-response">${d.choices[0].message.content}</div>`;
+        } catch(e) { resBox.innerText = "网络错误，请重试。"; }
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function startTimer() { 
+        const bar = document.getElementById('timer-bar'); 
+        const msg = document.getElementById('timer-msg'); 
+        bar.style.transition = 'none'; bar.style.width = '100%'; void bar.offsetWidth; 
+        bar.style.transition = 'width 6s linear'; bar.style.width = '0%'; 
+        msg.innerHTML = '<i class="fas fa-hourglass-half"></i> 思考中... (6s)'; msg.style.color = 'var(--accent)'; 
+        setTimeout(() => { App.canScore = true; msg.innerHTML = '<i class="fas fa-check-circle"></i> 可以作答计分'; msg.style.color = 'var(--success)'; }, 6000); 
+    }
+    
+    function nextQuestion() { App.cursor++; loadQuestion(); }
+    function finishQuiz() { Swal.fire('本轮结束', `本轮得分: ${App.sessionScore}`, 'success').then(()=>location.reload()); }
+    function exitView() { location.reload(); }
+    
+    function toggleSplitView() { 
+        document.getElementById('app-layout').classList.toggle('split-mode'); 
+        if(document.getElementById('app-layout').classList.contains('split-mode')) { 
+            const qid = App.currentQ._id; 
+            if (App.aiCache[qid]) renderAI(App.aiCache[qid]); 
+            else document.getElementById('ai-content').innerHTML = '<div style="text-align:center;margin-top:60px">AI 正在赶来...</div>'; 
+        } 
+    }
+    function renderAI(d) { document.getElementById('ai-content').innerHTML = `<div class="ai-card"><div style="font-weight:bold;font-size:0.8rem;color:#999">翻译</div>${d.trans}</div><div class="ai-card"><div style="font-weight:bold;font-size:0.8rem;color:#999">English Explanation</div>${d.eng}</div><div class="ai-card"><div style="font-weight:bold;font-size:0.8rem;color:#999">核心考点</div>${d.chn}</div>`; }
+    function playMainAudio() { playText(App.currentQ ? App.currentQ.question : ""); }
+    function playText(txt) { if(!CONFIG.azureKey || !txt) return; const safe = txt.replace(/_+/g, ' blank '); const sc = SpeechSDK.SpeechConfig.fromSubscription(CONFIG.azureKey, CONFIG.azureRegion); sc.speechSynthesisLanguage = "en-US"; const syn = new SpeechSDK.SpeechSynthesizer(sc); syn.speakTextAsync(safe, r=>syn.close(), e=>syn.close()); }
+    
+    function exportData() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(App.userState)); const a = document.createElement('a'); a.href = dataStr; a.download = `智习室备份_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); a.remove(); }
+    function importData(input) { const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { App.userState = JSON.parse(e.target.result); localStorage.setItem('quiz_user_state_v9', JSON.stringify(App.userState)); document.getElementById('total-xp-display').innerText = App.userState.totalXP; updateUI(); Swal.fire('成功', '进度已恢复', 'success'); } catch(e) { Swal.fire('失败', '文件损坏', 'error'); } }; reader.readAsText(file); }
+    
+    function openReviewHall() {
+        const sub = document.getElementById('subject-sel').value; if(!sub) { Swal.fire('提示','请先选择一个学科','warning'); return; }
+        const rawList = getCleanQuestions(sub); const doneList = (App.userState.history[sub] || {done:[]}).done; const reviewList = rawList.filter(q => doneList.includes(q._id));
+        if(reviewList.length === 0) { Swal.fire('空空如也','该学科还没有做过的题目哦','info'); return; }
+        document.getElementById('setup-view').style.display = 'none'; document.getElementById('review-view').style.display = 'block';
+        const container = document.getElementById('review-list'); container.innerHTML = ''; App.reviewMap = {};
+        reviewList.forEach((q, idx) => {
+            App.reviewMap[q._id] = q; const item = document.createElement('div'); item.className = 'card-box'; item.style.borderLeft = '5px solid var(--success)';
+            let qHtml = formatQuestionHTML(q); let optHtml = '';
+            q.options.forEach(opt => { const isAns = (opt === q.answer); const styleClass = isAns ? 'option-card review-correct' : 'option-card disabled'; optHtml += `<div class="${styleClass}" style="margin-bottom:5px; padding:10px;">${opt} ${isAns?'<i class="fas fa-check"></i>':''}</div>`; });
+            item.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="font-weight:bold; color:var(--primary)">#${idx+1}</span><button class="action-btn" onclick="lookupReview('${q._id}')" style="font-size:0.8rem; padding:5px 10px;"> <i class="fas fa-robot"></i> AI 解析</button></div>${qHtml}<div style="margin-top:15px;">${optHtml}</div>`;
+            container.appendChild(item);
+        });
+    }
+    function lookupReview(qid) { 
+        const q = App.reviewMap[qid]; document.getElementById('app-layout').classList.add('split-mode'); 
+        const safeQ = q.question.replace(/_+/g, '___');
+        const prompt = `Context: Education. Q: "${safeQ}" A: "${q.answer}". Output JSON: {"trans":"中文翻译","eng":"Simple English explanation","chn":"详细中文解析"}`;
+        fetch("https://api.deepseek.com/chat/completions", {
+                method:"POST", headers:{"Content-Type":"application/json", "Authorization":`Bearer ${CONFIG.deepseekKey}`},
+                body:JSON.stringify({model:"deepseek-chat", messages:[{role:"user", content:prompt}]})
+        }).then(r=>r.json()).then(d=>{
+            const res = JSON.parse(d.choices[0].message.content.replace(/```json|```/g,''));
+            renderAI(res);
+        });
+    }
+</script>
+</body>
+</html>

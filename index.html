@@ -19,6 +19,7 @@
             --accent-gold: #f59e0b;   
             --accent-blue: #38bdf8;
             --accent-purple: #a855f7;
+            --accent-green: #10b981;
         }
 
         body {
@@ -27,12 +28,15 @@
             background: var(--bg-gradient);
             color: var(--text-main);
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 40px 20px 100px;
+            padding: 40px 20px 60px; /* Adjusted padding */
+            flex: 1; /* Pushes footer down */
         }
 
         header {
@@ -63,6 +67,9 @@
             white-space: nowrap;
             color: var(--accent-gold);
         }
+        
+        /* Different colors for different sections */
+        .section-header.knowledge h2 { color: var(--accent-purple); }
 
         .section-header .line {
             height: 1px;
@@ -170,6 +177,50 @@
             background: linear-gradient(to right, rgba(56, 189, 248, 0.1), transparent);
             border-left: 4px solid var(--accent-blue);
         }
+        
+        /* --- Encyclopedia Box --- */
+        .encyclopedia-box {
+            background: linear-gradient(to right, rgba(168, 85, 247, 0.1), transparent);
+            border-left: 4px solid var(--accent-purple);
+        }
+        .encyclopedia-box:hover { border-color: var(--accent-purple); }
+
+        /* --- Footer --- */
+        .site-footer {
+            background: rgba(2, 6, 23, 0.8);
+            border-top: 1px solid var(--glass-border);
+            padding: 40px 20px;
+            margin-top: 60px;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .qr-code {
+            width: 140px;
+            height: 140px;
+            border-radius: 12px;
+            border: 4px solid rgba(255,255,255,0.1);
+            background-color: #fff; /* Ensure white background for QR readability */
+            padding: 5px;
+            object-fit: contain;
+        }
+
+        .contact-info a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .contact-info a:hover { color: var(--accent-gold); }
+        .copyright { color: var(--text-muted); font-size: 0.85rem; }
 
         @media (max-width: 768px) {
             h1 { font-size: 2.5rem; }
@@ -316,6 +367,14 @@
                     <p>Winter Olympics Master Class & Interactive Journey.</p>
                 </div>
             </a>
+
+            <a href="FU3/FU3HW/Week18/Verona_Arena.html" class="mission-card">
+                <div class="mission-img" style="background-image: url('https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=400&q=80');"></div>
+                <div class="mission-info">
+                    <h4>Operation: Verona Arena in Italy</h4>
+                    <p>Explore the Ancient Roman Arena.</p>
+                </div>
+            </a>
         </div>
 
 
@@ -342,7 +401,41 @@
             </a>
         </div>
 
+        <div class="section-header knowledge">
+            <h2>Knowledge Base</h2>
+            <div class="line"></div>
+        </div>
+
+        <div class="module-grid">
+            <a href="encyclopia/index.html" class="card encyclopedia-box" style="grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 25px;">
+                <div class="card-icon" style="margin:0; font-size: 2.2rem; color: var(--accent-purple);"><i class="fas fa-graduation-cap"></i></div>
+                <div>
+                    <h3 style="margin:0; font-size: 1.3rem;">Student Encyclopedia & Quiz Hub</h3>
+                    <p style="margin-top: 5px; opacity: 0.9;">Comprehensive Knowledge Base for Grades 3-8 covering <strong>History, Science, Math, English, Geography, & Computer Science</strong>.</p>
+                </div>
+                <i class="fas fa-chevron-right" style="margin-left: auto; opacity: 0.5; color: var(--accent-purple);"></i>
+            </a>
+        </div>
+
     </div>
+
+    <footer class="site-footer">
+        <div class="footer-content">
+            <img src="wechat_qrcode_image.jpg" alt="Teacher WeChat QR Code" class="qr-code">
+            
+            <div class="contact-info">
+                <p style="margin: 5px 0; font-size: 1.1rem; font-weight: bold; color: var(--text-main);">Teacher Steven Wong</p>
+                <p style="margin: 5px 0;">
+                    <i class="fas fa-envelope" style="margin-right: 8px; color: var(--accent-blue);"></i>
+                    <a href="mailto:wlincd880630@gmail.com">wlincd880630@gmail.com</a>
+                </p>
+            </div>
+
+            <div class="copyright">
+                &copy; 2026 Interactive Learning Portal. All Rights Reserved.
+            </div>
+        </div>
+    </footer>
 
 </body>
 </html>

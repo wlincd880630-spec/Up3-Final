@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Verona Arena: A Living Testament to Art and Culture</title>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- 引入了 Cinzel (罗马风格) 和 Merriweather (优雅衬线) 字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Inter:wght@400;600&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* 威尼斯红 - 歌剧与激情 */
+            --primary: #8E1C25; 
+            --primary-dark: #681018;
+            /* 古金色 - 历史与荣耀 */
+            --accent: #C5A059;
+            /* 石灰岩色调 - 背景 */
+            --bg-start: #FDFBF7;
+            --bg-end: #F2EFE9;
+            /* 深岩灰 - 文字 */
+            --text-main: #2C2424;
+            --text-sub: #5D5555;
+            /* 大理石白 - 卡片背景 */
+            --card-bg: #FFFFFF;
+            --radius-xl: 8px; /* 稍微减小圆角，更像石刻 */
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            margin: 0; 
+            font-family: 'Merriweather', 'Noto Sans SC', serif; /* 正文改为衬线体 */
+            background: linear-gradient(to bottom, var(--bg-start), var(--bg-end));
+            color: var(--text-main); 
+            height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* Typography Override for Headers */
+        h1, h2, h3, .brand, .score-pill, .report-val {
+            font-family: 'Cinzel', serif;
+            letter-spacing: 0.5px;
+        }
+
+        /* Header - 剧院门楣风格 */
+        .header {
+            background: #1a1515; /* 深夜黑 */
+            color: var(--accent);
+            padding: 0 20px; height: 64px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 3px solid var(--accent); 
+            z-index: 100; flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .brand { 
+            font-weight: 700; 
+            font-size: 1.1rem; 
+            color: #fff; 
+            text-transform: uppercase;
+        }
+        .brand i { color: var(--accent); margin-right: 5px; }
+        
+        .score-pill { 
+            background: rgba(255,255,255,0.1); 
+            color: var(--accent); 
+            padding: 6px 16px; 
+            border-radius: 4px; 
+            font-weight: 700; 
+            font-size: 0.95rem; 
+            border: 1px solid var(--accent);
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        /* Page */
+        .page { display: none; height: 100%; flex-direction: column; overflow-y: auto; padding: 20px; animation: fadeIn 0.4s ease-out; }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .container { width: 100%; max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; flex: 1; height: 100%; }
+
+        /* Card - 大理石板风格 */
+        .card { 
+            background: var(--card-bg); 
+            border-radius: var(--radius-xl); 
+            padding: 30px; 
+            box-shadow: 0 4px 20px rgba(44, 36, 36, 0.08); 
+            border: 1px solid rgba(197, 160, 89, 0.2); /* 淡淡的金边 */
+            display: flex; flex-direction: column;
+            position: relative;
+        }
+        /* 装饰性边角 (模拟罗马装饰) */
+        .card::before {
+            content: ''; position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px;
+            border: 1px solid rgba(0,0,0,0.03); border-radius: 4px; pointer-events: none;
+        }
+
+        /* Rules - 羊皮纸风格 */
+        .rules-box { 
+            background: #fffdf5; 
+            padding: 20px; 
+            border-radius: 4px; 
+            margin: 25px 0; 
+            text-align: left; 
+            border: 1px solid #e8e0c5;
+            box-shadow: inset 0 0 10px rgba(197, 160, 89, 0.05);
+        }
+        .rule-item { 
+            display: flex; justify-content: space-between; margin-bottom: 12px; 
+            font-size: 1rem; font-weight: 400; color: #4a4040; border-bottom: 1px dotted #e0d8c0; padding-bottom: 4px;
+        }
+        .rule-item:last-child { border-bottom: none; }
+        .rule-pts { 
+            font-family: 'Cinzel', serif; font-weight: 700; 
+            color: var(--primary); background: transparent; 
+        }
+
+        /* Buttons - 皇家红 */
+        .btn { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 14px 28px; 
+            border-radius: 4px; /* 更方正 */
+            font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: 0.5px;
+            cursor: pointer; 
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-size: 1rem; 
+            transition: all 0.2s; 
+            box-shadow: 0 4px 6px rgba(142, 28, 37, 0.2);
+            text-transform: uppercase;
+        }
+        .btn:hover { 
+            background: var(--primary-dark); 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 12px rgba(142, 28, 37, 0.3); 
+        }
+        .btn:active { transform: scale(0.98); }
+        
+        .btn-outline { 
+            background: transparent; 
+            border: 2px solid var(--primary); 
+            color: var(--primary); 
+            box-shadow: none; 
+        }
+        .btn-outline:hover { background: #fff5f5; }
+        .btn-sm { padding: 6px 16px; font-size: 0.8rem; border-radius: 4px;}
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; background: #999; }
+
+        /* Inputs */
+        input[type=text] {
+            border: 1px solid #ccc;
+            border-bottom: 2px solid var(--primary);
+            background: #fafafa;
+            border-radius: 4px 4px 0 0;
+            font-family: 'Merriweather', serif;
+        }
+        input[type=text]:focus {
+            background: #fff;
+            border-color: var(--accent);
+        }
+
+        /* VT Layout (Video) - 剧场模式 */
+        .vt-layout { 
+            display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 500px;
+            background: #000; border-radius: 4px; overflow: hidden; 
+            box-shadow: 0 20px 60px -10px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+        @media (min-width: 900px) { 
+            .vt-layout { flex-direction: row; height: 75vh; height: 75dvh; max-height: 800px; align-items: stretch; } 
+            .vt-video-col { flex: 1; position: relative; display: flex; flex-direction: column; min-width: 0; }
+            .vt-sub-box { width: 340px; flex-shrink: 0; border-left: 1px solid #222; height: auto; }
+        }
+        .vt-video-col { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+        
+        /* Subtitles */
+        .vt-sub-box { background: #111; color: #ddd; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+        .sub-list { flex: 1; overflow-y: auto; padding: 15px; scroll-behavior: smooth; }
+        .sub-line { 
+            padding: 10px 12px; margin-bottom: 6px; border-radius: 4px; 
+            color: #888; font-size: 0.95rem; line-height: 1.6; transition: 0.2s; 
+            border-left: 2px solid transparent;
+        }
+        .sub-line:hover { background: #1f1f1f; color: #bbb; }
+        .sub-line.active { 
+            background: #251a1b; 
+            color: var(--accent); 
+            font-weight: 500; 
+            border-left: 2px solid var(--primary); 
+        }
+        .w-click { cursor: pointer; border-bottom: 1px dotted transparent; }
+        .w-click:hover { color: white; border-bottom-color: var(--accent); }
+
+        /* HUD */
+        .hud { 
+            position: absolute; top: 25px; left: 50%; transform: translateX(-50%);
+            background: rgba(14, 11, 11, 0.9); backdrop-filter: blur(4px); 
+            color: var(--accent); 
+            padding: 12px 30px; border-radius: 50px; 
+            font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.1rem; 
+            z-index: 30; pointer-events: none; border: 1px solid rgba(197, 160, 89, 0.3);
+            text-align: center; width: auto; max-width: 90%; white-space: normal; display: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        /* Controls */
+        .controls { 
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), transparent); 
+            padding: 15px 20px; display: flex; gap: 15px; align-items: center; z-index: 30;
+        }
+        input[type=range] { flex: 1; height: 3px; accent-color: var(--primary); cursor: not-allowed; opacity: 0.6; }
+        .spd-sel { background: rgba(0,0,0,0.5); color: #ddd; border: 1px solid #444; border-radius: 2px; padding: 4px 8px; }
+
+        /* Overlay */
+        .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 50; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        .q-card { 
+            background: #fffdf5; /* 暖白 */
+            width: 100%; max-width: 600px; padding: 40px; 
+            border-radius: 8px; text-align: center; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); 
+            border: 4px double var(--primary); /* 双线边框 */
+            overflow-y: auto; max-height: 90vh; 
+        }
+        
+        /* Feedback Box */
+        .feedback-box {
+            margin-top: 25px; padding: 20px; border-radius: 4px; text-align: left;
+            display: none; animation: slideUp 0.3s;
+            border-left: 4px solid;
+        }
+        .feedback-box.correct { background: #f0fdf4; border-color: #166534; color: #14532d; }
+        .feedback-box.wrong { background: #fef2f2; border-color: #991b1b; color: #7f1d1d; }
+
+        /* Options (Big Buttons) */
+        .opt-btn {
+            display: block; width: 100%; text-align: left; padding: 18px 20px; 
+            margin-bottom: 12px; border: 1px solid #d4d4d4; border-radius: 4px;
+            background: white; font-size: 1.05rem; cursor: pointer; transition: 0.2s;
+            font-family: 'Merriweather', serif;
+        }
+        .opt-btn:hover:not(:disabled) { border-color: var(--primary); background: #fff5f5; color: var(--primary); }
+        .opt-btn.sel-correct { background: #dcfce7; border-color: #22c55e; color: #14532d; font-weight: bold; }
+        .opt-btn.sel-wrong { background: #fee2e2; border-color: #ef4444; color: #7f1d1d; }
+
+        /* Review Styles */
+        .review-list { text-align: left; max-height: 60vh; overflow-y: auto; margin: 20px 0; padding-right: 5px; }
+        .review-item { background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 4px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .review-q { font-family: 'Cinzel', serif; font-weight: 700; color: #222; }
+
+        /* Vocab Grid */
+        .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
+        .flashcard { 
+            background: #fff; border-radius: 6px; padding: 20px; text-align: center;
+            border: 1px solid #e0e0e0; cursor: pointer; height: 180px; 
+            display: flex; flex-direction: column; justify-content: center; position: relative; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04); transition: all 0.3s ease;
+        }
+        .flashcard::after {
+            content:''; position: absolute; bottom:0; left:0; width:100%; height:3px; background: var(--accent); transform: scaleX(0); transition: 0.3s;
+        }
+        .flashcard:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0,0,0,0.1); border-color: var(--accent); }
+        .flashcard:hover::after { transform: scaleX(1); }
+        
+        .flashcard.learned { background: #f4fbf7; border-color: #86efac; }
+        .flashcard .tag { font-family: 'Inter', sans-serif; position: absolute; top: 10px; left: 10px; font-size: 0.65rem; padding: 4px 8px; border-radius: 2px; background: #eee; text-transform: uppercase; color: #666; letter-spacing: 1px; }
+        .flashcard .save-icon { position: absolute; top: 10px; right: 10px; color: #ddd; font-size: 1.2rem; transition: 0.2s; }
+        .flashcard .save-icon.saved { color: var(--primary); }
+        .flashcard div[style*="font-weight:800"] { font-family: 'Cinzel', serif; color: var(--text-main); }
+
+        /* Report */
+        .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0; }
+        .report-item { background: #fff; padding: 25px; border-radius: 8px; border: 1px solid #eee; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .report-val { font-size: 2.5rem; font-weight: 700; color: var(--primary); display: block; margin-bottom: 5px; }
+        .report-lbl { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; font-family: 'Inter', sans-serif; }
+
+        /* Modals */
+        .modal-mask { position: fixed; inset: 0; background: rgba(26, 21, 21, 0.8); backdrop-filter: blur(4px); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
+        .modal-box { 
+            background: #fffdf5; width: 100%; max-width: 500px; border-radius: 6px; padding: 35px; 
+            position: relative; max-height: 90vh; overflow-y: auto; 
+            border: 1px solid var(--accent); box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .blur-txt { filter: blur(6px); opacity: 0.6; transition: 0.3s; cursor: pointer; background: #e0e0e0; border-radius: 3px; }
+        .blur-txt.show { filter: none; opacity: 1; background: transparent; }
+
+        /* DeepSeek Popup */
+        #ds-pop { 
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 400px; background: white; 
+            border-radius: 8px; box-shadow: 0 15px 40px rgba(0,0,0,0.25); 
+            z-index: 3000; display: none; overflow: hidden; border: 1px solid #ddd;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .ds-head { background: var(--text-main); color: var(--accent); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; font-family: 'Cinzel', serif; font-weight: 700; }
+        .ds-body { padding: 25px; max-height: 300px; overflow-y: auto; font-family: 'Merriweather', serif; }
+        .ds-word { font-family: 'Cinzel', serif; color: var(--primary); }
+        .ds-en { border-left: 3px solid var(--accent); padding-left: 12px; color: #555; font-style: italic; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* Image Slider dots override */
+        .slide-img img { filter: sepia(10%) contrast(105%); } /* 让图片有一点复古感 */
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="brand"><i class="fas fa-columns"></i> Verona Arena</div>
+    <div style="display:flex; gap:10px;">
+        <div class="score-pill"><i class="fas fa-crown"></i> <span id="u-score">0</span></div>
+        <button class="btn btn-sm btn-outline" style="border-color: #444; color: #ccc;" onclick="saveState(true)"><i class="fas fa-save"></i> Save</button>
+    </div>
+</div>
+
+<div id="p1" class="page active">
+    <div class="container" style="justify-content:center; align-items:center;">
+        <div class="card" style="width: 100%; max-width: 600px; text-align: center; border-top: 5px solid var(--primary);">
+            <div style="font-size:3.5rem; color:var(--primary); margin-bottom:20px; margin-top: 10px;"><i class="fas fa-archway"></i></div>
+            <h1 style="font-size: 2.2rem; margin-bottom: 10px; color: var(--text-main);">Mission Start</h1>
+            <p style="color:var(--text-sub); font-size: 1.1rem; font-style: italic;">"A journey into the heart of Roman legacy."</p>
+            
+            <div class="rules-box">
+                <div class="rule-item"><span><i class="fas fa-book-open" style="color:var(--accent); margin-right:8px;"></i> Study Vocabulary</span><span class="rule-pts">+2 pts</span></div>
+                <div class="rule-item"><span><i class="fas fa-scroll" style="color:var(--accent); margin-right:8px;"></i> Vocab Quiz</span><span class="rule-pts">+/- 1 pt</span></div>
+                <div class="rule-item"><span><i class="fas fa-theater-masks" style="color:var(--accent); margin-right:8px;"></i> Video Questions</span><span class="rule-pts">+5 pts</span></div>
+            </div>
+
+            <input type="text" id="username" placeholder="Enter Your Name" style="width:100%; padding:16px; font-size:1.1rem; text-align:center; margin-bottom:25px; outline:none; background:#f9f9f9;">
+            <button class="btn" style="width:100%; font-size:1.2rem; padding:18px;" onclick="startApp()">Enter the Arena <i class="fas fa-caret-right"></i></button>
+            <div style="margin-top:15px;"><button id="resume-btn" class="btn btn-sm btn-outline" style="display:none; border:none; color: #888;" onclick="resumeApp()">Resume Last Session</button></div>
+        </div>
+    </div>
+</div>
+
+<div id="p2" class="page">
+    <div class="container">
+        <div class="card" style="height:100%;">
+            <h2 style="margin-top:0; color: var(--primary); border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; margin-bottom: 20px;">Topic Overview</h2>
+            <div style="flex-shrink:0; position:relative; height:260px; background:#e0e0e0; border-radius:6px; overflow:hidden; margin-bottom:25px; border: 4px solid white; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                
+                <div class="slide-img" style="display:block; width:100%; height:100%;">
+                    <img src="overview_exterior.jpg" style="width:100%; height:100%; object-fit:cover;">
+                    <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, rgba(20, 15, 15, 0.9)); color:var(--accent); padding:20px 20px 15px; font-size:0.95rem; font-family: 'Cinzel', serif;">Exterior view of the Verona Arena during the day.</div>
+                </div>
+                
+                <div class="slide-img" style="display:none; width:100%; height:100%;">
+                    <img src="overview_interior.jpg" style="width:100%; height:100%; object-fit:cover;">
+                    <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, rgba(20, 15, 15, 0.9)); color:var(--accent); padding:20px 20px 15px; font-size:0.95rem; font-family: 'Cinzel', serif;">Interior of the Verona Arena during an opera performance.</div>
+                </div>
+                
+                <div class="slide-img" style="display:none; width:100%; height:100%;">
+                    <img src="overview_closeup.jpg" style="width:100%; height:100%; object-fit:cover;">
+                    <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, rgba(20, 15, 15, 0.9)); color:var(--accent); padding:20px 20px 15px; font-size:0.95rem; font-family: 'Cinzel', serif;">Close-up of the limestone construction.</div>
+                </div>
+                
+                <div class="slide-img" style="display:none; width:100%; height:100%;">
+                    <img src="overview_historical.jpg" style="width:100%; height:100%; object-fit:cover;">
+                    <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, rgba(20, 15, 15, 0.9)); color:var(--accent); padding:20px 20px 15px; font-size:0.95rem; font-family: 'Cinzel', serif;">Historical rendering of gladiatorial contests.</div>
+                </div>
+                
+                <button onclick="slide(-1)" style="position:absolute; top:50%; left:15px; transform:translateY(-50%); background:rgba(0,0,0,0.6); color:white; width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,0.3); cursor:pointer;">❮</button>
+                <button onclick="slide(1)" style="position:absolute; top:50%; right:15px; transform:translateY(-50%); background:rgba(0,0,0,0.6); color:white; width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,0.3); cursor:pointer;">❯</button>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding-right:10px; font-size: 1.1rem; line-height: 1.9; color: var(--text-sub);">
+                
+                <p style="margin-bottom:20px;"><span style="color:var(--primary); font-size:1.5rem; float:left; line-height:0.8; margin-right:8px; font-family:'Cinzel', serif;">E</span>xplore the Verona Arena, an ancient Roman amphitheater built in the 1st century AD. Discover its rich history, from gladiatorial contests to modern opera performances. Learn about its architectural design, preservation, and the mysteries surrounding its construction.  <i class="fas fa-volume-up" style="color:var(--primary); cursor:pointer; margin-left:5px; opacity:0.6;" onclick="speak(`Explore the Verona Arena, an ancient Roman amphitheater built in the 1st century AD. Discover its rich history, from gladiatorial contests to modern opera performances. Learn about its architectural design, preservation, and the mysteries surrounding its construction. `)"></i></p>
+                
+                <p style="margin-bottom:20px;">The arena's elliptical shape and limestone construction provide exceptional acoustics and a distinct appearance. Continuous use and restoration efforts have transformed it into a premier venue for the arts. The Verona Opera Festival, since 1913, has attracted world-renowned artists, leaving a lasting artistic legacy. <i class="fas fa-volume-up" style="color:var(--primary); cursor:pointer; margin-left:5px; opacity:0.6;" onclick="speak(`The arena's elliptical shape and limestone construction provide exceptional acoustics and a distinct appearance. Continuous use and restoration efforts have transformed it into a premier venue for the arts. The Verona Opera Festival, since 1913, has attracted world-renowned artists, leaving a lasting artistic legacy.`)"></i></p>
+                
+                <p style="margin-bottom:20px;">The Verona Arena has evolved from an entertainment venue to a prestigious open-air theater, celebrated for its architectural beauty and high-quality productions. It stands as a symbol of Italian culture, artistic expression, and the enduring connection between humanity and creativity. <i class="fas fa-volume-up" style="color:var(--primary); cursor:pointer; margin-left:5px; opacity:0.6;" onclick="speak(`The Verona Arena has evolved from an entertainment venue to a prestigious open-air theater, celebrated for its architectural beauty and high-quality productions. It stands as a symbol of Italian culture, artistic expression, and the enduring connection between humanity and creativity.`)"></i></p>
+                
+            </div>
+            <div style="text-align:right; margin-top:20px; border-top: 1px solid #eee; padding-top: 20px;"><button class="btn" onclick="toPage('p3')">Next Step <i class="fas fa-arrow-right"></i></button></div>
+        </div>
+    </div>
+</div>
+
+<div id="p3" class="page">
+    <div class="container">
+        <div class="card" style="background:transparent; box-shadow:none; border:none; padding:0;">
+            <h2 style="margin:0 0 25px 0; color: var(--primary); text-align:center;">Vocabulary List</h2>
+            <div class="vocab-grid">
+                <!-- Using JS to generate content usually, but preserving structure here -->
+                <div class="flashcard" onclick="openVocab(0)" id="vc-0">
+                    <div class="tag">general</div>
+                    <i class="fas fa-bookmark save-icon" id="bm-0" onclick="toggleSave(event, 0)"></i>
+                    <div style="font-size:1.3rem; font-weight:800; margin-top:15px; color:var(--text-main);">marvel</div>
+                    <div style="color:var(--text-sub); font-size:0.85rem; margin-top:10px; font-style: italic;">A wonderful or astonishin...</div>
+                </div>
+                
+                <div class="flashcard" onclick="openVocab(1)" id="vc-1">
+                    <div class="tag">general</div>
+                    <i class="fas fa-bookmark save-icon" id="bm-1" onclick="toggleSave(event, 1)"></i>
+                    <div style="font-size:1.3rem; font-weight:800; margin-top:15px; color:var(--text-main);">testament</div>
+                    <div style="color:var(--text-sub); font-size:0.85rem; margin-top:10px; font-style: italic;">Something that serves as ...</div>
+                </div>
+                
+                <!-- ... Keeping only a few examples for brevity in viewing, but script needs all IDs to function. 
+                     The design applies to all .flashcard elements via CSS. 
+                     User provided logic has IDs up to 34. I will leave the HTML structure as is 
+                     but the CSS handles the look. -->
+
+                <div class="flashcard" onclick="openVocab(2)" id="vc-2"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-2" onclick="toggleSave(event, 2)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">myriad</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">A countless or extremely ...</div></div>
+                <div class="flashcard" onclick="openVocab(3)" id="vc-3"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-3" onclick="toggleSave(event, 3)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">indelible</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Making marks that cannot ...</div></div>
+                <div class="flashcard" onclick="openVocab(4)" id="vc-4"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-4" onclick="toggleSave(event, 4)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">grandeur</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Impressiveness of appeara...</div></div>
+                <div class="flashcard" onclick="openVocab(5)" id="vc-5"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-5" onclick="toggleSave(event, 5)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">spectacles</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Visually striking perform...</div></div>
+                <div class="flashcard" onclick="openVocab(6)" id="vc-6"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-6" onclick="toggleSave(event, 6)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">approximately</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Close to a particular val...</div></div>
+                <div class="flashcard" onclick="openVocab(7)" id="vc-7"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-7" onclick="toggleSave(event, 7)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">seamlessly</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Smoothly and continuously...</div></div>
+                <div class="flashcard" onclick="openVocab(8)" id="vc-8"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-8" onclick="toggleSave(event, 8)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">endured</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Suffered something painfu...</div></div>
+                <div class="flashcard" onclick="openVocab(9)" id="vc-9"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-9" onclick="toggleSave(event, 9)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">ravages</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">The destructive effects o...</div></div>
+                <div class="flashcard" onclick="openVocab(10)" id="vc-10"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-10" onclick="toggleSave(event, 10)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">attributed</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Regarded as being caused ...</div></div>
+                <div class="flashcard" onclick="openVocab(11)" id="vc-11"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-11" onclick="toggleSave(event, 11)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">fostered</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Encouraged the developmen...</div></div>
+                <div class="flashcard" onclick="openVocab(12)" id="vc-12"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-12" onclick="toggleSave(event, 12)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">iconic</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Widely recognized and rep...</div></div>
+                <div class="flashcard" onclick="openVocab(13)" id="vc-13"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-13" onclick="toggleSave(event, 13)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">aesthetic</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Concerned with beauty or ...</div></div>
+                <div class="flashcard" onclick="openVocab(14)" id="vc-14"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-14" onclick="toggleSave(event, 14)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">exceptional</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Unusually good; outstandi...</div></div>
+                <div class="flashcard" onclick="openVocab(15)" id="vc-15"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-15" onclick="toggleSave(event, 15)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">efficiently</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Performing or functioning...</div></div>
+                <div class="flashcard" onclick="openVocab(16)" id="vc-16"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-16" onclick="toggleSave(event, 16)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">repurposed</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Used for a different purp...</div></div>
+                <div class="flashcard" onclick="openVocab(17)" id="vc-17"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-17" onclick="toggleSave(event, 17)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">revitalized</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Imbued with new life and ...</div></div>
+                <div class="flashcard" onclick="openVocab(18)" id="vc-18"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-18" onclick="toggleSave(event, 18)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">amenities</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Features that provide com...</div></div>
+                <div class="flashcard" onclick="openVocab(19)" id="vc-19"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-19" onclick="toggleSave(event, 19)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">premier</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">First in importance, orde...</div></div>
+                <div class="flashcard" onclick="openVocab(20)" id="vc-20"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-20" onclick="toggleSave(event, 20)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">shrouded</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Covered or concealed....</div></div>
+                <div class="flashcard" onclick="openVocab(21)" id="vc-21"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-21" onclick="toggleSave(event, 21)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">intrigue</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Arouse curiosity or inter...</div></div>
+                <div class="flashcard" onclick="openVocab(22)" id="vc-22"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-22" onclick="toggleSave(event, 22)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">compelling</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Evoking interest, attenti...</div></div>
+                <div class="flashcard" onclick="openVocab(23)" id="vc-23"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-23" onclick="toggleSave(event, 23)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">assert</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">State a fact or belief co...</div></div>
+                <div class="flashcard" onclick="openVocab(24)" id="vc-24"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-24" onclick="toggleSave(event, 24)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">pertains</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Relates to; concerns....</div></div>
+                <div class="flashcard" onclick="openVocab(25)" id="vc-25"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-25" onclick="toggleSave(event, 25)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">resilient</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Able to withstand or reco...</div></div>
+                <div class="flashcard" onclick="openVocab(26)" id="vc-26"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-26" onclick="toggleSave(event, 26)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">insights</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">A deep understanding of a...</div></div>
+                <div class="flashcard" onclick="openVocab(27)" id="vc-27"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-27" onclick="toggleSave(event, 27)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">inception</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">The establishment or star...</div></div>
+                <div class="flashcard" onclick="openVocab(28)" id="vc-28"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-28" onclick="toggleSave(event, 28)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">renowned</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Known or talked about by ...</div></div>
+                <div class="flashcard" onclick="openVocab(29)" id="vc-29"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-29" onclick="toggleSave(event, 29)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">sacred</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Regarded with great respe...</div></div>
+                <div class="flashcard" onclick="openVocab(30)" id="vc-30"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-30" onclick="toggleSave(event, 30)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">profound</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Very great or intense....</div></div>
+                <div class="flashcard" onclick="openVocab(31)" id="vc-31"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-31" onclick="toggleSave(event, 31)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">legacy</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Something transmitted or ...</div></div>
+                <div class="flashcard" onclick="openVocab(32)" id="vc-32"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-32" onclick="toggleSave(event, 32)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">spellbound</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Holding one's attention a...</div></div>
+                <div class="flashcard" onclick="openVocab(33)" id="vc-33"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-33" onclick="toggleSave(event, 33)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">prestigious</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">Having a high reputation;...</div></div>
+                <div class="flashcard" onclick="openVocab(34)" id="vc-34"><div class="tag">general</div><i class="fas fa-bookmark save-icon" id="bm-34" onclick="toggleSave(event, 34)"></i><div style="font-size:1.2rem; font-weight:800; margin-top:15px;">synergy</div><div style="color:var(--text-sub); font-size:0.85rem; margin-top:5px;">The interaction or cooper...</div></div>
+                
+            </div>
+            <div style="text-align:center; margin-top:40px;"><button class="btn" onclick="toPage('p4')">Start Quiz <i class="fas fa-gamepad"></i></button></div>
+        </div>
+    </div>
+</div>
+
+<div id="p4" class="page">
+    <div class="container" style="justify-content:center;">
+        <div class="card" style="text-align:center; max-width:600px; margin:0 auto; border-top: 4px solid var(--primary);">
+            <div id="qz-setup">
+                <h2 style="color: var(--primary);">Choose Challenge Level</h2>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:25px;">
+                    
+                    <button class="btn btn-outline" style="padding:20px; border-radius: 6px; border-width: 1px;" onclick="startQuiz(0.3, 30)">
+                        <div style="font-size:1.1rem; font-weight:800; color: var(--text-main);">Beginner</div>
+                        <div style="font-size:0.9rem; opacity: 0.8; color: var(--primary);">Base: 30 pts</div>
+                    </button>
+                    
+                    <button class="btn btn-outline" style="padding:20px; border-radius: 6px; border-width: 1px;" onclick="startQuiz(0.5, 60)">
+                        <div style="font-size:1.1rem; font-weight:800; color: var(--text-main);">Intermediate</div>
+                        <div style="font-size:0.9rem; opacity: 0.8; color: var(--primary);">Base: 60 pts</div>
+                    </button>
+                    
+                    <button class="btn btn-outline" style="padding:20px; border-radius: 6px; border-width: 1px;" onclick="startQuiz(0.8, 100)">
+                        <div style="font-size:1.1rem; font-weight:800; color: var(--text-main);">Advanced</div>
+                        <div style="font-size:0.9rem; opacity: 0.8; color: var(--primary);">Base: 100 pts</div>
+                    </button>
+                    
+                    <button class="btn btn-outline" style="padding:20px; border-radius: 6px; border-width: 1px;" onclick="startQuiz(1.0, 140)">
+                        <div style="font-size:1.1rem; font-weight:800; color: var(--text-main);">Expert</div>
+                        <div style="font-size:0.9rem; opacity: 0.8; color: var(--primary);">Base: 140 pts</div>
+                    </button>
+                    
+                </div>
+            </div>
+            <div id="qz-run" style="display:none; text-align:left;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+                    <strong style="font-family: 'Cinzel', serif;">Q: <span id="q-idx">1</span></strong>
+                    <span style="color:var(--primary); font-weight:bold; font-family: 'Cinzel', serif;">Score: <span id="q-score">0</span></span>
+                </div>
+                <div id="q-content"></div>
+                <div id="q-fb" style="display:none; background:#f0fdf4; padding:20px; border-radius:4px; margin-top:20px; border-left: 4px solid #166534;"></div>
+                <button id="q-nxt" class="btn" style="width:100%; margin-top:20px; display:none;" onclick="nextQ()">Next (5s)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p5" class="page">
+    <div class="container" style="max-width:1400px;">
+        <div class="vt-layout">
+            <div class="vt-video-col">
+                <div id="hud1" class="hud">Loading Question...</div>
+                <video id="vid1" src="Video.mp4" playsinline></video>
+                
+                <div id="ol1" class="overlay">
+                    <div class="q-card">
+                        <h3 id="v1-q" style="color:var(--primary); margin-bottom: 20px;">Question</h3>
+                        <div id="v1-opts" style="display:flex; flex-direction:column; gap:10px;"></div>
+                        <div id="fb1" class="feedback-box"></div>
+                        <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
+                            <button class="btn btn-outline" id="rp1" onclick="replaySeg(1)"><i class="fas fa-undo"></i> Replay Segment</button>
+                            <button class="btn" id="ct1" onclick="resume(1)" style="display:none;">Continue <i class="fas fa-play"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="rev1" class="overlay">
+                    <div class="q-card" style="max-width: 700px; text-align: left;">
+                        <h2 style="color:var(--primary); text-align: center;">Part 1 Review</h2>
+                        <div id="rev1-list" class="review-list"></div>
+                        <div style="text-align: center;"><button class="btn" onclick="toPage('p6')">Start Part 2 <i class="fas fa-arrow-right"></i></button></div>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-sm btn-icon" style="background:var(--accent); color:black; border-radius:50%; width:32px; height:32px; padding:0; border:none;" onclick="playVid(1)"><i class="fas fa-play" id="icon1"></i></button>
+                    <input type="range" id="sk1" value="0" disabled title="Seeking Disabled">
+                    <select class="spd-sel" onchange="spd(1, this.value)">
+                        <option value="0.75">0.75x</option>
+                        <option value="1" selected>1.0x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2">2.0x</option>
+                    </select>
+                </div>
+            </div>
+            <div class="vt-sub-box">
+                <div class="sub-list" id="subs1"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p6" class="page">
+    <div class="container" style="max-width:1400px;">
+        <div class="vt-layout">
+            <div class="vt-video-col">
+                <div id="hud2" class="hud">Loading Detail Question...</div>
+                <video id="vid2" src="Video.mp4" playsinline></video>
+                
+                <div id="ol2" class="overlay">
+                    <div class="q-card">
+                        <h3 id="v2-q" style="color:var(--primary);">Detail Question</h3>
+                        <div id="v2-opts" style="display:flex; flex-direction:column; gap:10px;"></div>
+                        
+                        <div id="fb2" class="feedback-box"></div>
+
+                        <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+                            <button class="btn btn-outline" id="rp2" onclick="replaySeg(2)"><i class="fas fa-undo"></i> Replay</button>
+                            <button id="ct2" class="btn" onclick="resume(2)" style="display:none;">Continue <i class="fas fa-play"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="rev2" class="overlay">
+                    <div class="q-card" style="max-width: 700px; text-align: left;">
+                        <h2 style="color:var(--primary); text-align: center;">Part 2 Review</h2>
+                        <div id="rev2-list" class="review-list"></div>
+                        <div style="text-align: center;"><button class="btn" onclick="toPage('p7')">See Report <i class="fas fa-flag-checkered"></i></button></div>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-sm btn-icon" style="background:var(--accent); color:black; border-radius:50%; width:32px; height:32px; padding:0; border:none;" onclick="playVid(2)"><i class="fas fa-play" id="icon2"></i></button>
+                    <input type="range" id="sk2" value="0" disabled title="Seeking Disabled">
+                </div>
+            </div>
+            <div class="vt-sub-box" style="justify-content:center; align-items:center; color:#94a3b8; text-align:center;">
+                <div style="font-size:3rem; margin-bottom: 10px; color: var(--accent);"><i class="fas fa-headphones"></i></div>
+                <div style="font-weight: 600; color: #ccc;">Blind Mode</div>
+                <div style="font-size: 0.9rem; opacity: 0.7;">Focus on audio</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p7" class="page">
+    <div class="container" style="justify-content:center;">
+        <div class="card" style="text-align:center; border-top: 5px solid var(--accent);">
+            <h1 style="color:var(--primary); font-size: 2.5rem; margin-bottom: 10px;">Mission Report</h1>
+            <p style="color: var(--text-sub); margin-bottom: 40px;">Great job, <span id="r-name" style="font-weight:bold; color:var(--text-main); font-family: 'Cinzel', serif;">Agent</span>!</p>
+            <div class="report-grid">
+                <div class="report-item"><span class="report-val" id="r-voc">0</span><span class="report-lbl">Vocab Pts</span></div>
+                <div class="report-item"><span class="report-val" id="r-quiz">0</span><span class="report-lbl">Quiz Pts</span></div>
+                <div class="report-item"><span class="report-val" id="r-vid">0</span><span class="report-lbl">Video Pts</span></div>
+                <div class="report-item"><span class="report-val" id="r-time">0m</span><span class="report-lbl">Total Time</span></div>
+            </div>
+            <div style="margin-top: 30px;">
+                <div style="font-size: 4rem; font-weight: 900; color: var(--accent); margin-bottom: 5px; font-family: 'Cinzel', serif; text-shadow: 2px 2px 0px #eee;" id="r-total">0</div>
+                <div style="text-transform: uppercase; letter-spacing: 2px; font-weight: bold; color: #888;">Total Score</div>
+            </div>
+            <button class="btn" onclick="location.reload()" style="margin-top: 40px;">Restart Mission ↺</button>
+        </div>
+    </div>
+</div>
+
+<div id="mod-voc" class="modal-mask" onclick="clsVoc()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <button onclick="clsVoc()" style="position:absolute; top:20px; right:20px; border:none; background:none; font-size:1.5rem; cursor:pointer; color: #999;">&times;</button>
+        <h2 style="color:var(--primary); margin-top:0; font-size: 2.2rem; font-family: 'Cinzel', serif;" id="vw">Word</h2>
+        <div style="margin-bottom:25px;">
+            <span id="vtype" style="text-transform:uppercase; font-size:0.75rem; border:1px solid #ccc; padding:4px 10px; border-radius:2px; background: #fff; font-weight: 600; color: #555;">TYPE</span> 
+            <i class="fas fa-volume-up" style="cursor:pointer; margin-left: 10px; color: var(--primary); font-size: 1.2rem;" onclick="speak(document.getElementById('vw').innerText)"></i>
+        </div>
+        <p style="font-size: 1.15rem; line-height: 1.6; font-style: italic; color: #444;"><strong>Definition:</strong> <span id="vdef"></span></p>
+        <p style="font-size: 1.1rem;"><strong>Chinese:</strong> <span id="vcn" class="blur-txt" onclick="this.classList.toggle('show')"></span> <i class="fas fa-eye" style="cursor:pointer; margin-left:5px; color:#bbb;"></i></p>
+        
+        <div style="background:#f9f9f9; padding:20px; border-radius:4px; margin-bottom:15px; border-left: 3px solid var(--text-sub);">
+            <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform: uppercase; margin-bottom: 5px;">Video Context</div>
+            <div style="font-size: 1.05rem; font-weight: 500; color: var(--text-main);">"<span id="vex1"></span>" <i class="fas fa-volume-up" style="cursor:pointer; color:var(--primary); margin-left:8px;" onclick="speak(document.getElementById('vex1').innerText)"></i></div>
+            <div id="vcn1" class="blur-txt" style="color:#666; margin-top: 5px;" onclick="this.classList.toggle('show')"></div>
+        </div>
+        
+        <div style="background:#f0fdf4; padding:20px; border-radius:4px; border-left: 3px solid #166534;">
+            <div style="font-size:0.75rem; font-weight:800; color:#166534; text-transform: uppercase; margin-bottom: 5px;">Daily Life</div>
+            <div style="font-size: 1.05rem; font-weight: 500; color: #15803d;">"<span id="vex2"></span>" <i class="fas fa-volume-up" style="cursor:pointer; color:#15803d; margin-left:8px;" onclick="speak(document.getElementById('vex2').innerText)"></i></div>
+            <div id="vcn2" class="blur-txt" style="color:#166534; margin-top: 5px;" onclick="this.classList.toggle('show')"></div>
+        </div>
+    </div>
+</div>
+
+<div id="ds-pop">
+    <div class="ds-head"><span>AI Definition</span> <span onclick="document.getElementById('ds-pop').style.display='none'" style="cursor:pointer;">&times;</span></div>
+    <div class="ds-body" id="ds-con">Taking a moment...</div>
+</div>
+
+<script>
+    const D = {"config": {"title": "Verona Arena: A Living Testament to Art and Culture", "theme": {"primary": "#6366F1", "accent": "#F59E0B", "bg_start": "#F0F9FF", "bg_end": "#DBEAFE"}, "quizTiers": [{"percent": 0.3, "base": 30, "label": "Beginner"}, {"percent": 0.5, "base": 60, "label": "Intermediate"}, {"percent": 0.8, "base": 100, "label": "Advanced"}, {"percent": 1.0, "base": 140, "label": "Expert"}], "videoFile": "Video.mp4", "azureKey": "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9", "azureRegion": "eastus2", "deepseekKey": "sk-daa16008e81843deba6fefe9dce51465"}, "reading": [{"text": "Explore the Verona Arena, an ancient Roman amphitheater built in the 1st century AD. Discover its rich history, from gladiatorial contests to modern opera performances. Learn about its architectural design, preservation, and the mysteries surrounding its construction. "}, {"text": "The arena's elliptical shape and limestone construction provide exceptional acoustics and a distinct appearance. Continuous use and restoration efforts have transformed it into a premier venue for the arts. The Verona Opera Festival, since 1913, has attracted world-renowned artists, leaving a lasting artistic legacy."}, {"text": "The Verona Arena has evolved from an entertainment venue to a prestigious open-air theater, celebrated for its architectural beauty and high-quality productions. It stands as a symbol of Italian culture, artistic expression, and the enduring connection between humanity and creativity."}], "images": [{"prompt": "Exterior view of the Verona Arena during the day, showcasing its elliptical shape and ancient Roman architecture.", "src": "overview_exterior.jpg"}, {"prompt": "Interior of the Verona Arena during an opera performance at night, with the stage illuminated and the audience watching.", "src": "overview_interior.jpg"}, {"prompt": "Close-up of the limestone construction of the Verona Arena, highlighting the texture and details of the ancient stones.", "src": "overview_closeup.jpg"}, {"prompt": "Historical image or artist's rendering of gladiatorial contests taking place in the Verona Arena during the Roman Empire.", "src": "overview_historical.jpg"}], "vocab": [{"id": 0, "w": "marvel", "type": "general", "en_def": "A wonderful or astonishing thing.", "cn": "\u5947\u8ff9", "vid_ex": "The Verona Arena is an architectural marvel of the Roman Empire.", "vid_cn": "\u7ef4\u7f57\u7eb3\u7ade\u6280\u573a\u662f\u7f57\u9a6c\u5e1d\u56fd\u7684\u4e00\u9879\u5efa\u7b51\u5947\u8ff9\u3002", "life_ex": "The invention of the internet is a technological marvel.", "life_cn": "\u4e92\u8054\u7f51\u7684\u53d1\u660e\u662f\u4e00\u9879\u6280\u672f\u5947\u8ff9\u3002"}, {"id": 1, "w": "testament", "type": "general", "en_def": "Something that serves as tangible proof or evidence.", "cn": "\u8bc1\u660e", "vid_ex": "The arena is a living testament to the enduring power of art and culture.", "vid_cn": "\u7ade\u6280\u573a\u662f\u827a\u672f\u548c\u6587\u5316\u6301\u4e45\u529b\u91cf\u7684\u751f\u52a8\u8bc1\u660e\u3002", "life_ex": "Her success is a testament to her hard work and dedication.", "life_cn": "\u5979\u7684\u6210\u529f\u8bc1\u660e\u4e86\u5979\u7684\u52aa\u529b\u548c\u5949\u732e\u3002"}, {"id": 2, "w": "myriad", "type": "general", "en_def": "A countless or extremely great number.", "cn": "\u65e0\u6570", "vid_ex": "The structure has captivated audiences for nearly two millennia, hosting a myriad of performances and events.", "vid_cn": "\u8fd9\u5ea7\u5efa\u7b51\u5438\u5f15\u4e86\u89c2\u4f17\u8fd1\u4e24\u5343\u5e74\uff0c\u4e3e\u529e\u4e86\u65e0\u6570\u7684\u8868\u6f14\u548c\u6d3b\u52a8\u3002", "life_ex": "The city offers a myriad of opportunities for young professionals.", "life_cn": "\u8fd9\u5ea7\u57ce\u5e02\u4e3a\u5e74\u8f7b\u7684\u4e13\u4e1a\u4eba\u58eb\u63d0\u4f9b\u4e86\u65e0\u6570\u7684\u673a\u4f1a\u3002"}, {"id": 3, "w": "indelible", "type": "general", "en_def": "Making marks that cannot be removed.", "cn": "\u4e0d\u53ef\u78e8\u706d\u7684", "vid_ex": "These performances have left an indelible mark on the cultural landscape of Italy.", "vid_cn": "\u8fd9\u4e9b\u8868\u6f14\u5728\u610f\u5927\u5229\u7684\u6587\u5316\u666f\u89c2\u4e0a\u7559\u4e0b\u4e86\u4e0d\u53ef\u78e8\u706d\u7684\u5370\u8bb0\u3002", "life_ex": "The war left an indelible scar on the country's psyche.", "life_cn": "\u6218\u4e89\u5728\u8be5\u56fd\u4eba\u6c11\u7684\u5fc3\u7406\u4e0a\u7559\u4e0b\u4e86\u4e0d\u53ef\u78e8\u706d\u7684\u4f24\u75d5\u3002"}, {"id": 4, "w": "grandeur", "type": "general", "en_def": "Impressiveness of appearance or style.", "cn": "\u58ee\u4e3d", "vid_ex": "The arena reflects the grandeur and ambition of ancient Roman engineering.", "vid_cn": "\u7ade\u6280\u573a\u53cd\u6620\u4e86\u53e4\u7f57\u9a6c\u5de5\u7a0b\u7684\u58ee\u4e3d\u548c\u96c4\u5fc3\u3002", "life_ex": "The palace was restored to its former grandeur.", "life_cn": "\u8fd9\u5ea7\u5bab\u6bbf\u88ab\u4fee\u590d\u5230\u6614\u65e5\u7684\u58ee\u4e3d\u3002"}, {"id": 5, "w": "spectacles", "type": "general", "en_def": "Visually striking performances or displays.", "cn": "\u5947\u89c2", "vid_ex": "It was originally designed as a venue for gladiatorial contests and public spectacles.", "vid_cn": "\u5b83\u6700\u521d\u88ab\u8bbe\u8ba1\u4e3a\u89d2\u6597\u6bd4\u8d5b\u548c\u516c\u4f17\u5947\u89c2\u7684\u573a\u6240\u3002", "life_ex": "The fireworks display was a breathtaking spectacle.", "life_cn": "\u70df\u82b1\u8868\u6f14\u662f\u4e00\u573a\u4ee4\u4eba\u53f9\u4e3a\u89c2\u6b62\u7684\u5947\u89c2\u3002"}, {"id": 6, "w": "approximately", "type": "general", "en_def": "Close to a particular value, number, or quantity but not exactly.", "cn": "\u5927\u7ea6", "vid_ex": "With a seating capacity of approximately 15,000 spectators, it was the third largest amphitheater.", "vid_cn": "\u62e5\u6709\u5927\u7ea615,000\u540d\u89c2\u4f17\u7684\u5ea7\u4f4d\u5bb9\u91cf\uff0c\u5b83\u662f\u7b2c\u4e09\u5927\u5706\u5f62\u5267\u573a\u3002", "life_ex": "The project will take approximately three months to complete.", "life_cn": "\u8be5\u9879\u76ee\u5927\u7ea6\u9700\u8981\u4e09\u4e2a\u6708\u624d\u80fd\u5b8c\u6210\u3002"}, {"id": 7, "w": "seamlessly", "type": "general", "en_def": "Smoothly and continuously, without any clear division.", "cn": "\u65e0\u7f1d\u5730", "vid_ex": "Local limestone, giving it a distinct appearance that seamlessly blends with the surrounding architecture of Verona.", "vid_cn": "\u5f53\u5730\u7684\u77f3\u7070\u77f3\u8d4b\u4e88\u5b83\u72ec\u7279\u7684\u5916\u89c2\uff0c\u4e0e\u7ef4\u7f57\u7eb3\u5468\u56f4\u7684\u5efa\u7b51\u65e0\u7f1d\u878d\u5408\u3002", "life_ex": "The new software integrates seamlessly with the existing system.", "life_cn": "\u65b0\u8f6f\u4ef6\u4e0e\u73b0\u6709\u7cfb\u7edf\u65e0\u7f1d\u96c6\u6210\u3002"}, {"id": 8, "w": "endured", "type": "general", "en_def": "Suffered something painful or difficult patiently.", "cn": "\u5fcd\u53d7", "vid_ex": "Over the centuries, it has endured the ravages of time, surviving earthquakes.", "vid_cn": "\u51e0\u4e2a\u4e16\u7eaa\u4ee5\u6765\uff0c\u5b83\u5fcd\u53d7\u4e86\u65f6\u95f4\u7684\u6467\u6b8b\uff0c\u5e78\u514d\u4e8e\u5730\u9707\u3002", "life_ex": "She has endured a lot of hardship in her life.", "life_cn": "\u5979\u4e00\u751f\u4e2d\u5fcd\u53d7\u4e86\u5f88\u591a\u82e6\u96be\u3002"}, {"id": 9, "w": "ravages", "type": "general", "en_def": "The destructive effects of something.", "cn": "\u7834\u574f", "vid_ex": "Over the centuries, it has endured the ravages of time.", "vid_cn": "\u51e0\u4e2a\u4e16\u7eaa\u4ee5\u6765\uff0c\u5b83\u5fcd\u53d7\u4e86\u65f6\u95f4\u7684\u7834\u574f\u3002", "life_ex": "The hurricane caused widespread ravages along the coast.", "life_cn": "\u98d3\u98ce\u5bf9\u6cbf\u6d77\u5730\u533a\u9020\u6210\u4e86\u5e7f\u6cdb\u7684\u7834\u574f\u3002"}, {"id": 10, "w": "attributed", "type": "general", "en_def": "Regarded as being caused by someone or something.", "cn": "\u5f52\u56e0\u4e8e", "vid_ex": "Its preservation is attributed to continuous use.", "vid_cn": "\u5b83\u7684\u4fdd\u5b58\u5f52\u56e0\u4e8e\u6301\u7eed\u4f7f\u7528\u3002", "life_ex": "His success can be attributed to his hard work and dedication.", "life_cn": "\u4ed6\u7684\u6210\u529f\u53ef\u4ee5\u5f52\u56e0\u4e8e\u4ed6\u7684\u52aa\u529b\u548c\u5949\u732e\u3002"}, {"id": 11, "w": "fostered", "type": "general", "en_def": "Encouraged the development of something.", "cn": "\u57f9\u517b", "vid_ex": "Its preservation has fostered a sense of community.", "vid_cn": "\u5b83\u7684\u4fdd\u5b58\u57f9\u517b\u4e86\u4e00\u79cd\u793e\u533a\u610f\u8bc6\u3002", "life_ex": "The school fosters a love of learning in its students.", "life_cn": "\u5b66\u6821\u57f9\u517b\u5b66\u751f\u5bf9\u5b66\u4e60\u7684\u70ed\u7231\u3002"}, {"id": 12, "w": "iconic", "type": "general", "en_def": "Widely recognized and representative of something.", "cn": "\u6807\u5fd7\u6027\u7684", "vid_ex": "This iconic landmark fosters a sense of community.", "vid_cn": "\u8fd9\u5ea7\u6807\u5fd7\u6027\u7684\u5730\u6807\u57f9\u517b\u4e86\u4e00\u79cd\u793e\u533a\u610f\u8bc6\u3002", "life_ex": "The Eiffel Tower is an iconic symbol of Paris.", "life_cn": "\u57c3\u83f2\u5c14\u94c1\u5854\u662f\u5df4\u9ece\u7684\u6807\u5fd7\u6027\u8c61\u5f81\u3002"}, {"id": 13, "w": "aesthetic", "type": "general", "en_def": "Concerned with beauty or the appreciation of beauty.", "cn": "\u7f8e\u5b66\u7684", "vid_ex": "One of the most striking features of the arena is its elliptical shape, which not only enhances the aesthetic appeal.", "vid_cn": "\u7ade\u6280\u573a\u6700\u5f15\u4eba\u6ce8\u76ee\u7684\u7279\u5f81\u4e4b\u4e00\u662f\u5b83\u7684\u692d\u5706\u5f62\uff0c\u8fd9\u4e0d\u4ec5\u589e\u5f3a\u4e86\u7f8e\u5b66\u5438\u5f15\u529b\u3002", "life_ex": "The garden was designed with aesthetic principles in mind.", "life_cn": "\u82b1\u56ed\u7684\u8bbe\u8ba1\u8003\u8651\u4e86\u7f8e\u5b66\u539f\u5219\u3002"}, {"id": 14, "w": "exceptional", "type": "general", "en_def": "Unusually good; outstanding.", "cn": "\u5353\u8d8a\u7684", "vid_ex": "Its elliptical shape provides exceptional acoustics.", "vid_cn": "\u5b83\u7684\u692d\u5706\u5f62\u63d0\u4f9b\u4e86\u5353\u8d8a\u7684\u97f3\u54cd\u6548\u679c\u3002", "life_ex": "She is an exceptional student with a bright future.", "life_cn": "\u5979\u662f\u4e00\u4f4d\u524d\u9014\u5149\u660e\u7684\u4f18\u79c0\u5b66\u751f\u3002"}, {"id": 15, "w": "efficiently", "type": "general", "en_def": "Performing or functioning in the best possible manner with the least waste of time and effort.", "cn": "\u9ad8\u6548\u5730", "vid_ex": "This architectural design allows sound to travel efficiently throughout the venue.", "vid_cn": "\u8fd9\u79cd\u5efa\u7b51\u8bbe\u8ba1\u4f7f\u58f0\u97f3\u80fd\u591f\u9ad8\u6548\u5730\u4f20\u64ad\u5230\u6574\u4e2a\u573a\u5730\u3002", "life_ex": "The new system allows us to work more efficiently.", "life_cn": "\u65b0\u7cfb\u7edf\u4f7f\u6211\u4eec\u80fd\u591f\u66f4\u9ad8\u6548\u5730\u5de5\u4f5c\u3002"}, {"id": 16, "w": "repurposed", "type": "general", "en_def": "Used for a different purpose than originally intended.", "cn": "\u6539\u4f5c\u4ed6\u7528", "vid_ex": "Stones were repurposed for other construction projects.", "vid_cn": "\u77f3\u5934\u88ab\u6539\u4f5c\u4ed6\u7528\uff0c\u7528\u4e8e\u5176\u4ed6\u5efa\u8bbe\u9879\u76ee\u3002", "life_ex": "The old factory was repurposed as a community center.", "life_cn": "\u65e7\u5de5\u5382\u88ab\u6539\u9020\u6210\u793e\u533a\u4e2d\u5fc3\u3002"}, {"id": 17, "w": "revitalized", "type": "general", "en_def": "Imbued with new life and vitality.", "cn": "\u590d\u5174", "vid_ex": "Restoration efforts, especially during the 19th century, have revitalized the structure.", "vid_cn": "\u7279\u522b\u662f\u572819\u4e16\u7eaa\u7684\u4fee\u590d\u5de5\u4f5c\u4f7f\u8be5\u7ed3\u6784\u91cd\u65b0\u7115\u53d1\u4e86\u6d3b\u529b\u3002", "life_ex": "The city has been revitalized with new businesses and developments.", "life_cn": "\u65b0\u4f01\u4e1a\u548c\u53d1\u5c55\u4f7f\u8fd9\u5ea7\u57ce\u5e02\u91cd\u65b0\u7115\u53d1\u4e86\u6d3b\u529b\u3002"}, {"id": 18, "w": "amenities", "type": "general", "en_def": "Features that provide comfort, convenience, or pleasure.", "cn": "\u4fbf\u5229\u8bbe\u65bd", "vid_ex": "The addition of modern amenities, coupled with the conservation of its historical elements.", "vid_cn": "\u73b0\u4ee3\u4fbf\u5229\u8bbe\u65bd\u7684\u589e\u52a0\uff0c\u52a0\u4e0a\u5bf9\u5176\u5386\u53f2\u5143\u7d20\u7684\u4fdd\u62a4\u3002", "life_ex": "The hotel offers a range of amenities, including a swimming pool and a gym.", "life_cn": "\u9152\u5e97\u63d0\u4f9b\u4e00\u7cfb\u5217\u4fbf\u5229\u8bbe\u65bd\uff0c\u5305\u62ec\u6e38\u6cf3\u6c60\u548c\u5065\u8eab\u623f\u3002"}, {"id": 19, "w": "premier", "type": "general", "en_def": "First in importance, order, or position; leading.", "cn": "\u9996\u8981\u7684", "vid_ex": "The arena has been transformed into a premier venue for the arts.", "vid_cn": "\u7ade\u6280\u573a\u5df2\u8f6c\u53d8\u4e3a\u9996\u8981\u7684\u827a\u672f\u573a\u6240\u3002", "life_ex": "She is a premier expert in her field.", "life_cn": "\u5979\u662f\u8be5\u9886\u57df\u7684\u9996\u8981\u4e13\u5bb6\u3002"}, {"id": 20, "w": "shrouded", "type": "general", "en_def": "Covered or concealed.", "cn": "\u7b3c\u7f69", "vid_ex": "The Verona Arena is shrouded in numerous secrets and mysteries.", "vid_cn": "\u7ef4\u7f57\u7eb3\u7ade\u6280\u573a\u7b3c\u7f69\u7740\u65e0\u6570\u7684\u79d8\u5bc6\u548c\u8c1c\u56e2\u3002", "life_ex": "The mountain was shrouded in mist.", "life_cn": "\u8fd9\u5ea7\u5c71\u7b3c\u7f69\u5728\u8584\u96fe\u4e2d\u3002"}, {"id": 21, "w": "intrigue", "type": "general", "en_def": "Arouse curiosity or interest.", "cn": "\u5f15\u8d77\u5174\u8da3", "vid_ex": "The secrets and mysteries intrigue historians and visitors alike.", "vid_cn": "\u8fd9\u4e9b\u79d8\u5bc6\u548c\u8c1c\u56e2\u5f15\u8d77\u4e86\u5386\u53f2\u5b66\u5bb6\u548c\u6e38\u5ba2\u7684\u5174\u8da3\u3002", "life_ex": "The plot of the novel intrigued me from the beginning.", "life_cn": "\u8fd9\u90e8\u5c0f\u8bf4\u7684\u60c5\u8282\u4ece\u4e00\u5f00\u59cb\u5c31\u5f15\u8d77\u4e86\u6211\u7684\u5174\u8da3\u3002"}, {"id": 22, "w": "compelling", "type": "general", "en_def": "Evoking interest, attention, or admiration in a powerfully irresistible way.", "cn": "\u5f15\u4eba\u6ce8\u76ee\u7684", "vid_ex": "One of the most compelling questions is why the structure has remained in such good condition.", "vid_cn": "\u6700\u5f15\u4eba\u6ce8\u76ee\u7684\u95ee\u9898\u4e4b\u4e00\u662f\u4e3a\u4ec0\u4e48\u8be5\u7ed3\u6784\u4fdd\u6301\u5982\u6b64\u826f\u597d\u7684\u72b6\u6001\u3002", "life_ex": "She made a compelling argument for her proposal.", "life_cn": "\u5979\u4e3a\u5979\u7684\u63d0\u8bae\u63d0\u51fa\u4e86\u4e00\u4e2a\u5f15\u4eba\u6ce8\u76ee\u7684\u8bba\u70b9\u3002"}, {"id": 23, "w": "assert", "type": "general", "en_def": "State a fact or belief confidently and forcefully.", "cn": "\u65ad\u8a00", "vid_ex": "Some historians assert that its strategic location has played a crucial role in its preservation.", "vid_cn": "\u4e00\u4e9b\u5386\u53f2\u5b66\u5bb6\u65ad\u8a00\uff0c\u5176\u6218\u7565\u4f4d\u7f6e\u5728\u4fdd\u62a4\u4e2d\u8d77\u5230\u4e86\u5173\u952e\u4f5c\u7528\u3002", "life_ex": "She asserted her innocence throughout the trial.", "life_cn": "\u5979\u5728\u6574\u4e2a\u5ba1\u5224\u8fc7\u7a0b\u4e2d\u90fd\u575a\u79f0\u81ea\u5df1\u662f\u65e0\u8f9c\u7684\u3002"}, {"id": 24, "w": "pertains", "type": "general", "en_def": "Relates to; concerns.", "cn": "\u5173\u4e8e", "vid_ex": "Another mystery pertains to the construction techniques employed by ancient builders.", "vid_cn": "\u53e6\u4e00\u4e2a\u8c1c\u56e2\u6d89\u53ca\u53e4\u4ee3\u5efa\u9020\u8005\u91c7\u7528\u7684\u5efa\u9020\u6280\u672f\u3002", "life_ex": "This law pertains to environmental regulations.", "life_cn": "\u8be5\u6cd5\u5f8b\u6d89\u53ca\u73af\u5883\u6cd5\u89c4\u3002"}, {"id": 25, "w": "resilient", "type": "general", "en_def": "Able to withstand or recover quickly from difficult conditions.", "cn": "\u6709\u5f39\u6027\u7684", "vid_ex": "The materials used in the arena's construction have proven remarkably resilient.", "vid_cn": "\u7528\u4e8e\u7ade\u6280\u573a\u5efa\u9020\u7684\u6750\u6599\u5df2\u88ab\u8bc1\u660e\u5177\u6709\u975e\u51e1\u7684\u5f39\u6027\u3002", "life_ex": "She is a resilient person who never gives up.", "life_cn": "\u5979\u662f\u4e00\u4e2a\u4ece\u4e0d\u653e\u5f03\u7684\u6709\u5f39\u6027\u7684\u4eba\u3002"}, {"id": 26, "w": "insights", "type": "general", "en_def": "A deep understanding of a person or thing.", "cn": "\u6d1e\u5bdf\u529b", "vid_ex": "Understanding these techniques can provide valuable insights into Roman engineering and architecture.", "vid_cn": "\u7406\u89e3\u8fd9\u4e9b\u6280\u672f\u53ef\u4ee5\u4e3a\u7f57\u9a6c\u5de5\u7a0b\u548c\u5efa\u7b51\u63d0\u4f9b\u6709\u4ef7\u503c\u7684\u89c1\u89e3\u3002", "life_ex": "Her book offers valuable insights into the human condition.", "life_cn": "\u5979\u7684\u4e66\u63d0\u4f9b\u4e86\u5bf9\u4eba\u7c7b\u72b6\u51b5\u7684\u5b9d\u8d35\u89c1\u89e3\u3002"}, {"id": 27, "w": "inception", "type": "general", "en_def": "The establishment or starting point of an institution or activity.", "cn": "\u5f00\u59cb", "vid_ex": "The arena has been home to the renowned Verona Opera Festival since its inception in 1913.", "vid_cn": "\u81ea1913\u5e74\u5f00\u59cb\u4ee5\u6765\uff0c\u8be5\u7ade\u6280\u573a\u4e00\u76f4\u662f\u8457\u540d\u7684\u7ef4\u7f57\u7eb3\u6b4c\u5267\u8282\u7684\u6240\u5728\u5730\u3002", "life_ex": "The company has grown rapidly since its inception.", "life_cn": "\u81ea\u6210\u7acb\u4ee5\u6765\uff0c\u8be5\u516c\u53f8\u53d1\u5c55\u8fc5\u901f\u3002"}, {"id": 28, "w": "renowned", "type": "general", "en_def": "Known or talked about by many people; famous.", "cn": "\u8457\u540d\u7684", "vid_ex": "The arena has been home to the renowned Verona Opera Festival.", "vid_cn": "\u8be5\u7ade\u6280\u573a\u4e00\u76f4\u662f\u8457\u540d\u7684\u7ef4\u7f57\u7eb3\u6b4c\u5267\u8282\u7684\u6240\u5728\u5730\u3002", "life_ex": "He is a renowned expert in his field.", "life_cn": "\u4ed6\u662f\u8be5\u9886\u57df\u7684\u8457\u540d\u4e13\u5bb6\u3002"}, {"id": 29, "w": "sacred", "type": "general", "en_def": "Regarded with great respect and reverence by a particular religion, group, or individual.", "cn": "\u795e\u5723\u7684", "vid_ex": "The artists transformed the arena into a sacred space for operatic expression.", "vid_cn": "\u827a\u672f\u5bb6\u4eec\u5c06\u7ade\u6280\u573a\u53d8\u6210\u4e86\u6b4c\u5267\u8868\u8fbe\u7684\u795e\u5723\u7a7a\u95f4\u3002", "life_ex": "The temple is considered a sacred place by many.", "life_cn": "\u5bfa\u5e99\u88ab\u8bb8\u591a\u4eba\u8ba4\u4e3a\u662f\u795e\u5723\u7684\u5730\u65b9\u3002"}, {"id": 30, "w": "profound", "type": "general", "en_def": "Very great or intense.", "cn": "\u6df1\u523b\u7684", "vid_ex": "Their biographies are filled with triumphs, challenges, and moments of profound creativity.", "vid_cn": "\u4ed6\u4eec\u7684\u4f20\u8bb0\u5145\u6ee1\u4e86\u80dc\u5229\u3001\u6311\u6218\u548c\u6df1\u523b\u7684\u521b\u9020\u529b\u65f6\u523b\u3002", "life_ex": "She has a profound understanding of the subject.", "life_cn": "\u5979\u5bf9\u8fd9\u4e2a\u4e3b\u9898\u6709\u6df1\u523b\u7684\u7406\u89e3\u3002"}, {"id": 31, "w": "legacy", "type": "general", "en_def": "Something transmitted or received from an ancestor or predecessor or from the past.", "cn": "\u9057\u4ea7", "vid_ex": "Their experiences have contributed to the rich tapestry of the arena's artistic legacy.", "vid_cn": "\u4ed6\u4eec\u7684\u7ecf\u9a8c\u4e3a\u7ade\u6280\u573a\u4e30\u5bcc\u7684\u827a\u672f\u9057\u4ea7\u505a\u51fa\u4e86\u8d21\u732e\u3002", "life_ex": "His legacy will live on through his works.", "life_cn": "\u4ed6\u7684\u9057\u4ea7\u5c06\u901a\u8fc7\u4ed6\u7684\u4f5c\u54c1\u7ee7\u7eed\u5b58\u5728\u3002"}, {"id": 32, "w": "spellbound", "type": "general", "en_def": "Holding one's attention as though by a magic spell.", "cn": "\u5165\u8ff7\u7684", "vid_ex": "The performances have left audiences spellbound.", "vid_cn": "\u8fd9\u4e9b\u8868\u6f14\u8ba9\u89c2\u4f17\u7740\u8ff7\u3002", "life_ex": "The audience was spellbound by her performance.", "life_cn": "\u89c2\u4f17\u88ab\u5979\u7684\u8868\u6f14\u8ff7\u4f4f\u4e86\u3002"}, {"id": 33, "w": "prestigious", "type": "general", "en_def": "Having a high reputation; respected and admired.", "cn": "\u6709\u58f0\u671b\u7684", "vid_ex": "It has gradually gained recognition as one of the most prestigious open air theaters globally.", "vid_cn": "\u5b83\u9010\u6e10\u88ab\u516c\u8ba4\u4e3a\u5168\u7403\u6700\u8d1f\u76db\u540d\u7684\u9732\u5929\u5267\u9662\u4e4b\u4e00\u3002", "life_ex": "The university is one of the most prestigious in the world.", "life_cn": "\u8fd9\u6240\u5927\u5b66\u662f\u4e16\u754c\u4e0a\u6700\u8d1f\u76db\u540d\u7684\u5927\u5b66\u4e4b\u4e00\u3002"}, {"id": 34, "w": "synergy", "type": "general", "en_def": "The interaction or cooperation of two or more organizations, substances, or other agents to produce a combined effect greater than the sum of their separate effects.", "cn": "\u534f\u540c\u4f5c\u7528", "vid_ex": "The critiques often highlight the synergy between the venue's acoustics and the artist's abilities.", "vid_cn": "\u8bc4\u8bba\u901a\u5e38\u5f3a\u8c03\u573a\u5730\u97f3\u54cd\u6548\u679c\u548c\u827a\u672f\u5bb6\u80fd\u529b\u4e4b\u95f4\u7684\u534f\u540c\u4f5c\u7528\u3002", "life_ex": "There is a great synergy between the team members.", "life_cn": "\u56e2\u961f\u6210\u5458\u4e4b\u95f4\u6709\u5f88\u597d\u7684\u534f\u540c\u4f5c\u7528\u3002"}], "quizzes": {"general": [{"time": 16.34, "type": "choice", "q": "What is the Verona Arena described as being?", "opts": ["A modern art museum", "An architectural marvel of the Roman Empire", "A simple stone structure", "A government building"], "ans": 1, "review": "The Verona Arena is described as an architectural marvel of the Roman Empire and a testament to art and culture.", "replay": {"start": 3.26, "end": 16.34}}, {"time": 103.35, "type": "choice", "q": "Which feature of the Verona Arena enhances its aesthetic appeal and acoustics?", "opts": ["Its square shape", "Its rectangular shape", "Its elliptical shape", "Its circular shape"], "ans": 2, "review": "The elliptical shape of the arena enhances its aesthetic appeal and provides exceptional acoustics.", "replay": {"start": 86.19, "end": 103.35}}, {"time": 201.52, "type": "choice", "q": "Since when has the Verona Arena been home to the Verona Opera Festival?", "opts": ["Since 1813", "Since 1950", "Since 1900", "Since 1913"], "ans": 3, "review": "The arena has been home to the Verona Opera Festival since 1913.", "replay": {"start": 176.71, "end": 201.52}}, {"time": 236.45, "type": "choice", "q": "What has the Verona Arena gradually gained recognition as?", "opts": ["A famous gladiator school", "A prestigious open-air theater", "An ancient ruin", "A historic landmark"], "ans": 1, "review": "The Verona Arena has gradually gained recognition as one of the most prestigious open-air theaters globally.", "replay": {"start": 228.08, "end": 236.45}}], "detailed": [{"time": 23.34, "type": "cloze", "q": "The Verona Arena has captivated audiences for nearly two ____.", "opts": ["Millennia", "Centuries"], "ans": 0, "review": "Built in the 1st century AD, this remarkable structure has captivated audiences for nearly two millennia.", "replay": {"start": 3.26, "end": 23.34}}, {"time": 57.85, "type": "choice", "q": "What was the original purpose of the Verona Arena?", "opts": ["A marketplace", "Gladiatorial contests and public spectacles", "Religious ceremonies", "Political rallies"], "ans": 1, "review": "Originally designed as a venue for gladiatorial contests and public spectacles, the arena reflects the grandeur and ambition of ancient Roman engineering.", "replay": {"start": 28.27, "end": 57.85}}, {"time": 83.16, "type": "true/false", "q": "The Verona Arena's preservation is attributed to continuous use.", "opts": ["True", "False"], "ans": 0, "review": "Its preservation is attributed to continuous use, which has fostered a sense of community and cultural identity around this iconic landmark.", "replay": {"start": 65.27, "end": 83.16}}, {"time": 128.94, "type": "choice", "q": "What significant event led to damage of the arena's original facade?", "opts": ["A major fire", "A volcanic eruption", "Earthquakes and repurposing of stones", "A major flood"], "ans": 2, "review": "The original facade of the arena has suffered significant damage over the years, particularly during the Middle Ages when stones were repurposed for other construction projects.", "replay": {"start": 113.71, "end": 128.94}}, {"time": 166.22, "type": "choice", "q": "What is another mystery about the Verona Arena?", "opts": ["The exact number of gladiators who fought there", "The construction techniques employed by ancient builders", "The original color of the arena's stones", "The specific date of the arena's inauguration"], "ans": 1, "review": "Another mystery pertains to the construction techniques employed by ancient builders.", "replay": {"start": 146.96, "end": 166.22}}, {"time": 202.11, "type": "choice", "q": "What did the celebrated artists bring to the stage that transformed the arena into a sacred space for operatic expression?", "opts": ["Political statements", "Unique talents and personal stories", "Modern technology", "Exotic animals"], "ans": 1, "review": "Each of these artists brought their unique talents and personal stories to the stage, transforming the arena into a sacred space for operatic expression.", "replay": {"start": 182.52, "end": 202.11}}, {"time": 246.45, "type": "choice", "q": "What is the Verona Arena recognized as?", "opts": ["A gladiatorial training ground", "A mere entertainment venue", "A prestigious open-air theater", "A religious center"], "ans": 2, "review": "Initially regarded as a mere entertainment venue, it has gradually gained recognition as one of the most prestigious open air theaters globally.", "replay": {"start": 228.08, "end": 246.45}}, {"time": 277.59, "type": "choice", "q": "What does the Verona Arena embody?", "opts": ["The spirit of Italian culture and artistic expression", "The ruins of the Roman Empire", "The silence of ancient history", "The heart of modern engineering"], "ans": 0, "review": "It embodies the spirit of Italian culture and artistic expression.", "replay": {"start": 270.48, "end": 277.59}}]}, "subtitles": [{"s": 3.26, "e": 12.34, "t": "The Verona Arena, an architectural marvel of the Roman Empire, is not just an amphitheater, it is a living testament to the enduring power of art and culture."}, {"s": 12.34, "e": 24.88, "t": "Built in the 1st century AD, this remarkable structure has captivated audiences for nearly two millennia, hosting a myriad of performances and events that have left an indelible mark on the cultural landscape of Italy."}, {"s": 28.27, "e": 33.85, "t": "The history of the Verona Arena is as rich as the stones from which it was constructed."}, {"s": 33.85, "e": 43.74, "t": "Originally designed as a venue for gladiatorial contests and public spectacles, the arena reflects the grandeur and ambition of ancient Roman engineering."}, {"s": 43.74, "e": 55.87, "t": "With a seating capacity of approximately 15,000 spectators, it was the third largest amphitheater of the Roman Empire, coming only after the Colosseum in Rome and the amphitheater in Capua."}, {"s": 55.87, "e": 57.47, "t": "The arena's construction."}, {"s": 57.79, "e": 65.27, "t": "Local limestone, giving it a distinct appearance that seamlessly blends with the surrounding architecture of Verona."}, {"s": 65.27, "e": 74.16, "t": "Over the centuries, it has endured the ravages of time, surviving earthquakes and the natural decay that often befalls ancient structures."}, {"s": 74.16, "e": 83.19, "t": "Its preservation is attributed to continuous use, which has fostered a sense of community and cultural identity around this iconic landmark."}, {"s": 86.19, "e": 95.35, "t": "One of the most striking features of the arena is its elliptical shape, which not only enhances the aesthetic appeal but also provides exceptional acoustics."}, {"s": 95.35, "e": 104.51, "t": "This architectural design allows sound to travel efficiently throughout the venue, making it an ideal space for theatrical performances and musical concerts."}, {"s": 104.51, "e": 113.55, "t": "The original facade of the arena has suffered significant damage over the years, particularly during the Middle Ages when stones were repurposed for other."}, {"s": 113.71, "e": 114.94, "t": "Construction projects."}, {"s": 114.94, "e": 120.37, "t": "However, restoration efforts, especially during the 19th century, have revitalized the structure."}, {"s": 120.37, "e": 128.83, "t": "The addition of modern amenities, coupled with the conservation of its historical elements has transformed the arena into a premier venue for the arts."}, {"s": 131.95, "e": 138.75, "t": "The Verona Arena is shrouded in numerous secrets and mysteries that intrigue historians and visitors alike."}, {"s": 139.11, "e": 146.96, "t": "One of the most compelling questions is why the structure has remained in such good condition compared to other Roman amphitheatres."}, {"s": 146.96, "e": 155.22, "t": "Some historians assert that its strategic location and uninterrupted use over the centuries have played a crucial role in its preservation."}, {"s": 155.22, "e": 160.27, "t": "Another mystery pertains to the construction techniques employed by ancient builders."}, {"s": 160.27, "e": 166.75, "t": "Despite the passage of time, the materials used in the arena's construction have proven remarkably resilient."}, {"s": 168.03, "e": 173.43, "t": "Understanding these techniques can provide valuable insights into Roman engineering and architecture."}, {"s": 176.71, "e": 182.52, "t": "The arena has been home to the renowned Verona Opera Festival since its inception in 1913."}, {"s": 182.52, "e": 191.88, "t": "This annual event has attracted some of the most celebrated artists in the world, including Luciano Pavarotti, Pl\u00e1cido Domingo, and Maria Callas."}, {"s": 191.88, "e": 201.75, "t": "Each of these artists brought their unique talents and personal stories to the stage, transforming the arena into a sacred space for operatic expression."}, {"s": 202.31, "e": 208.03, "t": "The biographies of these artists are filled with triumphs, challenges, and moments of profound creativity."}, {"s": 209.68, "e": 216.0, "t": "Their experiences have not only shaped their careers but have also contributed to the rich tapestry of the arena's artistic legacy."}, {"s": 216.55, "e": 224.79, "t": "The performances they delivered at this historic venue have left audiences spellbound, fostering a deep appreciation for the power of music and storytelling."}, {"s": 228.08, "e": 232.45, "t": "Over the years, the perception of the Verona Arena has evolved significantly."}, {"s": 232.45, "e": 240.61, "t": "Initially regarded as a mere entertainment venue, it has gradually gained recognition as one of the most prestigious open air theaters globally."}, {"s": 240.61, "e": 246.28, "t": "Critics and historians have lauded the arena not only for its architectural beauty but also for the."}, {"s": 246.71, "e": 260.31, "t": "High-quality productions it hosts, the critiques surrounding the performances often highlight the synergy between the venue's acoustics and the artist's abilities, creating a unique auditory experience that resonates with audiences."}, {"s": 260.31, "e": 267.23, "t": "These discussions under score the importance of the arena in the context of cultural heritage and artistic excellence."}, {"s": 270.48, "e": 273.59, "t": "The Verona Arena stands as more than just a monument."}, {"s": 273.59, "e": 277.46, "t": "It embodies the spirit of Italian culture and artistic expression."}, {"s": 277.46, "e": 284.8, "t": "Its storied history, captivating secrets, and vibrant legacy make it a unique destination for visitors from around the world."}, {"s": 284.8, "e": 293.6, "t": "The arena continues to be a source of inspiration and a focal point for the arts, celebrating the timeless connection between humanity and creativity."}, {"s": 293.6, "e": 298.24, "t": "Join the conversation Have you ever attended a performance at the Verona Arena?"}, {"s": 298.47, "e": 301.59, "t": "What was your experience like? Share your thoughts and comments below."}]};
+    const C = D.config;
+    let s = { u:"", lsc:0, qsc:0, vidsc:0, sv:new Set(), lrn:new Set(), pg:'p1', v1:0, v2:0, lock:false, t1:0, t2:0, logs1:[], logs2:[], startTime: Date.now() };
+    const AZ_KEY = C.azureKey; const AZ_REG = C.azureRegion;
+    // Updated Key to avoid cache conflicts
+    const STORAGE_KEY = 'vt_course_save'; 
+
+    window.onload = () => {
+        if(localStorage.getItem(STORAGE_KEY)) document.getElementById('resume-btn').style.display='inline-block';
+        initSubs();
+    };
+
+    function startApp() {
+        const n=document.getElementById('username').value;
+        if(n) s.u=n;
+        s.startTime = Date.now();
+        toPage('p2');
+    }
+
+    // 🔥🔥 FIXED RESUME FUNCTION START 🔥🔥
+    function resumeApp() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+
+        try {
+            const saved = JSON.parse(raw);
+            
+            // 1. Restore Primitive Values
+            s.u = saved.u || "";
+            s.lsc = saved.lsc || 0;
+            s.qsc = saved.qsc || 0;
+            s.vidsc = saved.vidsc || 0;
+            s.pg = saved.pg || 'p1';
+            s.v1 = saved.v1 || 0;
+            s.v2 = saved.v2 || 0;
+            s.t1 = saved.t1 || 0;
+            s.t2 = saved.t2 || 0;
+            s.logs1 = saved.logs1 || [];
+            s.logs2 = saved.logs2 || [];
+            
+            // 2. Restore Sets (Critical: JSON saves Sets as Arrays, must convert back)
+            s.sv = new Set(saved.sv || []);
+            s.lrn = new Set(saved.lrn || []);
+
+            // 3. Update UI to match loaded state
+            if(s.u) document.getElementById('username').value = s.u;
+            upUI(); // Update score display
+
+            // 4. Visual Restoration: Re-apply 'learned' and 'saved' classes
+            s.lrn.forEach(idx => {
+                const el = document.getElementById('vc-' + idx);
+                if(el) el.classList.add('learned');
+            });
+            s.sv.forEach(idx => {
+                const el = document.getElementById('bm-' + idx);
+                if(el) el.classList.add('saved');
+            });
+
+            // 5. Navigate to saved page
+            toPage(s.pg);
+
+        } catch (e) {
+            console.error("Resume corrupted:", e);
+            alert("Save file corrupted. Starting new session.");
+            startApp();
+        }
+    }
+    // 🔥🔥 FIXED RESUME FUNCTION END 🔥🔥
+
+    function toPage(p) {
+        document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
+        document.getElementById(p).classList.add('active');
+        s.pg=p;
+        if(p==='p5') { initVid(1); if(s.t1>0) restoreVid('vid1', s.t1); }
+        if(p==='p6') { initVid(2); if(s.t2>0) restoreVid('vid2', s.t2); }
+        if(p==='p7') genReport();
+    }
+    
+    // Robust Seek Loop
+    function restoreVid(id, t) {
+        const v = document.getElementById(id);
+        const attempt = () => {
+            v.currentTime = t;
+            if(Math.abs(v.currentTime - t) > 1) requestAnimationFrame(attempt);
+        };
+        if(v.readyState >= 1) attempt();
+        else v.onloadedmetadata = attempt;
+    }
+
+    function genReport() {
+        const timeSpent = Math.floor((Date.now() - s.startTime) / 60000);
+        document.getElementById('r-name').innerText = s.u || "Agent";
+        document.getElementById('r-voc').innerText = s.lsc;
+        document.getElementById('r-quiz').innerText = s.qsc;
+        document.getElementById('r-vid').innerText = s.vidsc;
+        document.getElementById('r-time').innerText = timeSpent + "m";
+        document.getElementById('r-total').innerText = s.lsc + s.qsc + s.vidsc;
+        localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function speak(txt) {
+        if(window.SpeechSDK && AZ_KEY) {
+            const c = SpeechSDK.SpeechConfig.fromSubscription(AZ_KEY, AZ_REG);
+            c.speechSynthesisVoiceName = "en-GB-RyanNeural";
+            const a = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            const syn = new SpeechSDK.SpeechSynthesizer(c, a);
+            syn.speakTextAsync(txt, r=>{syn.close()}, e=>{syn.close(); nativeSpeak(txt)});
+        } else { nativeSpeak(txt); }
+    }
+    function nativeSpeak(txt) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(txt);
+        u.lang = 'en-GB';
+        window.speechSynthesis.speak(u);
+    }
+
+    // Vocab
+    let tm;
+    function openVocab(i) {
+        const v = D.vocab[i];
+        document.getElementById('mod-voc').style.display='flex';
+        document.getElementById('vw').innerText=v.w;
+        document.getElementById('vtype').innerText=v.type;
+        document.getElementById('vdef').innerText=v.en_def;
+        document.getElementById('vcn').innerText=v.cn;
+        document.getElementById('vex1').innerText=v.vid_ex;
+        document.getElementById('vcn1').innerText=v.vid_cn;
+        document.getElementById('vex2').innerText=v.life_ex;
+        document.getElementById('vcn2').innerText=v.life_cn;
+        document.querySelectorAll('.blur-txt').forEach(e=>e.classList.remove('show'));
+        speak(v.w);
+        clearTimeout(tm);
+        tm = setTimeout(()=>{
+            if(!s.lrn.has(i)) { s.lrn.add(i); s.lsc+=2; upUI(); saveState(); document.getElementById(`vc-${i}`).classList.add('learned'); }
+        }, 3000); 
+    }
+    function clsVoc(){ document.getElementById('mod-voc').style.display='none'; clearTimeout(tm); }
+    function toggleSave(e,i){ e.stopPropagation(); const el=document.getElementById(`bm-${i}`); if(s.sv.has(i)){ s.sv.delete(i); el.classList.remove('saved'); } else{ s.sv.add(i); el.classList.add('saved'); } saveState(); }
+
+    // Quiz
+    let qQ=[], qC=0;
+    function getMisspelling(word) {
+        if(word.length < 4) return word + "e";
+        const idx = Math.floor(Math.random() * (word.length - 2)) + 1;
+        return word.substring(0, idx) + word[idx+1] + word[idx] + word.substring(idx+2);
+    }
+
+    function startQuiz(pct, base) {
+        s.qsc += base; upUI();
+        const n = Math.ceil(D.vocab.length * pct);
+        const pool = [...D.vocab].sort(()=>0.5-Math.random()).slice(0, n);
+        qQ = pool.map(v => {
+            const r = Math.random();
+            let type = 'def'; let opts = [];
+            if(r < 0.33) {
+                type = 'def'; opts = [v]; while(opts.length<4) { const x=D.vocab[Math.floor(Math.random()*D.vocab.length)]; if(!opts.includes(x)) opts.push(x); } opts = opts.sort(()=>0.5-Math.random()).map(o => ({txt: o.w, isC: o.id===v.id}));
+            } else if (r < 0.66) {
+                type = 'lis'; const dist1 = getMisspelling(v.w); const dist2 = getMisspelling(v.w); const dist3 = getMisspelling(v.w); opts = [{txt: v.w, isC: true}, {txt: dist1, isC: false}, {txt: dist2, isC: false}, {txt: dist3, isC: false}].sort(()=>0.5-Math.random());
+            } else {
+                type = 'cloze'; opts = [v]; while(opts.length<4) { const x=D.vocab[Math.floor(Math.random()*D.vocab.length)]; if(!opts.includes(x)) opts.push(x); } opts = opts.sort(()=>0.5-Math.random()).map(o => ({txt: o.w, isC: o.id===v.id}));
+            }
+            return { c:v, t:type, o:opts };
+        });
+        qC=0;
+        document.getElementById('qz-setup').style.display='none';
+        document.getElementById('qz-run').style.display='block';
+        rendQ();
+    }
+
+    function rendQ() {
+        if(qC>=qQ.length) { alert("Quiz Finished!"); toPage('p5'); return; }
+        const q=qQ[qC];
+        document.getElementById('q-idx').innerText=qC+1;
+        document.getElementById('q-fb').style.display='none';
+        document.getElementById('q-nxt').style.display='none';
+        const b=document.getElementById('q-content'); b.innerHTML='';
+        if(q.t==='lis') { b.innerHTML=`<div style="text-align:center; margin-bottom:20px;"><button class="btn btn-outline" style="border-radius:50%; width:50px; height:50px;" onclick="speak('${q.c.w}')"><i class="fas fa-volume-up"></i></button><br><small>Listen & Choose</small></div>`; } 
+        else if (q.t==='cloze') { const sent = q.c.life_ex.replace(new RegExp(q.c.w, 'gi'), '_______'); b.innerHTML=`<div style="padding:10px; font-size:1.1rem; text-align:center; margin-bottom:15px; font-style:italic;">"${sent}"</div>`; } 
+        else { b.innerHTML=`<div style="padding:10px; font-weight:bold; margin-bottom:15px;">${q.c.en_def}</div>`; }
+        q.o.forEach(opt=>{
+            const btn=document.createElement('div'); btn.className='btn btn-outline'; btn.style.width='100%'; btn.style.marginBottom='8px'; btn.innerText=opt.txt;
+            btn.onclick=()=>chkQ(btn, opt.isC, q.c);
+            b.appendChild(btn);
+        });
+    }
+
+    function chkQ(btn, isC, dat) {
+        document.querySelectorAll('#q-content .btn').forEach(b=>b.style.pointerEvents='none');
+        if(isC) { btn.style.background='#dcfce7'; btn.style.borderColor='green'; s.qsc+=2; } 
+        else { btn.style.background='#fee2e2'; btn.style.borderColor='red'; s.qsc-=1; }
+        upUI(); saveState();
+        const fb=document.getElementById('q-fb'); fb.style.display='block';
+        fb.innerHTML=`<strong>${dat.w}</strong>: ${dat.cn}<br>${dat.life_ex}`;
+        const nx=document.getElementById('q-nxt'); nx.style.display='block';
+        let sec=3; nx.innerText=`Next (${sec})`;
+        const ti=setInterval(()=>{ sec--; nx.innerText=`Next (${sec})`; if(sec<=0){ clearInterval(ti); qC++; rendQ(); } },1000);
+        nx.onclick=()=>{ clearInterval(ti); qC++; rendQ(); };
+    }
+    function nextQ() { qC++; rendQ(); }
+
+    // Video Logic (Unified)
+    let curVQ=null;
+    function initVid(id) {
+        const v=document.getElementById(`vid${id}`);
+        const qs=id===1 ? D.quizzes.general : D.quizzes.detailed;
+        qs.sort((a,b)=>a.time-b.time);
+        
+        upHud(id, qs); // Show first Q
+
+        v.ontimeupdate = () => {
+            if(id===1) s.t1 = v.currentTime; else s.t2 = v.currentTime;
+            saveState();
+            const t=v.currentTime;
+            const i=id===1?s.v1:s.v2;
+            const sl=document.getElementById(`sk${id}`);
+            sl.value=(t/v.duration)*100 || 0; 
+
+            if(i<qs.length) {
+                if(t >= qs[i].time && !s.lock) { v.pause(); s.lock=true; popVQ(id, qs[i]); }
+            }
+            
+            if(id===1) {
+                const subIdx = D.subtitles.findIndex(x=>t>=x.s && t<=x.e);
+                if(subIdx !== -1) {
+                    document.querySelectorAll('.sub-line').forEach(e=>e.classList.remove('active'));
+                    const el = document.getElementById(`sub-${subIdx}`);
+                    if(el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+                }
+            }
+            if(t >= v.duration - 0.5) showReview(id);
+        };
+    }
+
+    function upHud(id, qs) {
+        const i=id===1?s.v1:s.v2;
+        const h=document.getElementById(`hud${id}`);
+        if(i < qs.length) { h.style.display='block'; h.innerText = qs[i].q; } else { h.style.display='none'; }
+    }
+
+    function popVQ(id, q) {
+        curVQ=q;
+        // Reset Logic
+        document.getElementById(`fb${id}`).style.display='none';
+        document.getElementById(`ct${id}`).style.display='none';
+        document.getElementById(`rp${id}`).style.display='inline-block';
+        
+        document.getElementById(`ol${id}`).style.display='flex';
+        
+        // Unified UI generation
+        const cont = id===1 ? document.getElementById('v1-opts') : document.getElementById('v2-opts');
+        cont.innerHTML = q.opts.map((o,idx)=>
+            `<button class="opt-btn" onclick="ansUnified(${id}, ${idx}, ${q.ans})">${o}</button>`
+        ).join('');
+        
+        document.getElementById(id===1 ? 'v1-q' : 'v2-q').innerText = q.q;
+    }
+
+    function ansUnified(id, idx, corr) {
+        const cont = id===1 ? document.getElementById('v1-opts') : document.getElementById('v2-opts');
+        const btns = cont.querySelectorAll('.opt-btn');
+        btns.forEach(b => b.disabled=true);
+        
+        const isCorr = idx===corr;
+        if(isCorr) { 
+            btns[idx].classList.add('sel-correct'); 
+            s.vidsc+=5;
+        } else { 
+            btns[idx].classList.add('sel-wrong'); 
+            btns[corr].classList.add('sel-correct'); 
+        }
+        
+        showFeedback(id, isCorr);
+        if(id===1) s.logs1.push({ q: curVQ.q, uAns: curVQ.opts[idx], cAns: curVQ.opts[corr], isC: isCorr, exp: curVQ.review });
+        else s.logs2.push({ q: curVQ.q, uAns: curVQ.opts[idx], cAns: curVQ.opts[corr], isC: isCorr, exp: curVQ.review });
+    }
+
+    function showFeedback(id, isCorr) {
+        const fb = document.getElementById(`fb${id}`);
+        fb.className = `feedback-box ${isCorr?'correct':'wrong'}`;
+        fb.innerHTML = `<div class="feedback-title">${isCorr ? '<i class="fas fa-check-circle"></i> Correct!' : '<i class="fas fa-times-circle"></i> Incorrect'}</div><div class="feedback-text">${curVQ.review}</div>`;
+        fb.style.display='block';
+        document.getElementById(`ct${id}`).style.display='inline-block';
+        document.getElementById(`rp${id}`).style.display='none';
+        upUI(); saveState();
+    }
+
+    function resume(id) {
+        document.getElementById(`ol${id}`).style.display='none';
+        s.lock=false;
+        const v=document.getElementById(`vid${id}`);
+        if(id===1) s.v1++; else s.v2++;
+        const qs=id===1 ? D.quizzes.general : D.quizzes.detailed;
+        upHud(id, qs); 
+        v.play();
+        upUI(); saveState();
+    }
+
+    function replaySeg(id) {
+        const v=document.getElementById(`vid${id}`);
+        const start = (curVQ.replay && curVQ.replay.start) ? curVQ.replay.start : Math.max(0, v.currentTime - 15);
+        v.currentTime = start;
+        document.getElementById(`ol${id}`).style.display='none';
+        s.lock = false;
+        v.play();
+    }
+
+    function showReview(id) {
+        const el = document.getElementById(`rev${id}`);
+        const list = document.getElementById(`rev${id}-list`);
+        const logs = id===1 ? s.logs1 : s.logs2;
+        list.innerHTML = logs.map(l => `<div class="review-item ${l.isC?'correct':'wrong'}"><div class="review-q">${l.q}</div><div class="review-ans">Your Answer: <strong>${l.uAns}</strong> ${l.isC?'✅':'❌'}</div>${!l.isC ? `<div class="review-ans">Correct: <strong>${l.cAns}</strong></div>` : ''}<div class="review-exp"><i class="fas fa-lightbulb"></i> ${l.exp}</div></div>`).join('');
+        el.style.display = 'flex';
+        document.getElementById(`vid${id}`).pause();
+    }
+
+    function playVid(id){ const v=document.getElementById(`vid${id}`); const i=document.getElementById(`icon${id}`); v.paused?v.play():v.pause(); i.className=v.paused?'fas fa-play':'fas fa-pause'; }
+    function scrub(id,v){ /* Scrubbing Disabled */ }
+    function spd(id,v){ document.getElementById(`vid${id}`).playbackRate=v; }
+    function upUI(){ document.getElementById('u-score').innerText = s.lsc + s.qsc + s.vidsc; }
+    function saveState(alertUser){ localStorage.setItem(STORAGE_KEY, JSON.stringify({...s, sv:[...s.sv], lrn:[...s.lrn]})); if(alertUser) alert("Progress Saved!"); }
+    
+    function initSubs() {
+        const c=document.getElementById('subs1');
+        D.subtitles.forEach((x,i)=>{
+            const d=document.createElement('div'); d.className='sub-line'; d.id=`sub-${i}`;
+            const t = x.t.split(' ').map(w=>`<span class="w-click" onclick="ds('${w.replace(/[^\w]/g,'')}')">${w}</span>`).join(' ');
+            d.innerHTML=`<small style="color:#555; margin-right:8px;">${Math.floor(x.s/60)}:${Math.floor(x.s%60).toString().padStart(2,'0')}</small>${t}`;
+            c.appendChild(d);
+        });
+    }
+    
+    async function ds(w) {
+        if(!w) return;
+        const p=document.getElementById('ds-pop'); p.style.display='block';
+        document.getElementById('ds-con').innerHTML='Thinking...';
+        try {
+            const r=await fetch("https://api.deepseek.com/v1/chat/completions", {
+                method:"POST", headers:{"Content-Type":"application/json", "Authorization":`Bearer ${C.deepseekKey}`},
+                body: JSON.stringify({model:"deepseek-chat", messages:[{role:"user", content:`Define "${w}" for B1 student. JSON: {cn, en, ex}`}], response_format:{type:"json_object"}})
+            });
+            const d=JSON.parse((await r.json()).choices[0].message.content);
+            document.getElementById('ds-con').innerHTML=`<div class="ds-word">${w}</div><div class="ds-cn">${d.cn}</div><div class="ds-en">${d.en}</div><div class="ds-ex"><i class="fas fa-quote-left"></i> ${d.ex}</div>`;
+        } catch(e) { document.getElementById('ds-con').innerText="Error fetching definition."; }
+    }
+
+    let si=0;
+    function slide(n){ const im=document.querySelectorAll('.slide-img'); im[si].style.display='none'; si=(si+n+im.length)%im.length; im[si].style.display='block'; }
+</script>
+</body>
+</html>
