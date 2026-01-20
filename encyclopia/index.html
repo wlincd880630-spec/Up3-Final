@@ -11,6 +11,22 @@
     <script src="https://cdn.bootcdn.net/ajax/libs/sweetalert2/11.7.32/sweetalert2.all.min.js"></script>
 
     <style>
+      /* === ⚡️ 修复：横屏模式下按钮贴底的问题 === */
+    @media (max-width: 1000px) and (orientation: landscape) {
+        
+        /* 1. 白色背景板：底部增加留白 */
+        .main-panel {
+            padding-bottom: 50px !important; /* 这里的 30px 是内部留白，防止内容切断 */
+            height: auto !important;         /* 允许高度自动延伸 */
+            min-height: 100vh !important;    /* 确保至少占满屏幕 */
+        }
+
+        /* 2. 底部按钮栏：往上抬起 */
+        .bottom-actions {
+            margin-bottom: 15px !important;  /* 这里的 15px 是按钮距离底边的距离 */
+            padding-bottom: 5px !important;  /* 按钮栏内部微调 */
+        }
+    }
         :root {
             --primary: #6c5ce7; --primary-light: #a29bfe; --accent: #fd79a8; --success: #00b894;
             --text-main: #2d3436; --text-sub: #636e72; --glass-bg: rgba(255, 255, 255, 0.98);
@@ -36,11 +52,24 @@
             box-sizing: border-box; 
         }
         
-        .main-panel {
-            flex: 1; background: var(--glass-bg); backdrop-filter: blur(30px); border-radius: 30px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.05); border: var(--glass-border); display: flex;
-            flex-direction: column; overflow-y: auto; overflow-x: hidden; position: relative;
-            transition: all 0.4s ease; min-width: 0; 
+     .main-panel {
+            flex: 1; 
+            background: var(--glass-bg); 
+            backdrop-filter: blur(30px); 
+            border-radius: 30px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.05); 
+            border: var(--glass-border); 
+            display: flex;
+            flex-direction: column; 
+            overflow-y: auto; 
+            overflow-x: hidden; 
+            position: relative;
+            transition: all 0.4s ease;
+            min-width: 0; 
+            
+            /* ▼▼▼ 新增下面这一行：增加 60px 的底部留白 ▼▼▼ */
+            padding-bottom: 60px; 
+            /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
         }
 
         .ai-panel {
@@ -212,10 +241,22 @@
         .chat-response { background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #00b894; line-height: 1.6; white-space: pre-wrap; font-size: 0.95rem; }
         
         /* 底部按钮栏 */
-        .bottom-actions { margin-top:15px; padding-top:5px; display:flex; gap:15px; border-top:1px solid #eee; flex-wrap: wrap;}
-        @media (max-width: 600px) {
-            .bottom-actions { gap: 10px; padding-top: 15px; }
-            .bottom-actions .action-btn { flex: 1; justify-content: center; font-size: 0.85rem; padding: 10px 5px; }
+       /* 底部按钮栏 - 增加 margin-bottom 拉大距离 */
+        .bottom-actions { 
+            margin-top: auto; 
+            padding-top: 30px; 
+            display: flex; 
+            gap: 15px; 
+            border-top: 1px solid #eee; 
+            flex-wrap: wrap;
+            
+            /* ▼▼▼ 新增：底部留出 50px 的空白距离 ▼▼▼ */
+            margin-bottom: 50px; 
+            /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+        }
+       @media (max-width: 600px) {
+            .bottom-actions { gap: 10px; padding-top: 15px; margin-bottom: 10px; } /* 手机端用小一点的间距 */
+            .bottom-actions .action-btn { flex: 1; justify-content: center; font-size: 0.85rem; padding: 8px; }
         }
     </style>
 </head>
