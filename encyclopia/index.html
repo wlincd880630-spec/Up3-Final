@@ -22,14 +22,14 @@
             background: linear-gradient(-45deg, #a18cd1, #fbc2eb, #8fd3f4, #84fab0);
             background-size: 400% 400%; animation: gradientBG 15s ease infinite;
         }
-        /* 移动端允许滚动，防止内容截断 */
+        /* 移动端允许滚动 */
         @media (max-width: 900px) {
             body { height: auto; min-height: 100vh; overflow-y: auto; overflow-x: hidden; }
         }
 
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-        /* === 主布局优化 === */
+        /* === 主布局 === */
         .app-layout { 
             display: flex; gap: 25px; padding: 30px; 
             height: calc(100vh - 60px); max-width: 1400px; margin: 0 auto; 
@@ -40,8 +40,7 @@
             flex: 1; background: var(--glass-bg); backdrop-filter: blur(30px); border-radius: 30px;
             box-shadow: 0 15px 40px rgba(0,0,0,0.05); border: var(--glass-border); display: flex;
             flex-direction: column; overflow-y: auto; overflow-x: hidden; position: relative;
-            transition: all 0.4s ease;
-            min-width: 0; 
+            transition: all 0.4s ease; min-width: 0; 
         }
 
         .ai-panel {
@@ -51,53 +50,32 @@
             display: none; 
         }
 
-        /* 桌面端分屏逻辑 */
         .app-layout.split-mode .main-panel { flex: 0 0 60%; }
         .app-layout.split-mode .ai-panel { 
             width: 38%; opacity: 1; padding: 30px; transform: translateX(0); 
             display: block; 
         }
 
-        /* === 移动端/平板响应式适配 (核心修改) === */
+        /* === 移动端适配 (核心修复) === */
         @media (max-width: 900px) {
             .app-layout {
-                flex-direction: column; 
-                padding: 10px; /* 减小外边距 */
-                height: auto;
-                gap: 15px;
-                display: block; /* 改为block，让内容自然流式排列，解决横屏消失问题 */
+                flex-direction: column; padding: 10px; height: auto; gap: 15px; display: block;
             }
-            
             .main-panel {
-                /* 移除固定高度，改为自适应，防止横屏截断 */
-                height: auto; 
-                min-height: 80vh;
-                width: 100%;
-                border-radius: 20px;
-                margin-bottom: 80px; /* 底部留白给悬浮按钮 */
+                height: auto; min-height: 80vh; width: 100%; border-radius: 20px; margin-bottom: 80px; 
             }
-
-            /* 移动端 AI 面板：全屏覆盖模式 */
             .ai-panel {
-                position: fixed;
-                top: 0; left: 0; right: 0; bottom: 0;
-                width: 100% !important;
-                height: 100% !important;
-                z-index: 5000;
-                transform: translateY(100%); 
-                border-radius: 0;
-                transition: transform 0.3s ease;
-                display: block; 
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                width: 100% !important; height: 100% !important;
+                z-index: 5000; transform: translateY(100%); 
+                border-radius: 0; transition: transform 0.3s ease; display: block; 
             }
-
-            .app-layout.split-mode .main-panel {
-                flex: none; width: 100%; 
-            }
-
+            .app-layout.split-mode .main-panel { flex: none; width: 100%; }
+            
+            /* AI面板打开时，增加顶部内边距，防止内容被刘海遮挡 */
             .app-layout.split-mode .ai-panel {
-                transform: translateY(0); 
-                padding: 20px;
-                opacity: 1;
+                transform: translateY(0); padding: 20px; opacity: 1;
+                padding-top: 80px; /* 留出顶部空间给关闭按钮 */
             }
             
             .q-text-main { font-size: 1.2rem; }
@@ -105,11 +83,35 @@
             .setup-container { padding: 0; }
         }
 
+        /* === 关闭按钮样式重构 (核心修改) === */
+        /* 默认桌面样式 */
+        .ai-close-btn { cursor:pointer; color:#999; padding:5px; transition: 0.2s; }
+        .ai-close-btn:hover { color: var(--accent); transform: scale(1.1); }
+
+        /* 移动端强制样式：悬浮固定球 */
+        @media (max-width: 900px) {
+            .ai-close-btn {
+                position: fixed; /* 固定定位，不随页面滚动 */
+                top: 50px;
+                right: 50px;
+                width: 44px; height: 44px;
+                background: white;
+                border-radius: 50%;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+                display: flex !important;
+                align-items: center; justify-content: center;
+                z-index: 6000; /* 保证在最上层 */
+                color: #2d3436;
+                font-size: 1.2rem;
+                border: 1px solid rgba(0,0,0,0.05);
+            }
+            /* 让标题也不要被按钮遮挡 */
+            .ai-header-title { margin-top: 10px; } 
+        }
+
         #setup-view, #quiz-view, #review-view { display: none; padding: 40px; height: 100%; box-sizing: border-box; }
         @media (max-width: 600px) {
-            #setup-view, #quiz-view, #review-view { padding: 20px; }
-            /* 手机端让内部容器高度自适应 */
-            #setup-view, #quiz-view, #review-view { height: auto; }
+            #setup-view, #quiz-view, #review-view { padding: 20px; height: auto; }
         }
 
         .setup-container { max-width: 700px; margin: 0 auto; width: 100%; }
@@ -121,7 +123,6 @@
         .hero-btn { background: var(--primary); color: white; border: none; padding: 18px; width: 100%; border-radius: 18px; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 10px 25px rgba(108, 92, 231, 0.4); transition: all 0.3s; }
         .hero-btn:hover { transform: scale(1.02); }
 
-        /* 图片容器优化 */
         .q-image-box {
             width: 100%; min-height: 0; max-height: 0; overflow: hidden; 
             border-radius: 15px; margin-bottom: 10px;
@@ -168,13 +169,12 @@
         .action-btn.primary { background: var(--primary); color: white; }
         .ai-card { background: #f8f9fa; border-radius: 15px; padding: 20px; margin-bottom: 20px; border-left: 4px solid var(--primary); font-size: 1rem; line-height: 1.6; }
 
-        /* === 悬浮按钮 - 修正尺寸和遮挡问题 === */
+        /* === 悬浮按钮 === */
         .fab-container { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 15px; align-items: flex-end; z-index: 1000; }
         .fab-pill { background: white; color: #2d3436; padding: 12px 25px; border-radius: 50px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; border: 1px solid rgba(0,0,0,0.05); }
         
-        /* 手机端缩小悬浮按钮 */
         @media (max-width: 600px) { 
-            .fab-container { bottom: 60px; right: 15px; gap: 10px; } /* 稍微上移 */
+            .fab-container { bottom: 60px; right: 15px; gap: 10px; } 
             .fab-pill { padding: 6px 15px; font-size: 0.8rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); } 
             .fab-pill i { font-size: 0.9rem; }
         }
@@ -183,7 +183,7 @@
         .fab-ask { background: linear-gradient(135deg, #2d3436, #000); color: #00b894; }
         .fab-dict { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; }
 
-        /* === 弹窗移动端适配 === */
+        /* === 弹窗 === */
         .custom-modal { 
             position: fixed; top: 80px; right: 100px; width: 400px; 
             background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); 
@@ -211,15 +211,12 @@
         .chat-input:focus { border-color: var(--primary); outline: none; }
         .chat-response { background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #00b894; line-height: 1.6; white-space: pre-wrap; font-size: 0.95rem; }
         
-        /* 底部按钮栏适配 - 修正横屏消失问题 */
-        .bottom-actions { margin-top:30px; padding-top:20px; display:flex; gap:15px; border-top:1px solid #eee; flex-wrap: wrap;}
+        /* 底部按钮栏 */
+        .bottom-actions { margin-top:15px; padding-top:5px; display:flex; gap:15px; border-top:1px solid #eee; flex-wrap: wrap;}
         @media (max-width: 600px) {
             .bottom-actions { gap: 10px; padding-top: 15px; }
             .bottom-actions .action-btn { flex: 1; justify-content: center; font-size: 0.85rem; padding: 10px 5px; }
         }
-
-        /* 增大关闭按钮点击区域 */
-        .ai-close-btn { cursor:pointer; color:#999; padding:15px; margin:-10px -10px 0 0; display:block; }
     </style>
 </head>
 <body>
@@ -301,8 +298,8 @@
 
     <div class="ai-panel" id="ai-panel">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h3 style="margin:0; color:var(--primary);">AI 题目解析</h3>
-            <span onclick="toggleSplitView()" class="ai-close-btn"><i class="fas fa-times fa-lg"></i></span>
+            <h3 class="ai-header-title" style="margin:0; color:var(--primary);">AI 题目解析</h3>
+            <span onclick="toggleSplitView()" class="ai-close-btn"><i class="fas fa-times"></i></span>
         </div>
         <div id="ai-content"> <div style="text-align:center; margin-top:60px; color:#b2bec3;">AI 待命中...</div> </div>
     </div>
