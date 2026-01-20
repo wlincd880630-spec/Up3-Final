@@ -1,0 +1,9 @@
+# 强制将这些文件视为二进制文件，Git 绝不会修改它们
+*.mp4 binary
+*.webm binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.mov binary
