@@ -3,458 +3,425 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Learning Portal | Unit 3 & Unit 2</title>
+    <title>National Geographic | Pathway Learning Lab</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
-            --bg-deep: #0f172a;
-            --bg-gradient: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #312e81 100%);
-            --glass-surface: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-gold: #f59e0b;   
-            --accent-blue: #38bdf8;
-            --accent-purple: #a855f7;
-            --accent-green: #10b981;
+            /* NatGeo Palette */
+            --ng-yellow: #FFCC00;
+            --ng-black: #000000;
+            --dark-surface: rgba(20, 20, 20, 0.9);
+            --dark-card: rgba(35, 35, 35, 0.6);
+            --text-light: #F5F5F5;
+            --text-dim: #A3A3A3;
+            --border-glow: rgba(255, 204, 0, 0.4);
+            
+            /* Background */
+            --bg-gradient: radial-gradient(circle at 10% 20%, #1a1a1a 0%, #000000 90%);
         }
+
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
-            font-family: 'Outfit', sans-serif;
-            background: var(--bg-gradient);
-            color: var(--text-main);
+            font-family: 'Roboto', sans-serif;
+            background: #050505;
+            background-image: var(--bg-gradient);
+            color: var(--text-light);
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            overflow-x: hidden;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px 60px; /* Adjusted padding */
-            flex: 1; /* Pushes footer down */
+        /* Background Textures */
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px; pointer-events: none; z-index: -1;
+        }
+        body::after {
+            content: ""; position: fixed; top: 20%; right: -10%; width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(255, 204, 0, 0.08) 0%, transparent 70%);
+            pointer-events: none; z-index: -1;
         }
 
+        .container { max-width: 1400px; margin: 0 auto; padding: 40px 30px; }
+
+        /* --- Header --- */
         header {
-            text-align: center;
-            padding: 60px 0;
+            display: flex; align-items: center; justify-content: space-between;
+            padding-bottom: 40px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 40px;
+        }
+        .brand-wrapper { display: flex; align-items: center; gap: 15px; }
+        .ng-frame { width: 32px; height: 48px; border: 4px solid var(--ng-yellow); box-shadow: 0 0 15px var(--border-glow); }
+        .brand-text h1 { font-family: 'Oswald', sans-serif; font-size: 2.2rem; margin: 0; text-transform: uppercase; line-height: 1; letter-spacing: 1px; }
+        .brand-text span { font-size: 0.9rem; color: var(--ng-yellow); letter-spacing: 2px; text-transform: uppercase; font-weight: 500; }
+
+        .teacher-badge {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: 0.3s;
+        }
+        .teacher-badge:hover { background: rgba(255, 204, 0, 0.1); border-color: var(--ng-yellow); }
+
+        /* --- QR Lightbox --- */
+        #qr-modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999;
+            justify-content: center; align-items: center; backdrop-filter: blur(10px);
+        }
+        #qr-modal img { max-width: 300px; border: 5px solid white; border-radius: 10px; box-shadow: 0 0 50px rgba(255,255,255,0.2); }
+        #qr-modal p { position: absolute; bottom: 20%; color: white; font-family: 'Oswald'; letter-spacing: 2px; }
+
+        /* --- Layout --- */
+        .main-layout { display: grid; gap: 40px; }
+        @media (min-width: 1024px) { .main-layout { grid-template-columns: 1.8fr 1fr; align-items: start; } }
+
+        /* --- Common Glass/Panel Styles --- */
+        .glass-panel, .widget-box {
+            background: var(--dark-surface); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px; overflow: hidden; backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5); margin-bottom: 30px;
         }
 
-        h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 3.5rem;
-            margin: 0;
-            background: linear-gradient(to right, #fff, #94a3b8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* --- Accordion Headers --- */
+        .accordion-header {
+            padding: 20px 25px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); transition: 0.3s;
         }
-
-        /* --- Section Styling --- */
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin: 60px 0 30px;
-        }
-
-        .section-header h2 {
-            font-size: 1.8rem;
-            margin: 0;
-            white-space: nowrap;
-            color: var(--accent-gold);
-        }
+        .accordion-header:hover { background: rgba(255, 204, 0, 0.05); }
+        .section-title { font-family: 'Oswald'; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1px; display: flex; align-items: center; gap: 10px; font-size: 1.1rem; }
+        .section-title i { color: var(--ng-yellow); }
         
-        /* Different colors for different sections */
-        .section-header.knowledge h2 { color: var(--accent-purple); }
+        .arrow-icon { transition: transform 0.4s ease; color: var(--ng-yellow); }
+        .active .arrow-icon { transform: rotate(180deg); }
 
-        .section-header .line {
-            height: 1px;
-            background: var(--glass-border);
-            flex-grow: 1;
+        /* --- Accordion Body --- */
+        .accordion-body {
+            max-height: 0; overflow: hidden; transition: max-height 0.6s cubic-bezier(0.25, 1, 0.5, 1);
         }
+        .active .accordion-body { max-height: 3000px; transition: max-height 0.8s ease-in-out; }
 
-        /* --- Grid & Cards --- */
-        .module-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
+        /* --- Unit List Specifics --- */
+        .unit-row { border-bottom: 1px solid rgba(255,255,255,0.05); }
+        /* Clean Unit Label Style */
+        .unit-label { 
+            font-family: 'Oswald', sans-serif; font-size: 1.3rem; font-weight: 500; letter-spacing: 1px; color: var(--text-light);
+            border-left: 4px solid transparent; padding-left: 10px; transition: 0.3s;
         }
+        .unit-row.active-unit .unit-label { color: var(--ng-yellow); border-left-color: var(--ng-yellow); }
+        .locked .unit-label { color: #555; }
 
-        .card {
-            background: var(--glass-surface);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 25px;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            backdrop-filter: blur(10px);
+        /* --- Feature Cards --- */
+        .content-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px; padding: 25px; }
+        .feature-card {
+            background: var(--dark-card); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 8px;
+            text-decoration: none; color: var(--text-light); transition: 0.3s; display: flex; flex-direction: column;
         }
+        .feature-card:hover { background: #2a2a2a; border-color: var(--ng-yellow); transform: translateY(-5px); box-shadow: 0 5px 20px rgba(255, 204, 0, 0.15); }
+        .feature-icon { font-size: 1.5rem; color: var(--ng-yellow); margin-bottom: 12px; }
+        .feature-card h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #fff; }
+        .feature-card p { font-size: 0.85rem; color: #aaa; margin: 0; line-height: 1.5; }
 
-        .card:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.07);
-            border-color: var(--accent-blue);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        /* Uniform Vocab Buttons */
+        .highlight-card {
+            background: linear-gradient(135deg, rgba(255,204,0,0.15), transparent);
+            border: 1px solid var(--border-glow); grid-column: 1 / -1;
+            flex-direction: row; align-items: center; gap: 20px;
         }
+        .highlight-card h3 { color: var(--ng-yellow); margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
 
-        .card-icon {
-            font-size: 1.8rem;
-            color: var(--accent-blue);
-            margin-bottom: 15px;
+        /* --- Right Column Items --- */
+        .widget-content { padding: 20px; }
+
+        /* Mission & TED Items */
+        .media-item {
+            display: flex; align-items: center; gap: 15px; padding: 15px;
+            background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 10px;
+            text-decoration: none; color: var(--text-light); border: 1px solid transparent; transition: 0.3s;
         }
-
-        .card h3 {
-            font-size: 1.4rem;
-            margin: 0 0 10px 0;
-            font-weight: 700;
-        }
-
-        .card p {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-            margin: 0;
-        }
-
-        .card-footer {
-            margin-top: auto;
-            padding-top: 20px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--accent-blue);
-        }
-
-        /* --- Homework/Mission Cards --- */
-        .mission-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-top: 20px;
-        }
-
-        .mission-card {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            overflow: hidden;
-            display: flex;
-            text-decoration: none;
-            color: white;
-            transition: 0.3s;
-        }
-
-        .mission-card:hover {
-            border-color: var(--accent-gold);
-            transform: scale(1.02);
-        }
-
-        .mission-img {
-            width: 120px;
-            background-size: cover;
-            background-position: center;
-            flex-shrink: 0;
-        }
-
-        .mission-info {
-            padding: 20px;
-            flex-grow: 1;
-        }
-
-        .mission-info h4 { margin: 0 0 5px 0; font-size: 1.1rem; color: var(--accent-gold); }
-        .mission-info p { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
-
-        /* --- Career Section Specifics --- */
-        .career-box {
-            background: linear-gradient(to right, rgba(56, 189, 248, 0.1), transparent);
-            border-left: 4px solid var(--accent-blue);
-        }
+        .media-item:hover { border-color: var(--ng-yellow); background: rgba(0,0,0,0.4); transform: translateX(5px); }
+        .media-thumb { width: 80px; height: 60px; border-radius: 6px; object-fit: cover; filter: grayscale(0.3); transition: 0.3s; }
+        .media-item:hover .media-thumb { filter: grayscale(0); }
         
-        /* --- encyclopedia Box --- */
-        .encyclopedia-box {
-            background: linear-gradient(to right, rgba(168, 85, 247, 0.1), transparent);
-            border-left: 4px solid var(--accent-purple);
-        }
-        .encyclopedia-box:hover { border-color: var(--accent-purple); }
+        .media-info div:first-child { font-weight: 700; color: var(--ng-yellow); margin-bottom: 4px; font-size: 0.95rem; }
+        .media-info div:last-child { font-size: 0.8rem; color: #aaa; line-height: 1.4; }
 
-        /* --- Footer --- */
-        .site-footer {
-            background: rgba(2, 6, 23, 0.8);
-            border-top: 1px solid var(--glass-border);
-            padding: 40px 20px;
-            margin-top: 60px;
-            text-align: center;
+        /* Resources Box */
+        .resource-box {
+            display: block; text-decoration: none; color: white; border-left: 4px solid #8B5CF6;
+            transition: 0.3s; background: var(--dark-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px;
         }
+        .resource-box:hover { background: rgba(139, 92, 246, 0.1); transform: translateX(5px); }
 
-        .footer-content {
-            max-width: 600px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
+        /* Footer */
+        footer {
+            margin-top: 60px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 30px;
+            text-align: center; font-size: 0.9rem; color: #666;
+            display: flex; flex-direction: column; gap: 10px;
         }
-
-        .qr-code {
-            width: 140px;
-            height: 140px;
-            border-radius: 12px;
-            border: 4px solid rgba(255,255,255,0.1);
-            background-color: #fff; /* Ensure white background for QR readability */
-            padding: 5px;
-            object-fit: contain;
-        }
-
-        .contact-info a {
-            color: var(--accent-blue);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-        .contact-info a:hover { color: var(--accent-gold); }
-        .copyright { color: var(--text-muted); font-size: 0.85rem; }
+        .footer-link { color: var(--text-dim); text-decoration: none; }
+        .footer-link:hover { color: var(--ng-yellow); }
 
         @media (max-width: 768px) {
-            h1 { font-size: 2.5rem; }
-            .mission-grid { grid-template-columns: 1fr; }
+            header { flex-direction: column; gap: 20px; text-align: center; }
+            .main-layout { grid-template-columns: 1fr; }
+            .content-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
+    <div id="qr-modal" onclick="toggleQR()">
+        <img src="wechat_qrcode_image.jpg" alt="Teacher WeChat">
+        <p>TAP TO CLOSE</p>
+    </div>
+
     <div class="container">
+        
         <header>
-            <h1>Interactive Learning Portal</h1>
+            <div class="brand-wrapper">
+                <div class="ng-frame"></div>
+                <div class="brand-text">
+                    <h1>National Geographic</h1>
+                    <span>Pathway Learning Lab</span>
+                </div>
+            </div>
+            <div class="teacher-badge" onclick="toggleQR()">
+                <i class="fas fa-qrcode" style="color:var(--ng-yellow)"></i>
+                <div style="text-align:left;">
+                    <div style="font-size:0.7rem; color:#888;">INSTRUCTOR</div>
+                    <div style="font-size:0.9rem; font-weight:500;">Teacher Steven Wong</div>
+                </div>
+            </div>
         </header>
 
-        <div class="section-header">
-            <h2>Unit 3: Adventure</h2>
-            <div class="line"></div>
-        </div>
+        <div class="main-layout">
 
-        <div class="module-grid">
-            <a href="FU3/FU301/FU301.html" class="card">
-                <div class="card-icon"><i class="fas fa-link"></i></div>
-                <h3>Hook/Get or Be hooked on</h3>
-                <p>Learn "be hooked on" and vocabulary related to interests.</p>
-                <div class="card-footer">Vocabulary Lab</div>
-            </a>
-
-            <a href="FU3/FU302/FU302.html" class="card">
-                <div class="card-icon"><i class="fas fa-infinity"></i></div>
-                <h3>Mille- & Milli-</h3>
-                <p>Million, Millennium, Millennials, Milliliter and Millimeter</p>
-                <div class="card-footer">Vocabulary Lab</div>
-            </a>
-
-            <a href="FU3/FU303/FU303Main.html" class="card">
-                <div class="card-icon"><i class="fas fa-globe-americas"></i></div>
-                <h3>World Map</h3>
-                <p>Virtual travel to different countries and their landmarks</p>
-                <div class="card-footer">Geography and Vocabulary Lab</div>
-            </a>
-
-            <a href="FU3/FU304/FU304.html" class="card">
-                <div class="card-icon"><i class="fas fa-leaf"></i></div>
-                <h3>Sentence Structure</h3>
-                <p>'It is + adjective for sb + to do something'patterns.</p>
-                <div class="card-footer">Sentence Lab</div>
-            </a>
-
-            <a href="FU3/FU305/FU305.html" class="card">
-                <div class="card-icon"><i class="fas fa-search-plus"></i></div>
-                <h3>Micro- & Macro-</h3>
-                <p>Understanding the difference of the prefixes</p>
-                <div class="card-footer">Vocabulary Lab</div>
-            </a>
-
-            <a href="FU3/FU306/FU306.html" class="card">
-                <div class="card-icon"><i class="fas fa-hiking"></i></div>
-                <h3>Adventure</h3>
-                <p>Definitions of risk, discovery, and excitement.</p>
-                <div class="card-footer">Vocabulary Lab</div>
-            </a>
-
-            <a href="FU3/FU307/FU307.html" class="card">
-                <div class="card-icon"><i class="fas fa-brain"></i></div>
-                <h3>Imagine</h3>
-                <p>Imagination, Imaginary, and Imaginative.</p>
-                <div class="card-footer">Vocabulary Lab</div>
-            </a>
-
-            <a href="FU3/FU308/include.html" class="card">
-                <div class="card-icon"><i class="fas fa-box-open"></i></div>
-                <h3>Include</h3>
-                <p>What do you need to bring for an adventure?</p>
-                <div class="card-footer">Vocabulary Lab</div>
-            </a>
-
-            <a href="FU3/FU311/01.html" class="card">
-                <div class="card-icon"><i class="fas fa-map-marked-alt"></i></div>
-                <h3>Global Tour Guide</h3>
-                <p>Act as a tour guide to lead international travelers through world-famous landmarks.</p>
-                <div class="card-footer">Speaking and Vocabulary Lab</div>
-            </a>
-
-            <a href="FU3/FU309/main page.html" class="card">
-                <div class="card-icon"><i class="fas fa-bicycle"></i></div>
-                <h3>Adventure Anywhere</h3>
-                <p>Microadventures with Alastair Humphreys.</p>
-                <div class="card-footer">Video & Reading Comprehension</div>
-            </a>
-
-            <a href="FU3/FU310/index.html" class="card">
-                <div class="card-icon"><i class="fas fa-film"></i></div>
-                <h3>A Movie Goer's Guide</h3>
-                <p>A guide for movie lovers in London. </p>
-                <div class="card-footer">Reading and Writing Lab</div>
-            </a>
-        </div>
-
-        <div style="margin-top: 25px;">
-            <a href="FU3/Unit 3 words study V1.html" class="card career-box" style="flex-direction: row; align-items: center; gap: 20px; border-left-color: var(--accent-gold);">
-                <i class="fas fa-book" style="font-size: 1.5rem; color: var(--accent-gold);"></i>
-                <div>
-                    <h3 style="margin:0; font-size: 1.1rem;">Unit 3 Vocabulary Study and Review</h3>
-                    <p>Full vocabulary list with AI Speech Assessment.</p>
-                </div>
-                <i class="fas fa-chevron-right" style="margin-left: auto; opacity: 0.5;"></i>
-            </a>
-        </div>
-
-        <div class="section-header" style="margin-top: 40px; margin-bottom: 20px;">
-            <h3 style="font-size: 1.4rem; color: var(--text-muted);"><i class="fas fa-tasks"></i> Weekly Missions</h3>
-            <div class="line" style="background: rgba(255,255,255,0.05);"></div>
-        </div>
-
-        <div class="mission-grid">
-            <a href="FU3/FU3HW/Week15/Tower_Bridge/Tower_Bridge.html" class="mission-card">
-                <div class="mission-img" style="background-image: url('https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=400&q=80');"></div>
-                <div class="mission-info">
-                    <h4>Operation: London</h4>
-                    <p>Tower Bridge history & structure tasks.</p>
-                </div>
-            </a>
-            
-            <a href="FU3/FU3HW/Week15/Boston_tour/Boston_Tour.html" class="mission-card">
-                <div class="mission-img" style="background-image: url('https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=400&q=80');"></div>
-                <div class="mission-info">
-                    <h4>Operation: Boston</h4>
-                    <p>Virtual city tour & local culture exploration.</p>
-                </div>
-            </a>
-
-            <a href="FU3/FU3HW/Week16/Sanxingdui/Week_16-HW.html" class="mission-card">
-                <div class="mission-img" style="background-image: url('FU3/FU3HW/Week16/Sanxingdui/gold_mask.jpg');"></div>
-                <div class="mission-info">
-                    <h4>Operation: Sanxingdui</h4>
-                    <p>Uncover the mysteries of the Lost Civilization.</p>
-                </div>
-            </a>
-
-            <a href="FU3/FU3HW/Week17/Italy_winter_olympics/Week_17-HW.html" class="mission-card">
-                <div class="mission-img" style="background-image: url('https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=400&q=80');"></div>
-                <div class="mission-info">
-                    <h4>Operation: Italy 2026</h4>
-                    <p>Winter Olympics Master Class & Interactive Journey.</p>
-                </div>
-            </a>
-
-            <a href="FU3/FU3HW/Week18/Verona_Arena.html" class="mission-card">
-                <div class="mission-img" style="background-image: url('https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=400&q=80');"></div>
-                <div class="mission-info">
-                    <h4>Operation: Verona Arena in Italy</h4>
-                    <p>Explore the Ancient Roman Arena.</p>
-                </div>
-            </a>
-        </div>
-
-
-        <div class="section-header">
-            <h2>Unit 2: Career</h2>
-            <div class="line"></div>
-        </div>
-
-        <div class="module-grid">
-            <a href="FU2/Unit 2 words study V1.html" class="card career-box" style="grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 20px;">
-                <div class="card-icon" style="margin:0;"><i class="fas fa-briefcase"></i></div>
-                <div>
-                    <h3 style="margin:0;">Unit 2 Career Master Dictionary</h3>
-                    <p>Complete word list for Careers, Professions, and Workplace aspirations.</p>
-                </div>
-                <i class="fas fa-chevron-right" style="margin-left: auto; opacity: 0.5;"></i>
-            </a>
-
-            <a href="FU2/An Interview with Fitz Cahall/index.html" class="card career-box">
-                <div class="card-icon"><i class="fas fa-microphone-alt"></i></div>
-                <h3>Interview with Fitz Cahall</h3>
-                <p>Vocabulary, review, preparation, and video character study.</p>
-                <div class="card-footer">Interview Lab</div>
-            </a>
-        </div>
-
-<div class="section-header">
-            <h2 style="color: #e62b1e;"><i class="fas fa-video" style="margin-right: 10px;"></i>TED Talks</h2>
-            <div class="line"></div>
-        </div>
-
-        <div class="module-grid">
-            <a href="TED/How_do_cigarettes_affect_the_body/Cigarettes.html" class="card" style="border-left: 4px solid #e62b1e;">
-                <div class="card-icon" style="color: #e62b1e;">
-                    <i class="fas fa-lungs-virus"></i>
-                </div>
-                <h3>How do cigarettes affect the body?</h3>
-                <p>Analyze the biological consequences of nicotine inhalation and the body's recovery timeline.</p>
-                <div class="card-footer" style="color: #e62b1e;">
-                    TED-Ed Science
-                </div>
-            </a>
+            <div class="left-column">
+                <div style="margin-bottom:15px; font-family:'Oswald'; color:#666; font-size:1.2rem;">Pathway - Foundation</div>
+                
+                <div class="glass-panel">
+                    
+                    <div class="unit-row locked">
+                        <div class="accordion-header">
+                            <span class="unit-label">Unit 1</span>
+                            <i class="fas fa-lock" style="opacity:0.3;"></i>
                         </div>
+                    </div>
 
+                    <div class="unit-row active active-unit">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <span class="unit-label">Unit 2</span>
+                            <i class="fas fa-chevron-down arrow-icon"></i>
+                        </div>
+                        <div class="accordion-body" style="max-height: 1000px;">
+                            <div class="content-grid">
+                                <a href="FU2/Unit 2 words study V1.html" class="feature-card highlight-card">
+                                    <div class="feature-icon" style="margin:0;"><i class="fas fa-star"></i></div>
+                                    <div style="flex:1;">
+                                        <h3>Unit 2 Vocabulary Review</h3>
+                                        <p>Comprehensive word list for professions and the workplace, including audio assessments.</p>
+                                    </div>
+                                    <i class="fas fa-arrow-right" style="color:var(--ng-yellow);"></i>
+                                </a>
+                                
+                                <a href="FU2/An Interview with Fitz Cahall/index.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-microphone-alt"></i></div>
+                                    <h3>Interview with Fitz Cahall</h3>
+                                    <p>Deep dive into character analysis and interview techniques with climber Fitz Cahall.</p>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
 
-        <div class="section-header knowledge">
-            <h2>Knowledge Base</h2>
-            <div class="line"></div>
-        </div>
+                    <div class="unit-row active active-unit">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <span class="unit-label">Unit 3</span>
+                            <i class="fas fa-chevron-down arrow-icon"></i>
+                        </div>
+                        <div class="accordion-body" style="max-height: 2000px;">
+                            <div class="content-grid">
+                                <a href="FU3/Unit 3 words study V1.html" class="feature-card highlight-card">
+                                    <div class="feature-icon" style="margin:0;"><i class="fas fa-star"></i></div>
+                                    <div style="flex:1;">
+                                        <h3>Unit 3 Vocabulary Review</h3>
+                                        <p>Complete glossary for Unit 3 with AI-powered pronunciation checks and review tools.</p>
+                                    </div>
+                                    <i class="fas fa-arrow-right" style="color:var(--ng-yellow);"></i>
+                                </a>
 
-        <div class="module-grid">
-            <a href="encyclopedia/index.html" class="card encyclopedia-box" style="grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 25px;">
-                <div class="card-icon" style="margin:0; font-size: 2.2rem; color: var(--accent-purple);"><i class="fas fa-graduation-cap"></i></div>
-                <div>
-                    <h3 style="margin:0; font-size: 1.3rem;">Student Encyclopedia & Quiz Hub</h3>
-                    <p style="margin-top: 5px; opacity: 0.9;">Comprehensive Knowledge Base for Grades 3-8 covering <strong>History, Science, Math, English, Geography, & Computer Science</strong>.</p>
+                                <a href="FU3/FU301/FU301.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-link"></i></div>
+                                    <h3>Hook / Be hooked on</h3>
+                                    <p>Master the idioms of obsession: Learn how to express deep interest using 'hooked on'.</p>
+                                </a>
+                                <a href="FU3/FU302/FU302.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-infinity"></i></div>
+                                    <h3>Mille- & Milli-</h3>
+                                    <p>Prefix mastery: Distinguish between millions, millenniums, and microscopic measurements.</p>
+                                </a>
+                                <a href="FU3/FU303/FU303Main.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-globe-americas"></i></div>
+                                    <h3>World Map</h3>
+                                    <p>Geography Lab: Explore global landmarks and expand your travel vocabulary.</p>
+                                </a>
+                                <a href="FU3/FU304/FU304.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-leaf"></i></div>
+                                    <h3>Sentence Structure</h3>
+                                    <p>Grammar Lab: Constructing sentences using the 'It is + adj + for sb + to do' pattern.</p>
+                                </a>
+                                <a href="FU3/FU305/FU305.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-search-plus"></i></div>
+                                    <h3>Micro- & Macro-</h3>
+                                    <p>Vocabulary Lab: Understanding the scale of the world through prefix analysis.</p>
+                                </a>
+                                <a href="FU3/FU306/FU306.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-hiking"></i></div>
+                                    <h3>Adventure</h3>
+                                    <p>Core Concepts: Defining risk, discovery, and the essence of exploration.</p>
+                                </a>
+                                <a href="FU3/FU307/FU307.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-brain"></i></div>
+                                    <h3>Imagine</h3>
+                                    <p>Word Families: Navigating between Imagination, Imaginary, and Imaginative.</p>
+                                </a>
+                                <a href="FU3/FU308/include.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-box-open"></i></div>
+                                    <h3>Include</h3>
+                                    <p>Practical English: Listing requirements and packing essentials for travel.</p>
+                                </a>
+                                <a href="FU3/FU311/01.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-map-marked-alt"></i></div>
+                                    <h3>Global Tour Guide</h3>
+                                    <p>Speaking Lab: Roleplay as a guide leading travelers through world-famous sites.</p>
+                                </a>
+                                <a href="FU3/FU309/main page.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-bicycle"></i></div>
+                                    <h3>Microadventures</h3>
+                                    <p>Video Analysis: Alastair Humphreys explains how to find adventure in the backyard.</p>
+                                </a>
+                                <a href="FU3/FU310/index.html" class="feature-card">
+                                    <div class="feature-icon"><i class="fas fa-film"></i></div>
+                                    <h3>Movie Goer's Guide</h3>
+                                    <p>Reading Lab: A cultural guide for cinema lovers exploring London's theater scene.</p>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="unit-row locked"><div class="accordion-header"><span class="unit-label">Unit 4</span><i class="fas fa-lock" style="opacity:0.3;"></i></div></div>
+                    <div class="unit-row locked"><div class="accordion-header"><span class="unit-label">Unit 5</span><i class="fas fa-lock" style="opacity:0.3;"></i></div></div>
+                    <div class="unit-row locked"><div class="accordion-header"><span class="unit-label">Unit 6</span><i class="fas fa-lock" style="opacity:0.3;"></i></div></div>
+                    <div class="unit-row locked"><div class="accordion-header"><span class="unit-label">Unit 7</span><i class="fas fa-lock" style="opacity:0.3;"></i></div></div>
+                    <div class="unit-row locked"><div class="accordion-header"><span class="unit-label">Unit 8</span><i class="fas fa-lock" style="opacity:0.3;"></i></div></div>
+
                 </div>
-                <i class="fas fa-chevron-right" style="margin-left: auto; opacity: 0.5; color: var(--accent-purple);"></i>
-            </a>
+            </div>
+
+            <div class="right-column">
+                <div style="margin-bottom:15px; font-family:'Oswald'; color:#666; font-size:1.2rem;">FIELD WORK</div>
+                
+                <div class="widget-box active">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="section-title"><i class="fas fa-flag-checkered"></i> Weekly Missions</div>
+                        <i class="fas fa-chevron-down arrow-icon"></i>
+                    </div>
+                    <div class="accordion-body" style="max-height: 1000px;">
+                        <div class="widget-content">
+                            <a href="FU3/FU3HW/Week15/Tower_Bridge/Tower_Bridge.html" class="media-item">
+                                <img src="https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=150&q=80" class="media-thumb" alt="LDN">
+                                <div class="media-info"><div>Operation: London</div><div>Explore the engineering history of Tower Bridge.</div></div>
+                            </a>
+                            <a href="FU3/FU3HW/Week15/Boston_tour/Boston_Tour.html" class="media-item">
+                                <img src="https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=150&q=80" class="media-thumb" alt="BOS">
+                                <div class="media-info"><div>Operation: Boston</div><div>A virtual cultural tour of the historic city.</div></div>
+                            </a>
+                            <a href="FU3/FU3HW/Week16/Sanxingdui/Week_16-HW.html" class="media-item">
+                                <img src="FU3/FU3HW/Week16/Sanxingdui/gold_mask.jpg" class="media-thumb" alt="SXD">
+                                <div class="media-info"><div>Operation: Sanxingdui</div><div>Uncover mysteries of the Lost Civilization.</div></div>
+                            </a>
+                            <a href="FU3/FU3HW/Week17/Italy_winter_olympics/Week_17-HW.html" class="media-item">
+                                <img src="https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=150&q=80" class="media-thumb" alt="ITA">
+                                <div class="media-info"><div>Operation: Italy</div><div>Prepare for the 2026 Winter Olympics.</div></div>
+                            </a>
+                            <a href="FU3/FU3HW/Week18/Verona_Arena.html" class="media-item">
+                                <img src="https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=150&q=80" class="media-thumb" alt="VRN">
+                                <div class="media-info"><div>Operation: Verona</div><div>Architectural study of the Roman Arena.</div></div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="widget-box active">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="section-title"><i class="fas fa-video"></i> TED Library</div>
+                        <i class="fas fa-chevron-down arrow-icon"></i>
+                    </div>
+                    <div class="accordion-body" style="max-height: 1000px;">
+                        <div class="widget-content">
+                            <a href="TED/Monkey_king_and_buddha/Monkey_king.html" class="media-item">
+                                <img src="TED/Monkey_king_and_buddha/cover.jpg" class="media-thumb" alt="Monkey King" style="border: 1px solid var(--ng-yellow);">
+                                <div class="media-info">
+                                    <div style="color:#A85533;">Journey to the West</div>
+                                    <div>Explore the ancient myth of Sun Wukong and his path to redemption.</div>
+                                </div>
+                            </a>
+
+                            <a href="TED/How_do_cigarettes_affect_the_body/Cigarettes.html" class="media-item">
+                                <img src="TED/How_do_cigarettes_affect_the_body/cover.jpg" class="media-thumb" alt="Health" style="border: 1px solid #E62B1E;">
+                                <div class="media-info">
+                                    <div style="color:#E62B1E;">Effects of Cigarettes</div>
+                                    <div>Analyze the biological impact of nicotine and the body's recovery.</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:15px; font-family:'Oswald'; color:#666; font-size:1.2rem;">RESOURCES</div>
+                <a href="encyclopedia/index.html" class="resource-box">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <i class="fas fa-graduation-cap" style="font-size:2rem; color:#8B5CF6;"></i>
+                        <div>
+                            <h3 style="margin:0; font-size:1.1rem;">Knowledge Base</h3>
+                            <p style="margin:5px 0 0 0; font-size:0.8rem; color:#aaa;">Student Encyclopedia & Subject Quizzes</p>
+                        </div>
+                    </div>
+                </a>
+
+            </div>
+
         </div>
 
     </div>
 
-    <footer class="site-footer">
-        <div class="footer-content">
-            <img src="wechat_qrcode_image.jpg" alt="Teacher WeChat QR Code" class="qr-code">
-            
-            <div class="contact-info">
-                <p style="margin: 5px 0; font-size: 1.1rem; font-weight: bold; color: var(--text-main);">Teacher Steven Wong</p>
-                <p style="margin: 5px 0;">
-                    <i class="fas fa-envelope" style="margin-right: 8px; color: var(--accent-blue);"></i>
-                    <a href="mailto:wlincd880630@gmail.com">wlincd880630@gmail.com</a>
-                </p>
-            </div>
-
-            <div class="copyright">
-                &copy; 2026 Interactive Learning Portal. All Rights Reserved.
-            </div>
-        </div>
+    <footer>
+        <a href="mailto:wlincd880630@gmail.com" class="footer-link"><i class="fas fa-envelope"></i> wlincd880630@gmail.com</a>
+        <div>&copy; 2026 Pathway Learning Lab by Steven Wong</div>
     </footer>
 
+    <script>
+        // Generic Accordion Toggle
+        function toggleAccordion(header) {
+            const container = header.parentElement; // The unit-row or widget-box
+            const body = container.querySelector('.accordion-body');
+            
+            if (container.classList.contains('active')) {
+                container.classList.remove('active');
+                body.style.maxHeight = null;
+            } else {
+                container.classList.add('active');
+                body.style.maxHeight = body.scrollHeight + 50 + "px";
+            }
+        }
+
+        // QR Modal Toggle
+        function toggleQR() {
+            const m = document.getElementById('qr-modal');
+            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+        }
+    </script>
 </body>
 </html>
