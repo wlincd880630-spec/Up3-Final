@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Why the Chinese Use Chopsticks: A Culinary History</title>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Thematic Colors: Culinary History (Warm & Elegant) */
+            --primary: #8B3A3A;       /* Deep Lacquer Red */
+            --primary-hover: #A64B4B;
+            --accent: #D4AF37;        /* Antique Gold */
+            --bg-body: #F9F7F2;       /* Rice Paper / Parchment */
+            --bg-card: #FFFFFF;
+            --text-main: #2C3E50;     /* Charcoal */
+            --text-sub: #5D6D7E;      /* Slate Grey */
+            --border-color: #E5E0D8;
+            
+            /* Spacing & Radius */
+            --radius-md: 8px;
+            --radius-xl: 16px;
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            margin: 0; 
+            font-family: 'Lato', sans-serif; 
+            background: var(--bg-body);
+            color: var(--text-main); 
+            height: 100vh; height: 100dvh; 
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        h1, h2, h3, .brand { font-family: 'Playfair Display', serif; }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 0 24px; height: 64px; 
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100; flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .brand { font-weight: 800; font-size: 1.25rem; color: var(--primary); letter-spacing: 0.5px; }
+        .brand i { margin-right: 8px; color: var(--accent); }
+        
+        .score-pill { 
+            background: #FFF8E1; 
+            border: 1px solid #FDE68A;
+            color: #92400E; 
+            padding: 6px 16px; 
+            border-radius: 20px; 
+            font-weight: 700; 
+            font-size: 0.9rem; 
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        /* Page Layout */
+        .page { 
+            display: none; height: 100%; flex-direction: column; 
+            overflow-y: auto; padding: 20px; 
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
+        }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .container { 
+            width: 100%; max-width: 1100px; margin: 0 auto; 
+            display: flex; flex-direction: column; gap: 24px; flex: 1; 
+        }
+
+        /* Modern Cards */
+        .card { 
+            background: var(--bg-card); 
+            border-radius: var(--radius-xl); 
+            padding: 32px; 
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-color);
+            display: flex; flex-direction: column;
+            position: relative;
+            transition: transform 0.2s ease;
+        }
+        
+        /* Typography */
+        h1 { font-size: 2.2rem; margin: 0 0 1rem 0; color: var(--primary); }
+        h2 { font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--text-main); position: relative; display: inline-block; }
+        p { line-height: 1.7; font-size: 1.05rem; color: var(--text-main); margin-bottom: 1rem; }
+
+        /* Buttons */
+        .btn { 
+            background: var(--primary); 
+            color: white; border: none; 
+            padding: 14px 28px; border-radius: 12px; 
+            font-weight: 600; cursor: pointer; 
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px; 
+            font-size: 1rem; letter-spacing: 0.3px;
+            transition: all 0.2s ease; 
+            box-shadow: 0 4px 6px rgba(139, 58, 58, 0.2);
+        }
+        .btn:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 6px 12px rgba(139, 58, 58, 0.3); }
+        .btn:active { transform: scale(0.98); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); box-shadow: none; }
+        .btn-outline:hover { background: #FFF5F5; transform: translateY(-1px); }
+        .btn-sm { padding: 8px 16px; font-size: 0.85rem; border-radius: 8px; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; filter: grayscale(100%); }
+
+        /* Input */
+        input[type=text] {
+            width: 100%; padding: 18px; 
+            border: 2px solid #E5E0D8; border-radius: 12px; 
+            font-size: 1.1rem; text-align: center; 
+            transition: 0.2s; font-family: inherit;
+        }
+        input[type=text]:focus { border-color: var(--primary); outline: none; background: #FFFBFB; }
+
+        /* Video Layout (Responsive) */
+        .vt-layout { 
+            display: flex; flex-direction: column; 
+            background: #000; border-radius: var(--radius-xl); 
+            overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            min-height: 60vh;
+        }
+        @media (min-width: 1024px) { 
+            .vt-layout { flex-direction: row; height: 75vh; max-height: 800px; } 
+            .vt-video-col { flex: 2; }
+            .vt-sub-box { width: 380px; border-left: 1px solid #333; }
+        }
+
+        .vt-video-col { 
+            position: relative; flex: 1; 
+            background: #000; display: flex; align-items: center; justify-content: center; 
+            min-height: 300px;
+        }
+        video { width: 100%; height: 100%; object-fit: contain; }
+        
+        /* Subtitles Area */
+        .vt-sub-box { 
+            background: #fff; display: flex; flex-direction: column; 
+            height: 40vh; /* Mobile height */
+        }
+        @media (min-width: 1024px) { .vt-sub-box { height: auto; } }
+
+        .sub-list { flex: 1; overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
+        .sub-line { 
+            padding: 10px 14px; margin-bottom: 8px; border-radius: 8px; 
+            color: var(--text-sub); font-size: 1rem; line-height: 1.6; 
+            transition: all 0.2s; border-left: 3px solid transparent;
+        }
+        .sub-line:hover { background: #F8FAFC; }
+        .sub-line.active { 
+            background: #FFF5F5; color: var(--text-main); 
+            font-weight: 600; border-left-color: var(--primary); 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+        .w-click { cursor: pointer; border-bottom: 1px dashed transparent; transition: 0.1s; }
+        .w-click:hover { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* HUD & Controls */
+        .hud { 
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); 
+            color: #FFF; padding: 12px 24px; border-radius: 30px; 
+            font-weight: 600; font-size: 0.95rem; 
+            z-index: 30; pointer-events: none; border: 1px solid rgba(255,255,255,0.2);
+            text-align: center; width: 90%; max-width: 500px; display: none;
+        }
+        .controls { 
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); 
+            padding: 20px; display: flex; gap: 16px; align-items: center; z-index: 30;
+        }
+        input[type=range] { flex: 1; height: 5px; border-radius: 5px; accent-color: var(--primary); cursor: pointer; }
+        .spd-sel { 
+            background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; cursor: pointer; 
+        }
+        .spd-sel option { color: #000; }
+
+        /* Overlays (Quiz) */
+        .overlay { 
+            position: absolute; inset: 0; 
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); 
+            z-index: 50; display: none; 
+            flex-direction: column; justify-content: center; align-items: center; 
+            padding: 20px; 
+        }
+        .q-card { 
+            background: white; width: 100%; max-width: 550px; 
+            padding: 40px; border-radius: 24px; 
+            text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+            max-height: 90vh; overflow-y: auto; 
+        }
+
+        /* Interactive Elements */
+        .opt-btn {
+            display: block; width: 100%; text-align: left; padding: 16px 20px; 
+            margin-bottom: 12px; border: 2px solid var(--border-color); border-radius: 12px;
+            background: white; font-size: 1rem; cursor: pointer; transition: 0.2s;
+            color: var(--text-main);
+        }
+        .opt-btn:hover:not(:disabled) { border-color: var(--primary); background: #FFFBFB; }
+        .opt-btn.sel-correct { background: #F0FDF4; border-color: #22C55E; color: #14532D; font-weight: 600; }
+        .opt-btn.sel-wrong { background: #FEF2F2; border-color: #EF4444; color: #7F1D1D; }
+
+        /* Image Slider */
+        .slide-container {
+            position: relative; height: 0; padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            background: #E2E8F0; border-radius: var(--radius-xl); overflow: hidden; 
+            margin-bottom: 25px; box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+        }
+        .slide-img { position: absolute; top:0; left:0; width:100%; height:100%; display: none; }
+        .slide-img img { width: 100%; height: 100%; object-fit: cover; }
+        .slide-caption {
+            position: absolute; bottom: 0; width: 100%; 
+            background: linear-gradient(transparent, rgba(0,0,0,0.9)); 
+            color: white; padding: 40px 20px 20px 20px; 
+            font-size: 1rem; font-weight: 500; line-height: 1.4;
+        }
+        .slider-nav {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: rgba(255,255,255,0.8); width: 44px; height: 44px;
+            border-radius: 50%; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; color: var(--primary); transition: 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .slider-nav:hover { background: white; transform: translateY(-50%) scale(1.1); }
+
+        /* Vocab Grid */
+        .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
+        .flashcard { 
+            background: white; border-radius: 16px; padding: 24px 20px; text-align: center;
+            border: 1px solid var(--border-color); cursor: pointer; min-height: 180px; 
+            display: flex; flex-direction: column; justify-content: center; position: relative; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: all 0.25s ease;
+        }
+        .flashcard:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); border-color: var(--primary); }
+        .flashcard.learned { background: #F0FDF4; border-color: #86EFAC; }
+        .flashcard .tag { 
+            position: absolute; top: 12px; left: 12px; 
+            font-size: 0.65rem; padding: 4px 8px; border-radius: 6px; 
+            background: #F1F5F9; text-transform: uppercase; color: #64748B; font-weight: 700; 
+        }
+
+        /* Rules Box */
+        .rules-box { 
+            background: #FFFBFB; padding: 20px; border-radius: 16px; 
+            margin: 20px 0; border: 1px dashed var(--primary); opacity: 0.8;
+        }
+        .rule-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1rem; color: var(--text-main); }
+        .rule-pts { font-weight: 800; color: var(--primary); }
+
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="brand"><i class="fas fa-utensils"></i> Culinary History</div>
+    <div style="display:flex; gap:12px;">
+        <div class="score-pill"><i class="fas fa-star" style="color:var(--accent)"></i> <span id="u-score">0</span></div>
+        <button class="btn btn-sm btn-outline" onclick="saveState(true)"><i class="fas fa-save"></i> Save</button>
+    </div>
+</div>
+
+<div id="p1" class="page active">
+    <div class="container" style="justify-content:center; align-items:center;">
+        <div class="card" style="width: 100%; max-width: 550px; text-align: center;">
+            <div style="font-size:4rem; color:var(--primary); margin-bottom:20px;"><i class="fas fa-scroll"></i></div>
+            <h1>Mission Start</h1>
+            <p style="color:var(--text-sub);">Why the Chinese Use Chopsticks</p>
+            
+            <div class="rules-box">
+                <div class="rule-item"><span><i class="fas fa-book-open"></i> Study Vocabulary</span><span class="rule-pts">+2 pts</span></div>
+                <div class="rule-item"><span><i class="fas fa-puzzle-piece"></i> Vocab Quiz</span><span class="rule-pts">+/- 1 pt</span></div>
+                <div class="rule-item"><span><i class="fas fa-film"></i> Video Comprehension</span><span class="rule-pts">+5 pts</span></div>
+            </div>
+
+            <input type="text" id="username" placeholder="Enter Your Name" autocomplete="off">
+            <div style="margin-top: 25px; display: flex; flex-direction: column; gap: 15px;">
+                <button class="btn" onclick="startApp()">Start Adventure <i class="fas fa-arrow-right"></i></button>
+                <button id="resume-btn" class="btn btn-outline" style="display:none;" onclick="resumeApp()">Resume Session</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p2" class="page">
+    <div class="container">
+        <div class="card" style="min-height: 100%;">
+            <h2>Topic Overview</h2>
+            
+            <div class="slide-container">
+                <div class="slide-img" style="display:block;">
+                    <img src="Shang_Dynasty_Stew.jpg" alt="Ancient Chinese people using early chopsticks to stir stew">
+                    <div class="slide-caption">Ancient Chinese people using early chopsticks to stir stew in a large pot, during the Shang Dynasty, ruins of Yin in the background.</div>
+                </div>
+                <div class="slide-img">
+                    <img src="Han_Dynasty_Market.jpg" alt="Bustling Han Dynasty marketplace">
+                    <div class="slide-caption">A bustling Han Dynasty marketplace with vendors selling rice, noodles, and dumplings, people eating with chopsticks at small tables.</div>
+                </div>
+                <div class="slide-img">
+                    <img src="Confucius_Dining.jpg" alt="Confucius dining">
+                    <div class="slide-caption">Confucius at a formal Chinese dinner, advocating for the use of chopsticks and denouncing knives.</div>
+                </div>
+                <div class="slide-img">
+                    <img src="Richelieu_Dinner.jpg" alt="Cardinal Richelieu dining">
+                    <div class="slide-caption">Cardinal Richelieu at a grand European dining table, ordering knives to be ground down.</div>
+                </div>
+                
+                <button class="slider-nav" style="left:15px;" onclick="slide(-1)">❮</button>
+                <button class="slider-nav" style="right:15px;" onclick="slide(1)">❯</button>
+            </div>
+
+            <div style="flex:1; padding-bottom: 20px;">
+                <p>Explore the history and cultural significance of chopsticks, tracing their origins back to ancient China. Discover the roles of Confucius and Cardinal Richelieu in shaping dining customs. <i class="fas fa-volume-up" style="color:var(--primary); cursor:pointer; margin-left:8px;" onclick="speak(D.reading[0].text)"></i></p>
+                <p>From the Shang Dynasty to the Han Dynasty, witness the transformation of chopsticks from simple cooking tools to essential dining implements. <i class="fas fa-volume-up" style="color:var(--primary); cursor:pointer; margin-left:8px;" onclick="speak(D.reading[1].text)"></i></p>
+                <p>Uncover the philosophical and practical reasons behind the preference for chopsticks, including Confucius's aversion to knives at the table. <i class="fas fa-volume-up" style="color:var(--primary); cursor:pointer; margin-left:8px;" onclick="speak(D.reading[2].text)"></i></p>
+            </div>
+            
+            <div style="text-align:right;"><button class="btn" onclick="toPage('p3')">Proceed to Vocab <i class="fas fa-arrow-right"></i></button></div>
+        </div>
+    </div>
+</div>
+
+<div id="p3" class="page">
+    <div class="container">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+                <h2 style="margin:0;">Vocabulary List</h2>
+                <span style="font-size:0.9rem; color:var(--text-sub);">Click cards to learn</span>
+            </div>
+            <div class="vocab-grid" id="v-grid">
+                </div>
+            <div style="text-align:center; margin-top:40px;">
+                <button class="btn" onclick="toPage('p4')">Take Quiz <i class="fas fa-gamepad"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p4" class="page">
+    <div class="container" style="justify-content:center;">
+        <div class="card" style="text-align:center; max-width:650px; margin:0 auto;">
+            <div id="qz-setup">
+                <h2 style="margin-bottom: 30px;">Select Difficulty</h2>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                    <button class="btn btn-outline" style="padding:24px;" onclick="startQuiz(0.3, 30)">
+                        <div style="font-size:1.2rem; font-weight:800; margin-bottom:4px;">Beginner</div>
+                        <div style="font-size:0.85rem;">30 pts</div>
+                    </button>
+                    <button class="btn btn-outline" style="padding:24px;" onclick="startQuiz(0.5, 60)">
+                        <div style="font-size:1.2rem; font-weight:800; margin-bottom:4px;">Intermediate</div>
+                        <div style="font-size:0.85rem;">60 pts</div>
+                    </button>
+                    <button class="btn btn-outline" style="padding:24px;" onclick="startQuiz(0.8, 100)">
+                        <div style="font-size:1.2rem; font-weight:800; margin-bottom:4px;">Advanced</div>
+                        <div style="font-size:0.85rem;">100 pts</div>
+                    </button>
+                    <button class="btn btn-outline" style="padding:24px;" onclick="startQuiz(1.0, 140)">
+                        <div style="font-size:1.2rem; font-weight:800; margin-bottom:4px;">Expert</div>
+                        <div style="font-size:0.85rem;">140 pts</div>
+                    </button>
+                </div>
+            </div>
+
+            <div id="qz-run" style="display:none; text-align:left;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:15px;">
+                    <strong>Question <span id="q-idx">1</span></strong>
+                    <span style="color:var(--primary); font-weight:bold;">Score: <span id="q-score">0</span></span>
+                </div>
+                <div id="q-content"></div>
+                <div id="q-fb" style="display:none; background:#F8FAFC; padding:20px; border-radius:12px; margin-top:20px; border-left: 4px solid var(--primary);"></div>
+                <button id="q-nxt" class="btn" style="width:100%; margin-top:25px; display:none;" onclick="nextQ()">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p5" class="page">
+    <div class="container" style="max-width:1400px;">
+        <div class="vt-layout">
+            <div class="vt-video-col">
+                <div id="hud1" class="hud">Loading...</div>
+                <video id="vid1" src="Video.mp4" playsinline></video>
+                
+                <div id="ol1" class="overlay">
+                    <div class="q-card">
+                        <h3 id="v1-q" style="color:var(--primary); margin-bottom: 20px;">Question</h3>
+                        <div id="v1-opts"></div>
+                        <div id="fb1" class="feedback-box" style="display:none; margin-top:20px;"></div>
+                        <div style="margin-top:25px; display:flex; gap:12px; justify-content:center;">
+                            <button class="btn btn-outline" id="rp1" onclick="replaySeg(1)"><i class="fas fa-undo"></i> Replay Segment</button>
+                            <button class="btn" id="ct1" onclick="resume(1)" style="display:none;">Continue <i class="fas fa-play"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="rev1" class="overlay">
+                    <div class="q-card">
+                        <h2 style="color:var(--primary);">Part 1 Completed</h2>
+                        <div id="rev1-list" style="text-align:left; margin:20px 0; max-height:300px; overflow-y:auto;"></div>
+                        <button class="btn" onclick="toPage('p6')">Start Part 2 <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-sm btn-icon" style="background:white; color:black; border-radius:50%; width:36px; height:36px; padding:0;" onclick="playVid(1)"><i class="fas fa-play" id="icon1"></i></button>
+                    <input type="range" id="sk1" value="0" disabled>
+                    <select class="spd-sel" onchange="spd(1, this.value)">
+                        <option value="1">1.0x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                    </select>
+                </div>
+            </div>
+            <div class="vt-sub-box">
+                <div class="sub-list" id="subs1"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p6" class="page">
+    <div class="container" style="max-width:1400px;">
+        <div class="vt-layout">
+            <div class="vt-video-col">
+                <div id="hud2" class="hud">Loading...</div>
+                <video id="vid2" src="Video.mp4" playsinline></video>
+                
+                <div id="ol2" class="overlay">
+                    <div class="q-card">
+                        <h3 id="v2-q" style="color:var(--primary);">Detail Question</h3>
+                        <div id="v2-opts"></div>
+                        <div id="fb2" class="feedback-box" style="display:none; margin-top:20px;"></div>
+                        <div style="margin-top:25px; display:flex; gap:12px; justify-content:center;">
+                            <button class="btn btn-outline" id="rp2" onclick="replaySeg(2)"><i class="fas fa-undo"></i> Replay Segment</button>
+                            <button id="ct2" class="btn" onclick="resume(2)" style="display:none;">Continue <i class="fas fa-play"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="rev2" class="overlay">
+                    <div class="q-card">
+                        <h2 style="color:var(--primary);">Section Complete</h2>
+                        <div id="rev2-list" style="text-align:left; margin:20px 0; max-height:300px; overflow-y:auto;"></div>
+                        <button class="btn" onclick="toPage('p7')">View Report <i class="fas fa-flag-checkered"></i></button>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-sm btn-icon" style="background:white; color:black; border-radius:50%; width:36px; height:36px; padding:0;" onclick="playVid(2)"><i class="fas fa-play" id="icon2"></i></button>
+                    <input type="range" id="sk2" value="0" disabled>
+                </div>
+            </div>
+            <div class="vt-sub-box" style="justify-content:center; align-items:center; background:#F8FAFC; text-align:center; padding:20px;">
+                <div style="font-size:3rem; color:#CBD5E1; margin-bottom: 15px;"><i class="fas fa-headphones"></i></div>
+                <h3 style="margin:0; color:#64748B;">Listening Focus</h3>
+                <p style="font-size:0.9rem; color:#94A3B8;">Subtitles hidden for this section</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p7" class="page">
+    <div class="container" style="justify-content:center;">
+        <div class="card" style="text-align:center; align-items:center;">
+            <div style="font-size:3rem; color:var(--accent); margin-bottom:15px;"><i class="fas fa-trophy"></i></div>
+            <h1 style="color:var(--text-main);">Mission Report</h1>
+            <p>Excellent work, <span id="r-name" style="font-weight:bold; color:var(--primary);">Agent</span>!</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width:100%; max-width:500px; margin: 30px 0;">
+                <div style="background:#F9F7F2; padding:20px; border-radius:12px;">
+                    <span style="display:block; font-size:2rem; font-weight:800; color:var(--primary);" id="r-voc">0</span>
+                    <span style="font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-sub);">Vocab</span>
+                </div>
+                <div style="background:#F9F7F2; padding:20px; border-radius:12px;">
+                    <span style="display:block; font-size:2rem; font-weight:800; color:var(--primary);" id="r-quiz">0</span>
+                    <span style="font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-sub);">Quiz</span>
+                </div>
+                <div style="background:#F9F7F2; padding:20px; border-radius:12px;">
+                    <span style="display:block; font-size:2rem; font-weight:800; color:var(--primary);" id="r-vid">0</span>
+                    <span style="font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-sub);">Video</span>
+                </div>
+                <div style="background:#F9F7F2; padding:20px; border-radius:12px;">
+                    <span style="display:block; font-size:2rem; font-weight:800; color:var(--primary);" id="r-time">0m</span>
+                    <span style="font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-sub);">Time</span>
+                </div>
+            </div>
+
+            <div>
+                <div style="font-size: 4rem; font-weight: 900; color: var(--accent); line-height:1;" id="r-total">0</div>
+                <div style="font-weight: bold; color: #94a3b8; letter-spacing: 1px; margin-top:5px;">TOTAL SCORE</div>
+            </div>
+            
+            <button class="btn" onclick="location.reload()" style="margin-top: 40px; width: 100%; max-width: 300px;">Start New Mission ↺</button>
+        </div>
+    </div>
+</div>
+
+  <div id="mod-voc" class="overlay" onclick="clsVoc()" style="z-index: 2000; display:none;">
+    <div class="q-card" style="text-align:left; position:relative; max-width: 600px;" onclick="event.stopPropagation()">
+        <button onclick="clsVoc()" style="position:absolute; top:20px; right:20px; border:none; background:none; font-size:1.5rem; cursor:pointer; color: #94a3b8;">&times;</button>
+        
+        <h2 style="color:var(--primary); margin-top:0; font-size: 2.5rem; margin-bottom:5px;" id="vw">Word</h2>
+        <div style="margin-bottom:20px;">
+            <span id="vtype" style="text-transform:uppercase; font-size:0.75rem; border:1px solid #ccc; padding:4px 8px; border-radius:4px; background: #fff; font-weight: 700;">TYPE</span> 
+            <i class="fas fa-volume-up" style="cursor:pointer; margin-left: 12px; color: var(--primary); font-size: 1.2rem;" onclick="speak(document.getElementById('vw').innerText)"></i>
+        </div>
+        
+        <p style="font-size: 1.2rem; line-height: 1.5; font-style: italic; color: #555;" id="vdef">Definition...</p>
+        
+        <p style="font-size: 1.1rem; border-bottom:1px solid #eee; padding-bottom:15px; color:var(--primary);">
+            <strong>CN:</strong> 
+            <span id="vcn" style="font-weight:bold; filter:blur(5px); transition:0.3s; cursor:pointer; user-select:none;" 
+                  onclick="this.style.filter = (this.style.filter === 'none') ? 'blur(5px)' : 'none'">
+                Answer
+            </span>
+        </p>
+        
+        <div style="background:#FFF5F5; padding:15px; border-radius:8px; margin-bottom:10px;">
+            <div style="font-size:0.75rem; font-weight:800; color:var(--primary); text-transform: uppercase;">Video Context</div>
+            <div style="font-size: 1rem; color: #333; margin-top:5px; margin-bottom:4px;">
+                "<span id="vex1"></span>"
+                <i class="fas fa-volume-up" style="cursor:pointer; margin-left: 8px; color: var(--primary); font-size: 1rem;" onclick="speak(document.getElementById('vex1').innerText)"></i>
+            </div>
+            <div id="vex1-cn" 
+                 style="font-size: 0.9rem; color: #7f1d1d; filter:blur(5px); transition:0.3s; cursor:pointer; user-select:none;" 
+                 onclick="this.style.filter = (this.style.filter === 'none') ? 'blur(5px)' : 'none'">
+            </div>
+        </div>
+        
+        <div style="background:#F0FDF4; padding:15px; border-radius:8px;">
+            <div style="font-size:0.75rem; font-weight:800; color:green; text-transform: uppercase;">Real Life</div>
+            <div style="font-size: 1rem; color: #333; margin-top:5px; margin-bottom:4px;">
+                "<span id="vex2"></span>"
+                <i class="fas fa-volume-up" style="cursor:pointer; margin-left: 8px; color: green; font-size: 1rem;" onclick="speak(document.getElementById('vex2').innerText)"></i>
+            </div>
+            <div id="vex2-cn" 
+                 style="font-size: 0.9rem; color: #14532d; filter:blur(5px); transition:0.3s; cursor:pointer; user-select:none;" 
+                 onclick="this.style.filter = (this.style.filter === 'none') ? 'blur(5px)' : 'none'">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ds-pop" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:400px; background:white; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:3000; display:none; border:1px solid #eee;">
+    <div style="background:var(--primary); color:white; padding:10px 20px; display:flex; justify-content:space-between; align-items:center; border-radius: 16px 16px 0 0;">
+        <span style="font-weight:700;"><i class="fas fa-robot"></i> AI Helper</span> 
+        <span onclick="document.getElementById('ds-pop').style.display='none'" style="cursor:pointer;">&times;</span>
+    </div>
+    <div id="ds-con" style="padding:20px; max-height:250px; overflow-y:auto;">Taking a moment...</div>
+</div>
+
+<script>
+    /* DATA OBJECT 
+       - Config & Content Preserved
+       - Video Questions UPDATED per instructions
+    */
+    const D = {
+        "config": {
+            "title": "Why the Chinese Use Chopsticks: A Culinary History",
+            "theme": {"primary": "#A85533", "accent": "#FCD34D", "bg_start": "#FFF7ED", "bg_end": "#FFEEDD"},
+            "quizTiers": [{"percent": 0.3, "base": 30, "label": "Beginner"}, {"percent": 0.5, "base": 60, "label": "Intermediate"}, {"percent": 0.8, "base": 100, "label": "Advanced"}, {"percent": 1.0, "base": 140, "label": "Expert"}],
+            "videoFile": "Video.mp4",
+            "azureKey": "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9",
+            "azureRegion": "eastus2",
+            "deepseekKey": "sk-daa16008e81843deba6fefe9dce51465"
+        },
+        "reading": [
+            {"text": "Explore the history and cultural significance of chopsticks, tracing their origins back to ancient China and their eventual adoption as a primary eating utensil. Discover the roles of Confucius and Cardinal Richelieu in shaping dining customs and the evolution of cutlery."},
+            {"text": "From the Shang Dynasty to the Han Dynasty, witness the transformation of chopsticks from simple cooking tools to essential dining implements. Learn how factors like rice cultivation, stir-frying, and resource scarcity influenced the widespread use of chopsticks in China."},
+            {"text": "Uncover the philosophical and practical reasons behind the preference for chopsticks, including Confucius's aversion to knives at the table and the economic advantages of smaller, pre-cut food. Explore the fascinating connection between chopsticks, cultural values, and culinary practices."}
+        ],
+       "vocab": [
+    {
+        "id": 0,
+        "w": "wonder",
+        "type": "general",
+        "en_def": "to be curious or in doubt about something",
+        "cn": "想知道",
+        "vid_ex": "I say, you ever wonder why the Chinese use chopsticks?",
+        "vid_cn": "我说，你想知道为什么中国人用筷子吗？",
+        "life_ex": "I wonder if she remembers me after all these years.",
+        "life_cn": "我想知道这么多年后她是否还记得我。"
+    },
+    {
+        "id": 1,
+        "w": "something to do with",
+        "type": "general",
+        "en_def": "to be connected to or related to",
+        "cn": "与...有关",
+        "vid_ex": "Well, it's got something to do with Confucius and Cardinal Richelieu.",
+        "vid_cn": "嗯，这与孔子和红衣主教黎塞留有关。",
+        "life_ex": "The problem has something to do with the internet connection.",
+        "life_cn": "这个问题与互联网连接有关。"
+    },
+    {
+        "id": 2,
+        "w": "make sense",
+        "type": "general",
+        "en_def": "to be logical or comprehensible",
+        "cn": "有道理",
+        "vid_ex": "I know that doesn't make a lot of sense right now, but it's actually true, sort of.",
+        "vid_cn": "我知道现在这没有多大意义，但实际上是真的。",
+        "life_ex": "His explanation didn't make sense to anyone in the room.",
+        "life_cn": "他的解释对房间里的任何人都说不通。"
+    },
+    {
+        "id": 3,
+        "w": "common",
+        "type": "general",
+        "en_def": "shared or typical of a group",
+        "cn": "共同的",
+        "vid_ex": "And the two men did have one thing in common.",
+        "vid_cn": "这两个人确实有一个共同点。",
+        "life_ex": "They found a common interest in classical music.",
+        "life_cn": "他们在古典音乐中找到了共同的兴趣。"
+    },
+    {
+        "id": 4,
+        "w": "exclusively",
+        "type": "general",
+        "en_def": "only; not including any others",
+        "cn": "专门地",
+        "vid_ex": "Like their Shang predecessors, the Han ate almost exclusively Millet.",
+        "vid_cn": "像他们的商代前辈一样，汉代人几乎只吃小米。",
+        "life_ex": "The store sells designer clothing exclusively.",
+        "life_cn": "这家商店专门销售设计师服装。"
+    },
+    {
+        "id": 5,
+        "w": "soil",
+        "type": "general",
+        "en_def": "the upper layer of earth in which plants grow",
+        "cn": "土壤",
+        "vid_ex": "It didn't need fertilizer or particularly good soil.",
+        "vid_cn": "它不需要肥料或特别好的土壤。",
+        "life_ex": "The soil in this region is very fertile.",
+        "life_cn": "该地区的土壤非常肥沃。"
+    },
+    {
+        "id": 6,
+        "w": "expand",
+        "type": "general",
+        "en_def": "to increase in size, number, or extent",
+        "cn": "扩大",
+        "vid_ex": "But as the Han dynasty expanded, their diet started changing.",
+        "vid_cn": "但随着汉朝的扩张，他们的饮食开始发生变化。",
+        "life_ex": "The company plans to expand its operations overseas.",
+        "life_cn": "该公司计划将其业务扩展到海外。"
+    },
+    {
+        "id": 7,
+        "w": "suited",
+        "type": "general",
+        "en_def": "right or appropriate for a particular purpose or person",
+        "cn": "适合的",
+        "vid_ex": "You see, the South was perfectly suited for growing rice.",
+        "vid_cn": "你看，南方非常适合种植水稻。",
+        "life_ex": "This climate is well suited for growing tropical fruits.",
+        "life_cn": "这种气候非常适合种植热带水果。"
+    },
+    {
+        "id": 8,
+        "w": "plentifully",
+        "type": "general",
+        "en_def": "in large amounts or numbers",
+        "cn": "丰富地",
+        "vid_ex": "In fact, rice grew so plentifully there that they had enough leftover to feed the North with it too.",
+        "vid_cn": "事实上，那里的大米长势如此喜人，以至于他们有足够的剩余来养活北方。",
+        "life_ex": "Opportunities are plentifully available in the current market.",
+        "life_cn": "当前市场有大量机会。"
+    },
+    {
+        "id": 9,
+        "w": "conveniently",
+        "type": "general",
+        "en_def": "in a way that is easy or suitable",
+        "cn": "方便地",
+        "vid_ex": "Now, you might think that it's equally difficult to eat rice with chopsticks, but East Asian rice is starchy and conveniently sticks together in nice clumps.",
+        "vid_cn": "现在，你可能认为用筷子吃饭同样困难，但东亚大米淀粉含量高，并且方便地粘在一起。",
+        "life_ex": "The bus stop is conveniently located near my house.",
+        "life_cn": "公交车站方便地位于我家附近。"
+    },
+    {
+        "id": 10,
+        "w": "challenger",
+        "type": "general",
+        "en_def": "someone who competes with or opposes another",
+        "cn": "挑战者",
+        "vid_ex": "Of course, it wasn't just rice that did it in the North, Millet had another Challenger wheat.",
+        "vid_cn": "当然，不仅仅是大米在北方做到了这一点，小米还有另一个挑战者小麦。",
+        "life_ex": "The new company is a strong challenger to the established market leader.",
+        "life_cn": "这家新公司对既定的市场领导者构成了强有力的挑战。"
+    },
+    {
+        "id": 11,
+        "w": "lead to",
+        "type": "general",
+        "en_def": "to result in",
+        "cn": "导致",
+        "vid_ex": "More wheat meant less porridge and more noodles and dumplings, which of course leads to our friends the chopsticks again.",
+        "vid_cn": "更多的小麦意味着更少的粥和更多的面条和饺子，这当然再次导致了我们的朋友筷子的出现。",
+        "life_ex": "Eating too much sugar can lead to health problems.",
+        "life_cn": "吃太多糖会导致健康问题。"
+    },
+    {
+        "id": 12,
+        "w": "morsels",
+        "type": "general",
+        "en_def": "a small piece of food; a tidbit",
+        "cn": "一小块",
+        "vid_ex": "This period also saw the rise of stir frying, for which food was pre-cut into bite sized morsels.",
+        "vid_cn": "这个时期也出现了炒菜的兴起，食物被预先切成一口大小的块。",
+        "life_ex": "She gave the dog a few morsels of her dinner.",
+        "life_cn": "她给了狗几块她晚餐的食物。"
+    },
+    {
+        "id": 13,
+        "w": "versatile",
+        "type": "general",
+        "en_def": "able to adapt or be adapted to many different functions or activities",
+        "cn": "多才多艺的",
+        "vid_ex": "Ha ha, they're pretty damn versatile, these chopsticks.",
+        "vid_cn": "哈哈，这些筷子真是用途广泛。",
+        "life_ex": "A smartphone is a versatile tool that can be used for many purposes.",
+        "life_cn": "智能手机是一种多功能的工具，可以用于多种用途。"
+    },
+    {
+        "id": 14,
+        "w": "population",
+        "type": "general",
+        "en_def": "all the inhabitants of a particular town, area, or country",
+        "cn": "人口",
+        "vid_ex": "This actually matters quite a lot when you've got a population as big as China's.",
+        "vid_cn": "当你的国家人口像中国一样庞大时，这一点实际上非常重要。",
+        "life_ex": "The population of the city has grown significantly in recent years.",
+        "life_cn": "近年来，该市人口显著增长。"
+    },
+    {
+        "id": 15,
+        "w": "resources",
+        "type": "general",
+        "en_def": "a stock or supply of money, materials, staff, and other assets that can be drawn on by a person or organization in order to function effectively",
+        "cn": "资源",
+        "vid_ex": "More people means less resources to go round.",
+        "vid_cn": "人越多，可用的资源就越少。",
+        "life_ex": "The company needs to allocate its resources efficiently.",
+        "life_cn": "公司需要有效分配其资源。"
+    },
+    {
+        "id": 16,
+        "w": "culinary",
+        "type": "general",
+        "en_def": "of or relating to cooking or the kitchen",
+        "cn": "烹饪的",
+        "vid_ex": "And here's some culinary physics for you.",
+        "vid_cn": "这里有一些烹饪物理学。",
+        "life_ex": "She is studying culinary arts at a famous cooking school.",
+        "life_cn": "她在一所著名的烹饪学校学习烹饪艺术。"
+    },
+    {
+        "id": 17,
+        "w": "chunks",
+        "type": "general",
+        "en_def": "a thick, solid piece of something",
+        "cn": "块",
+        "vid_ex": "Cutting food into small chunks before cooking it makes it cook faster and uses less fuel.",
+        "vid_cn": "在烹饪前将食物切成小块可以使其烹饪速度更快，并减少燃料的使用。",
+        "life_ex": "He added chunks of cheese to the salad.",
+        "life_cn": "他在沙拉中加入了几块奶酪。"
+    },
+    {
+        "id": 18,
+        "w": "economics",
+        "type": "general",
+        "en_def": "the branch of knowledge concerned with the production, consumption, and transfer of wealth",
+        "cn": "经济学",
+        "vid_ex": "It's economics all the way down.",
+        "vid_cn": "这完全是经济学。",
+        "life_ex": "She is studying economics at the university.",
+        "life_cn": "她正在大学学习经济学。"
+    },
+    {
+        "id": 19,
+        "w": "psychology",
+        "type": "general",
+        "en_def": "the scientific study of the human mind and its functions",
+        "cn": "心理学",
+        "vid_ex": "And a bit of psychology as well.",
+        "vid_cn": "还有一点心理学。",
+        "life_ex": "Understanding psychology can help improve communication skills.",
+        "life_cn": "了解心理学可以帮助提高沟通技巧。"
+    },
+    {
+        "id": 20,
+        "w": "naturally",
+        "type": "general",
+        "en_def": "in a way that is normal or expected",
+        "cn": "自然地",
+        "vid_ex": "After all, once you start using chopsticks, you'd naturally prefer.",
+        "vid_cn": "毕竟，一旦你开始使用筷子，你自然会更喜欢。",
+        "life_ex": "He naturally excelled at sports because of his athleticism.",
+        "life_cn": "由于他的运动能力，他自然擅长运动。"
+    },
+    {
+        "id": 21,
+        "w": "advocates",
+        "type": "general",
+        "en_def": "a person who publicly supports or recommends a particular cause or policy",
+        "cn": "倡导者",
+        "vid_ex": "Anyway, our good friend Confucius was one of the biggest advocates of chopsticks.",
+        "vid_cn": "无论如何，我们的好朋友孔子是筷子的最大倡导者之一。",
+        "life_ex": "She is a strong advocate for environmental protection.",
+        "life_cn": "她是环境保护的坚定倡导者。"
+    },
+    {
+        "id": 22,
+        "w": "violent",
+        "type": "general",
+        "en_def": "using or involving physical force intended to hurt, damage, or kill someone or something",
+        "cn": "暴力的",
+        "vid_ex": "In his eyes, a tool as violent and barbaric as the knife had no place on an honourable man's table.",
+        "vid_cn": "在他看来，像刀一样暴力和野蛮的工具不应该出现在一个正直的人的餐桌上。",
+        "life_ex": "The movie contains scenes of violence.",
+        "life_cn": "这部电影包含暴力场景。"
+    },
+    {
+        "id": 23,
+        "w": "honourable",
+        "type": "general",
+        "en_def": "worthy of great respect; having or showing integrity",
+        "cn": "光荣的",
+        "vid_ex": "In his eyes, a tool as violent and barbaric as the knife had no place on an honourable man's table.",
+        "vid_cn": "在他看来，像刀一样暴力和野蛮的工具不应该出现在一个正直的人的餐桌上。",
+        "life_ex": "He is known as an honourable and trustworthy person.",
+        "life_cn": "他以正直和值得信赖的人而闻名。"
+    },
+    {
+        "id": 24,
+        "w": "etiquette",
+        "type": "general",
+        "en_def": "the customary code of polite behaviour in society or among members of a particular profession or group",
+        "cn": "礼仪",
+        "vid_ex": "Well, although he probably wasn't well versed in his Confucian etiquette, he too hated seeing knives at his table.",
+        "vid_cn": "嗯，虽然他可能不太精通儒家礼仪，但他也不喜欢在餐桌上看到刀。",
+        "life_ex": "Proper dining etiquette is essential for formal occasions.",
+        "life_cn": "正确的餐桌礼仪对于正式场合至关重要。"
+    },
+    {
+        "id": 25,
+        "w": "average",
+        "type": "general",
+        "en_def": "typical or normal",
+        "cn": "普通的",
+        "vid_ex": "You see, back in those days, the knives you'd find on the average European dining table were pretty sharp.",
+        "vid_cn": "你看，在那些日子里，你在普通欧洲餐桌上找到的刀子都非常锋利。",
+        "life_ex": "The average temperature in July is around 25 degrees Celsius.",
+        "life_cn": "七月的平均气温约为25摄氏度。"
+    },
+    {
+        "id": 26,
+        "w": "actively",
+        "type": "general",
+        "en_def": "in an active manner; energetically",
+        "cn": "积极地",
+        "vid_ex": "What's even weirder, though, is that when your table guests weren't actively conspiring against you, they'd use those same sharp knives as toothpicks.",
+        "vid_cn": "不过，更奇怪的是，当你的餐桌客人没有积极地阴谋反对你时，他们会使用同样的锋利刀子作为牙签。",
+        "life_ex": "He actively participates in community events.",
+        "life_cn": "他积极参与社区活动。"
+    },
+    {
+        "id": 27,
+        "w": "conspiring",
+        "type": "general",
+        "en_def": "to make secret plans jointly to commit an unlawful or harmful act",
+        "cn": "阴谋",
+        "vid_ex": "What's even weirder, though, is that when your table guests weren't actively conspiring against you, they'd use those same sharp knives as toothpicks.",
+        "vid_cn": "不过，更奇怪的是，当你的餐桌客人没有积极地阴谋反对你时，他们会使用同样的锋利刀子作为牙签。",
+        "life_ex": "They were conspiring to overthrow the government.",
+        "life_cn": "他们阴谋推翻政府。"
+    },
+    {
+        "id": 28,
+        "w": "cunning",
+        "type": "general",
+        "en_def": "having or showing skill in achieving one's ends by deceit or evasion",
+        "cn": "狡猾的",
+        "vid_ex": "Richelieu, being the cunning mastermind that he was, started ordering every knife's blade to be ground down until it could barely cut anything.",
+        "vid_cn": "黎塞留是一位狡猾的策划者，他开始命令将每把刀的刀刃磨平，直到它几乎不能切割任何东西。",
+        "life_ex": "The cunning fox outsmarted the farmer.",
+        "life_cn": "狡猾的狐狸胜过了农民。"
+    },
+    {
+        "id": 29,
+        "w": "mastermind",
+        "type": "general",
+        "en_def": "a person who plans and directs an ingenious and typically criminal project or operation",
+        "cn": "策划者",
+        "vid_ex": "Richelieu, being the cunning mastermind that he was, started ordering every knife's blade to be ground down until it could barely cut anything.",
+        "vid_cn": "黎塞留是一位狡猾的策划者，他开始命令将每把刀的刀刃磨平，直到它几乎不能切割任何东西。",
+        "life_ex": "He was the mastermind behind the elaborate scheme.",
+        "life_cn": "他是这个精心策划的阴谋的策划者。"
+    },
+    {
+        "id": 30,
+        "w": "popularizing",
+        "type": "general",
+        "en_def": "make (something) popular or well known",
+        "cn": "推广",
+        "vid_ex": "While Confucius solved it by popularizing chopsticks.",
+        "vid_cn": "而孔子则通过推广筷子解决了这个问题。",
+        "life_ex": "The company is popularizing the use of renewable energy.",
+        "life_cn": "该公司正在推广可再生能源的使用。"
+    },
+    {
+        "id": 31,
+        "w": "satiated",
+        "type": "general",
+        "en_def": "satisfied to the full",
+        "cn": "充分满足",
+        "vid_ex": "I hope I've satiated your culinary historical hunger.",
+        "vid_cn": "我希望我已经满足了你对烹饪历史的渴望。",
+        "life_ex": "After the huge meal, he felt completely satiated.",
+        "life_cn": "吃完大餐后，他感到非常满足。"
+    },
+    {
+        "id": 32,
+        "w": "batches",
+        "type": "general",
+        "en_def": "a quantity of material or things taken together or handled at the same time",
+        "cn": "批次",
+        "vid_ex": "You'll be happy to hear that we're cooking new batches as we speak, so if you'd like to be the first to know when the next one is ready, feel free to subscribe and hit that bell button.",
+        "vid_cn": "你会很高兴听到我们正在烹饪新的批次，所以如果你想成为第一个知道下一个批次何时准备好的人，请随意订阅并点击那个铃铛按钮。",
+        "life_ex": "The bakery produces several batches of bread each day.",
+        "life_cn": "面包店每天生产几批面包。"
+    },
+    {
+        "id": 33,
+        "w": "blunt",
+        "type": "general",
+        "en_def": "having a worn-down edge or point; not sharp",
+        "cn": "钝的",
+        "vid_ex": "With your chopsticks or your blunt and knife.",
+        "vid_cn": "用你的筷子或你的钝刀。",
+        "life_ex": "The knife was too blunt to cut the tomato.",
+        "life_cn": "刀太钝了，切不动西红柿。"
+    },
+    {
+        "id": 34,
+        "w": "delectable",
+        "type": "general",
+        "en_def": "delicious",
+        "cn": "美味的",
+        "vid_ex": "We'll see each other again soon for the next deliciously delectable and devious episode of Side Quest....",
+        "vid_cn": "我们很快会在下一集美味可口且狡猾的《支线任务》中再次相见....",
+        "life_ex": "The dessert was absolutely delectable.",
+        "life_cn": "这道甜点绝对美味。"
+    },
+    {
+        "id": 35,
+        "w": "devious",
+        "type": "general",
+        "en_def": "showing a skillful use of underhanded tactics to achieve goals",
+        "cn": "狡猾的",
+        "vid_ex": "We'll see each other again soon for the next deliciously delectable and devious episode of Side Quest....",
+        "vid_cn": "我们很快会在下一集美味可口且狡猾的《支线任务》中再次相见....",
+        "life_ex": "He used devious methods to get ahead in his career.",
+        "life_cn": "他使用狡猾的方法在事业上取得进步。"
+    }
+],
+        "quizzes": {
+            "general": [
+                {
+                    "time": 8.75, 
+                    "type": "choice", 
+                    "q": "According to the speaker, what historical figures are connected to the use of chopsticks?", 
+                    "opts": ["Confucius and Cardinal Richelieu", "Emperor Qin Shi Huang and Marco Polo", "Genghis Khan and Queen Elizabeth I", "Julius Caesar and Leonardo da Vinci"], 
+                    "ans": 0, 
+                    "review": "The speaker mentions Confucius and Cardinal Richelieu as figures connected to the use of chopsticks.", 
+                    "replay": {"start": 0.19, "end": 8.75}
+                },
+                {
+                    "time": 150.77, 
+                    "type": "choice", 
+                    "q": "What other grain besides rice influenced the popularity of chopsticks during the Han Dynasty?", 
+                    "opts": ["Barley", "Oats", "Wheat", "Rye"], 
+                    "ans": 2, 
+                    "review": "The speaker mentions that wheat, in addition to rice, influenced the popularity of chopsticks.", 
+                    "replay": {"start": 136.43, "end": 150.77}
+                },
+                {
+                    "time": 191.71, 
+                    "type": "choice", 
+                    "q": "What economic factor contributed to the popularity of chopsticks?", 
+                    "opts": ["Abundance of metal resources", "Scarcity of metal for knives", "High demand for ornate silverware", "Availability of cheap labor"], 
+                    "ans": 1, 
+                    "review": "The speaker mentions that less metal for knives and forks contributed to the popularity of chopsticks.", 
+                    "replay": {"start": 172.43, "end": 191.71}
+                },
+                {
+                    "time": 297.14, 
+                    "type": "choice", 
+                    "q": "What did Cardinal Richelieu do to the knives at his table?", 
+                    "opts": ["Decorated them with jewels", "Ordered them to be sharpened", "Ordered their blades to be ground down", "Replaced them with spoons"], 
+                    "ans": 2, 
+                    "review": "The speaker mentions that Richelieu ordered every knife's blade to be ground down until it could barely cut anything.", 
+                    "replay": {"start": 210.98, "end": 297.14}
+                }
+            ],
+            "detailed": [
+                {
+                    "time": 47.25, 
+                    "type": "cloze", 
+                    "q": "The first chopsticks were found in the ruins of the city of Yin, the last capital of the _______ Dynasty.", 
+                    "opts": ["Ming", "Shang"], 
+                    "ans": 1, 
+                    "review": "The speaker mentions that the first chopsticks were found in the ruins of the city of Yin, the last capital of the Shang Dynasty.", 
+                    "replay": {"start": 32.22, "end": 47.25}
+                },
+                {
+                    "time": 56.37, 
+                    "type": "true/false", 
+                    "q": "The chopsticks found in the ruins of Yin were primarily used for eating. (True/False)", 
+                    "opts": ["True", "False"], 
+                    "ans": 1, 
+                    "review": "The speaker mentions that those chopsticks were only used to stir stews, not for eating.", 
+                    "replay": {"start": 47.25, "end": 56.37}
+                },
+                {
+                    "time": 99.27, 
+                    "type": "choice", 
+                    "q": "What grain did the Han primarily consume?", 
+                    "opts": ["Rice", "Millet", "Wheat", "Corn"], 
+                    "ans": 1, 
+                    "review": "The speaker mentions that the Han ate almost exclusively Millet.", 
+                    "replay": {"start": 76.54, "end": 99.27}
+                },
+                {
+                    "time": 129.28, 
+                    "type": "true/false", 
+                    "q": "East Asian rice is easy to grab with chopsticks because it conveniently sticks together in clumps. (True/False)", 
+                    "opts": ["True", "False"], 
+                    "ans": 0, 
+                    "review": "The speaker mentions that East Asian rice is starchy and conveniently sticks together in nice clumps, making it easy to grab with chopsticks.", 
+                    "replay": {"start": 114.39, "end": 129.28}
+                },
+                {
+                    "time": 191.71, 
+                    "type": "choice", 
+                    "q": "What is the culinary physics mentioned in the talk?", 
+                    "opts": ["Cutting food into small chunks before cooking makes it cook faster and uses less fuel.", "Cooking food at higher temperatures preserves more nutrients.", "Marinating food for longer periods tenderizes the meat more effectively.", "Using more oil in cooking enhances the flavor of spices."], 
+                    "ans": 0, 
+                    "review": "The speaker mentions that cutting food into small chunks before cooking it makes it cook faster and uses less fuel.", 
+                    "replay": {"start": 175.76, "end": 191.71}
+                },
+                {
+                    "time": 202.29, 
+                    "type": "choice", 
+                    "q": "According to the speaker, what psychological aspect contributes to the preference for chopsticks?", 
+                    "opts": ["People prefer larger portions of food when using chopsticks.", "Once you start using chopsticks, you naturally prefer smaller chunks of food.", "Chopsticks make food taste better due to the placebo effect.", "Using chopsticks is a sign of cultural sophistication."], 
+                    "ans": 1, 
+                    "review": "The speaker suggests that once you start using chopsticks, you'd naturally prefer smaller chunks of food that are easier to eat with said chopsticks.", 
+                    "replay": {"start": 192.52, "end": 202.29}
+                },
+                {
+                    "time": 288.52, 
+                    "type": "choice", 
+                    "q": "What was a common, unsafe practice at European dining tables that Cardinal Richelieu aimed to stop?", 
+                    "opts": ["Using knives as toothpicks", "Throwing food at each other", "Pouring wine on the table", "Using forks to stab each other"], 
+                    "ans": 0, 
+                    "review": "The speaker mentioned that when table guests weren't actively conspiring against you, they'd use sharp knives as toothpicks.", 
+                    "replay": {"start": 244.05, "end": 288.52}
+                },
+                {
+                    "time": 324.66, 
+                    "type": "choice", 
+                    "q": "What did the speaker mention that you can use to indicate the end of the broadcast?", 
+                    "opts": ["Your chopsticks", "Your blunt end knife", "A spoon", "A fork"], 
+                    "ans": 1, 
+                    "review": "The speaker says to subscribe with your chopsticks or your blunt end knife.", 
+                    "replay": {"start": 289.03, "end": 324.66}
+                }
+            ]
+        },
+        "subtitles": [{"s": 0.19, "e": 3.95, "t": "I say, you ever wonder why the Chinese use chopsticks?"}, {"s": 3.95, "e": 8.75, "t": "Well, it's got something to do with Confucius and Cardinal Richelieu."}, {"s": 8.75, "e": 14.53, "t": "I know that doesn't make a lot of sense right now, but it's actually true, sort of."}, {"s": 14.53, "e": 17.66, "t": "And the two men did have one thing in common."}, {"s": 17.66, "e": 20.09, "t": "They both hated eating with knives."}, {"s": 20.09, "e": 23.36, "t": "Now, you might wonder what's wrong with knives."}, {"s": 23.36, "e": 27.19, "t": "After all, we've been using them since Neolithic times."}, {"s": 27.59, "e": 30.68, "t": "They're the simplest way to stuff your face."}, {"s": 30.68, "e": 32.22, "t": "Ah, until they aren't."}, {"s": 32.22, "e": 34.75, "t": "And that's where chopsticks come in."}, {"s": 34.75, "e": 47.25, "t": "The first chopsticks, that we know of at least, are around 3000 years old and were found in the ruins of the city of Yin, the last capital of the Shang Dynasty in northern China."}, {"s": 47.25, "e": 52.37, "t": "Now, interestingly enough, these chopsticks were only used to stir stews."}, {"s": 52.37, "e": 55.04, "t": "They weren't actually used for eating."}, {"s": 55.23, "e": 59.31, "t": "The Shang dynasty also used long forks in their kitchens."}, {"s": 59.31, "e": 63.45, "t": "Yet for meal times, it was the good old knife and fingers."}, {"s": 63.45, "e": 67.6, "t": "So when did chopsticks make their way to the dining table?"}, {"s": 67.6, "e": 74.89, "t": "Well, to find the answer to that, we need to Fast forward a Millennium or so to around 2000 years ago."}, {"s": 74.89, "e": 76.54, "t": "During the Han dynasty."}, {"s": 76.54, "e": 81.47, "t": "Like their Shang predecessors, the Han ate almost exclusively Millet."}, {"s": 81.47, "e": 85.19, "t": "It didn't need fertilizer or particularly good soil."}, {"s": 85.31, "e": 88.46, "t": "Which was great, because the North had neither."}, {"s": 88.46, "e": 99.27, "t": "The Han made porridge out of their Millet, and as you can imagine, eating porridge with chopsticks is not exactly the easiest thing to do, so it never caught on."}, {"s": 99.27, "e": 103.49, "t": "But as the Han dynasty expanded, their diet started changing."}, {"s": 103.49, "e": 107.32, "t": "You see, the South was perfectly suited for growing rice."}, {"s": 107.32, "e": 114.03, "t": "In fact, rice grew so plentifully there that they had enough leftover to feed the North with it too."}, {"s": 114.39, "e": 124.97, "t": "Now, you might think that it's equally difficult to eat rice with chopsticks, but East Asian rice is starchy and conveniently sticks together in nice clumps."}, {"s": 124.97, "e": 127.8, "t": "Very easy to grab with a couple of sticks."}, {"s": 127.8, "e": 129.28, "t": "Oh, that's what is it."}, {"s": 129.28, "e": 135.55, "t": "Of course, it wasn't just rice that did it in the North, Millet had another Challenger wheat."}, {"s": 136.43, "e": 144.39, "t": "More wheat meant less porridge and more noodles and dumplings, which of course leads to our friends the chopsticks again."}, {"s": 144.39, "e": 150.77, "t": "This period also saw the rise of stir frying, for which food was pre-cut into bite sized morsels."}, {"s": 150.77, "e": 154.72, "t": "All the easy to pick up and eat with your trusty chopsticks."}, {"s": 154.72, "e": 158.34, "t": "Ha ha, they're pretty damn versatile, these chopsticks."}, {"s": 158.34, "e": 161.1, "t": "And what was even better, they were cheap."}, {"s": 161.1, "e": 166.43, "t": "This actually matters quite a lot when you've got a population as big as China's."}, {"s": 166.79, "e": 172.43, "t": "Which, mind you, was about 1/4 of the entire world's population at the time."}, {"s": 172.43, "e": 175.76, "t": "More people means less resources to go round."}, {"s": 175.76, "e": 179.7, "t": "Less metal for knives and forks, less fuel for fires."}, {"s": 179.7, "e": 182.74, "t": "And here's some culinary physics for you."}, {"s": 182.74, "e": 189.34, "t": "Cutting food into small chunks before cooking it makes it cook faster and uses less fuel."}, {"s": 189.34, "e": 191.71, "t": "It's economics all the way down."}, {"s": 192.52, "e": 194.15, "t": "And a bit of psychology as well."}, {"s": 194.15, "e": 197.56, "t": "After all, once you start using chopsticks, you'd naturally prefer."}, {"s": 197.91, "e": 202.29, "t": "Smaller chunks of food that are easier to eat with said chopsticks."}, {"s": 202.29, "e": 209.02, "t": "So in the end, knives moved from the table to the kitchen and chopsticks from the kitchen to the table."}, {"s": 209.02, "e": 210.98, "t": "See what we did there, Swapsy?"}, {"s": 210.98, "e": 216.28, "t": "Anyway, our good friend Confucius was one of the biggest advocates of chopsticks."}, {"s": 216.28, "e": 222.75, "t": "In his eyes, a tool as violent and barbaric as the knife had no place on an honourable man's table."}, {"s": 222.75, "e": 227.91, "t": "In fact, he made such a big deal out of it that his followers recorded this in."}, {"s": 228.03, "e": 233.43, "t": "Book of Rights, one of the five classics that make up the core of Confucian philosophy."}, {"s": 233.43, "e": 242.06, "t": "Now, I know that ever since we started this, you've been meaning to ask, what the hell does Cardinal Richelieu have to do with any of this?"}, {"s": 242.06, "e": 244.05, "t": "Well, that's very good question."}, {"s": 244.05, "e": 251.13, "t": "Well, although he probably wasn't well versed in his Confucian etiquette, he too hated seeing knives at his table."}, {"s": 251.13, "e": 257.71, "t": "You see, back in those days, the knives you'd find on the average European dining table were pretty sharp."}, {"s": 258.11, "e": 262.61, "t": "In fact, they were just as sharp as a knife you'd use to stab someone."}, {"s": 262.61, "e": 264.85, "t": "Sorry, meant to go for the pumpkin."}, {"s": 264.85, "e": 274.49, "t": "What's even weirder, though, is that when your table guests weren't actively conspiring against you, they'd use those same sharp knives as toothpicks."}, {"s": 274.49, "e": 283.67, "t": "Richelieu, being the cunning mastermind that he was, started ordering every knife's blade to be ground down until it could barely cut anything."}, {"s": 284.48, "e": 288.52, "t": "Richelieu fixed his pointy knife problem by inventing the table knife."}, {"s": 289.03, "e": 292.77, "t": "While Confucius solved it by popularizing chopsticks."}, {"s": 292.77, "e": 295.24, "t": "And that, my friends, is the point."}, {"s": 295.24, "e": 297.14, "t": "Or not, as the case may be."}, {"s": 297.14, "e": 301.09, "t": "Well, my friends, time for some stir fry and chopsticks."}, {"s": 301.09, "e": 304.83, "t": "I hope I've satiated your culinary historical hunger."}, {"s": 304.83, "e": 305.82, "t": "In case I did."}, {"s": 305.82, "e": 318.87, "t": "You'll be happy to hear that we're cooking new batches as we speak, so if you'd like to be the first to know when the next one is ready, feel free to subscribe and hit that bell button."}, {"s": 319.07, "e": 322.43, "t": "With your chopsticks or your blunt and knife."}, {"s": 322.43, "e": 324.66, "t": "Again, thank you for watching."}, {"s": 324.66, "e": 332.27, "t": "We'll see each other again soon for the next deliciously delectable and devious episode of Side Quest."}]
+    };
+
+    const C = D.config;
+    let s = { u:"", lsc:0, qsc:0, vidsc:0, sv:new Set(), lrn:new Set(), pg:'p1', v1:0, v2:0, lock:false, t1:0, t2:0, logs1:[], logs2:[], startTime: Date.now() };
+    const AZ_KEY = C.azureKey; const AZ_REG = C.azureRegion;
+    const STORAGE_KEY = 'vt_course_save'; 
+
+    window.onload = () => {
+        if(localStorage.getItem(STORAGE_KEY)) document.getElementById('resume-btn').style.display='inline-block';
+        initSubs();
+        genVocabGrid();
+    };
+
+    function startApp() {
+        const n=document.getElementById('username').value;
+        if(n) s.u=n;
+        s.startTime = Date.now();
+        toPage('p2');
+    }
+
+    function resumeApp() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+
+        try {
+            const saved = JSON.parse(raw);
+            s.u = saved.u || ""; s.lsc = saved.lsc || 0; s.qsc = saved.qsc || 0; s.vidsc = saved.vidsc || 0;
+            s.pg = saved.pg || 'p1'; s.v1 = saved.v1 || 0; s.v2 = saved.v2 || 0;
+            s.t1 = saved.t1 || 0; s.t2 = saved.t2 || 0;
+            s.logs1 = saved.logs1 || []; s.logs2 = saved.logs2 || [];
+            s.sv = new Set(saved.sv || []); s.lrn = new Set(saved.lrn || []);
+
+            if(s.u) document.getElementById('username').value = s.u;
+            upUI();
+
+            s.lrn.forEach(idx => { const el = document.getElementById('vc-' + idx); if(el) el.classList.add('learned'); });
+            s.sv.forEach(idx => { const el = document.getElementById('bm-' + idx); if(el) el.classList.add('saved'); });
+
+            toPage(s.pg);
+        } catch (e) {
+            console.error("Resume corrupted:", e);
+            alert("Save file corrupted. Starting new session.");
+            startApp();
+        }
+    }
+
+    function toPage(p) {
+        document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
+        document.getElementById(p).classList.add('active');
+        s.pg=p;
+        if(p==='p5') { initVid(1); if(s.t1>0) restoreVid('vid1', s.t1); }
+        if(p==='p6') { initVid(2); if(s.t2>0) restoreVid('vid2', s.t2); }
+        if(p==='p7') genReport();
+    }
+    
+    function restoreVid(id, t) {
+        const v = document.getElementById(id);
+        const attempt = () => {
+            v.currentTime = t;
+            if(Math.abs(v.currentTime - t) > 1) requestAnimationFrame(attempt);
+        };
+        if(v.readyState >= 1) attempt();
+        else v.onloadedmetadata = attempt;
+    }
+
+    function genReport() {
+        const timeSpent = Math.floor((Date.now() - s.startTime) / 60000);
+        document.getElementById('r-name').innerText = s.u || "Agent";
+        document.getElementById('r-voc').innerText = s.lsc;
+        document.getElementById('r-quiz').innerText = s.qsc;
+        document.getElementById('r-vid').innerText = s.vidsc;
+        document.getElementById('r-time').innerText = timeSpent + "m";
+        document.getElementById('r-total').innerText = s.lsc + s.qsc + s.vidsc;
+        localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function speak(txt) {
+        if(window.SpeechSDK && AZ_KEY) {
+            const c = SpeechSDK.SpeechConfig.fromSubscription(AZ_KEY, AZ_REG);
+            c.speechSynthesisVoiceName = "en-GB-RyanNeural";
+            const a = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            const syn = new SpeechSDK.SpeechSynthesizer(c, a);
+            syn.speakTextAsync(txt, r=>{syn.close()}, e=>{syn.close(); nativeSpeak(txt)});
+        } else { nativeSpeak(txt); }
+    }
+    function nativeSpeak(txt) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(txt);
+        u.lang = 'en-GB';
+        window.speechSynthesis.speak(u);
+    }
+
+    // Vocab Grid Generation (UI Upgrade Support)
+    function genVocabGrid() {
+        const g = document.getElementById('v-grid');
+        g.innerHTML = D.vocab.map(v => `
+            <div class="flashcard" onclick="openVocab(${v.id})" id="vc-${v.id}">
+                <div class="tag">${v.type}</div>
+                <div style="font-size:1.2rem; font-weight:800; margin-top:15px; color:var(--text-main);">${v.w}</div>
+                <div style="color:var(--text-sub); font-size:0.9rem; margin-top:5px;">${v.en_def.substring(0,35)}...</div>
+            </div>
+        `).join('');
+    }
+
+// Vocab Modal Logic
+    let tm;
+    function openVocab(i) {
+        const v = D.vocab[i];
+        document.getElementById('mod-voc').style.display='flex';
+        
+        // 1. 填充基础文本
+        document.getElementById('vw').innerText = v.w;
+        document.getElementById('vtype').innerText = v.type;
+        document.getElementById('vdef').innerText = v.en_def;
+        document.getElementById('vcn').innerText = v.cn;
+        
+        document.getElementById('vex1').innerText = v.vid_ex;
+        document.getElementById('vex1-cn').innerText = v.vid_cn || "暂无翻译"; // 填充视频例句中文
+        
+        document.getElementById('vex2').innerText = v.life_ex;
+        document.getElementById('vex2-cn').innerText = v.life_cn || "暂无翻译"; // 填充生活例句中文
+        
+        // 2. 关键：重置模糊状态 (Reset Blur State)
+        // 确保每次打开新单词时，中文都是被遮住的
+        document.getElementById('vcn').style.filter = 'blur(5px)';
+        document.getElementById('vex1-cn').style.filter = 'blur(5px)';
+        document.getElementById('vex2-cn').style.filter = 'blur(5px)';
+
+        speak(v.w);
+        clearTimeout(tm);
+        
+        // 3. 学习进度记录 (不变)
+        tm = setTimeout(()=>{
+            if(!s.lrn.has(i)) { 
+                s.lrn.add(i); 
+                s.lsc+=2; 
+                upUI(); 
+                saveState(); 
+                const el = document.getElementById(`vc-${i}`);
+                if(el) el.classList.add('learned'); 
+            }
+        }, 3000); 
+    }
+
+    function clsVoc(){ document.getElementById('mod-voc').style.display='none'; clearTimeout(tm); }
+
+    // Quiz Logic
+    let qQ=[], qC=0;
+    function getMisspelling(word) {
+        if(word.length < 4) return word + "e";
+        const idx = Math.floor(Math.random() * (word.length - 2)) + 1;
+        return word.substring(0, idx) + word[idx+1] + word[idx] + word.substring(idx+2);
+    }
+
+    function startQuiz(pct, base) {
+        s.qsc += base; upUI();
+        const n = Math.ceil(D.vocab.length * pct);
+        const pool = [...D.vocab].sort(()=>0.5-Math.random()).slice(0, n);
+        qQ = pool.map(v => {
+            const r = Math.random();
+            let type = 'def'; let opts = [];
+            if(r < 0.33) {
+                type = 'def'; opts = [v]; while(opts.length<4) { const x=D.vocab[Math.floor(Math.random()*D.vocab.length)]; if(!opts.includes(x)) opts.push(x); } opts = opts.sort(()=>0.5-Math.random()).map(o => ({txt: o.w, isC: o.id===v.id}));
+            } else if (r < 0.66) {
+                type = 'lis'; const dist1 = getMisspelling(v.w); const dist2 = getMisspelling(v.w); const dist3 = getMisspelling(v.w); opts = [{txt: v.w, isC: true}, {txt: dist1, isC: false}, {txt: dist2, isC: false}, {txt: dist3, isC: false}].sort(()=>0.5-Math.random());
+            } else {
+                type = 'cloze'; opts = [v]; while(opts.length<4) { const x=D.vocab[Math.floor(Math.random()*D.vocab.length)]; if(!opts.includes(x)) opts.push(x); } opts = opts.sort(()=>0.5-Math.random()).map(o => ({txt: o.w, isC: o.id===v.id}));
+            }
+            return { c:v, t:type, o:opts };
+        });
+        qC=0;
+        document.getElementById('qz-setup').style.display='none';
+        document.getElementById('qz-run').style.display='block';
+        rendQ();
+    }
+
+    function rendQ() {
+        if(qC>=qQ.length) { alert("Quiz Finished!"); toPage('p5'); return; }
+        const q=qQ[qC];
+        document.getElementById('q-idx').innerText=qC+1;
+        document.getElementById('q-fb').style.display='none';
+        document.getElementById('q-nxt').style.display='none';
+        const b=document.getElementById('q-content'); b.innerHTML='';
+        if(q.t==='lis') { b.innerHTML=`<div style="text-align:center; margin-bottom:20px;"><button class="btn btn-outline" style="border-radius:50%; width:60px; height:60px;" onclick="speak('${q.c.w}')"><i class="fas fa-volume-up"></i></button><br><small>Listen & Choose</small></div>`; } 
+        else if (q.t==='cloze') { const sent = q.c.life_ex.replace(new RegExp(q.c.w, 'gi'), '_______'); b.innerHTML=`<div style="padding:10px; font-size:1.2rem; text-align:center; margin-bottom:20px;">"${sent}"</div>`; } 
+        else { b.innerHTML=`<div style="padding:10px; font-weight:bold; font-size:1.1rem; margin-bottom:20px;">${q.c.en_def}</div>`; }
+        q.o.forEach(opt=>{
+            const btn=document.createElement('button'); btn.className='opt-btn'; btn.innerText=opt.txt;
+            btn.onclick=()=>chkQ(btn, opt.isC, q.c);
+            b.appendChild(btn);
+        });
+    }
+
+    function chkQ(btn, isC, dat) {
+        document.querySelectorAll('#q-content .opt-btn').forEach(b=>b.disabled=true);
+        if(isC) { btn.classList.add('sel-correct'); s.qsc+=2; } 
+        else { btn.classList.add('sel-wrong'); s.qsc-=1; }
+        upUI(); saveState();
+        const fb=document.getElementById('q-fb'); fb.style.display='block';
+        fb.innerHTML=`<strong style="font-size:1.1rem; color:var(--primary);">${dat.w}</strong>: ${dat.cn}<br>${dat.life_ex}`;
+        const nx=document.getElementById('q-nxt'); nx.style.display='block';
+        let sec=3; nx.innerText=`Next (${sec})`;
+        const ti=setInterval(()=>{ sec--; nx.innerText=`Next (${sec})`; if(sec<=0){ clearInterval(ti); qC++; rendQ(); } },1000);
+        nx.onclick=()=>{ clearInterval(ti); qC++; rendQ(); };
+    }
+    function nextQ() { qC++; rendQ(); }
+
+    // Video Logic (Unified)
+    let curVQ=null;
+    function initVid(id) {
+        const v=document.getElementById(`vid${id}`);
+        const qs=id===1 ? D.quizzes.general : D.quizzes.detailed;
+        
+        // Ensure sorted by time
+        qs.sort((a,b)=>a.time-b.time);
+        
+        upHud(id, qs); // Show first Q text
+
+        v.ontimeupdate = () => {
+            if(id===1) s.t1 = v.currentTime; else s.t2 = v.currentTime;
+            saveState();
+            const t=v.currentTime;
+            const i=id===1?s.v1:s.v2;
+            const sl=document.getElementById(`sk${id}`);
+            if(sl) sl.value=(t/v.duration)*100 || 0; 
+
+            if(i<qs.length) {
+                // Check if current time has passed question trigger time
+                if(t >= qs[i].time && !s.lock) { 
+                    v.pause(); 
+                    s.lock=true; 
+                    popVQ(id, qs[i]); 
+                }
+            }
+            
+            // Subtitle Sync
+            if(id===1) {
+                const subIdx = D.subtitles.findIndex(x=>t>=x.s && t<=x.e);
+                if(subIdx !== -1) {
+                    document.querySelectorAll('.sub-line').forEach(e=>e.classList.remove('active'));
+                    const el = document.getElementById(`sub-${subIdx}`);
+                    if(el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+                }
+            }
+            if(t >= v.duration - 0.5) showReview(id);
+        };
+    }
+
+    function upHud(id, qs) {
+        const i=id===1?s.v1:s.v2;
+        const h=document.getElementById(`hud${id}`);
+        if(i < qs.length) { h.style.display='block'; h.innerText = qs[i].q; } else { h.style.display='none'; }
+    }
+
+    function popVQ(id, q) {
+        curVQ=q;
+        // Reset Logic
+        document.getElementById(`fb${id}`).style.display='none';
+        document.getElementById(`ct${id}`).style.display='none';
+        document.getElementById(`rp${id}`).style.display='inline-block';
+        document.getElementById(`ol${id}`).style.display='flex';
+        
+        const cont = id===1 ? document.getElementById('v1-opts') : document.getElementById('v2-opts');
+        cont.innerHTML = q.opts.map((o,idx)=>
+            `<button class="opt-btn" onclick="ansUnified(${id}, ${idx}, ${q.ans})">${o}</button>`
+        ).join('');
+        
+        document.getElementById(id===1 ? 'v1-q' : 'v2-q').innerText = q.q;
+    }
+
+    function ansUnified(id, idx, corr) {
+        const cont = id===1 ? document.getElementById('v1-opts') : document.getElementById('v2-opts');
+        const btns = cont.querySelectorAll('.opt-btn');
+        btns.forEach(b => b.disabled=true);
+        
+        const isCorr = idx===corr;
+        if(isCorr) { 
+            btns[idx].classList.add('sel-correct'); 
+            s.vidsc+=5;
+        } else { 
+            btns[idx].classList.add('sel-wrong'); 
+            btns[corr].classList.add('sel-correct'); 
+        }
+        
+        showFeedback(id, isCorr);
+        const log = { q: curVQ.q, uAns: curVQ.opts[idx], cAns: curVQ.opts[corr], isC: isCorr, exp: curVQ.review };
+        if(id===1) s.logs1.push(log); else s.logs2.push(log);
+    }
+
+    function showFeedback(id, isCorr) {
+        const fb = document.getElementById(`fb${id}`);
+        fb.innerHTML = `<div style="font-weight:bold; font-size:1.1rem; margin-bottom:5px;">${isCorr ? '<i class="fas fa-check-circle" style="color:green;"></i> Correct!' : '<i class="fas fa-times-circle" style="color:red;"></i> Incorrect'}</div><div style="line-height:1.5;">${curVQ.review}</div>`;
+        fb.style.display='block';
+        document.getElementById(`ct${id}`).style.display='inline-block';
+        document.getElementById(`rp${id}`).style.display='none';
+        upUI(); saveState();
+    }
+
+    function resume(id) {
+        document.getElementById(`ol${id}`).style.display='none';
+        s.lock=false;
+        const v=document.getElementById(`vid${id}`);
+        if(id===1) s.v1++; else s.v2++;
+        const qs=id===1 ? D.quizzes.general : D.quizzes.detailed;
+        upHud(id, qs); 
+        v.play();
+        upUI(); saveState();
+    }
+
+    function replaySeg(id) {
+        const v=document.getElementById(`vid${id}`);
+        const start = (curVQ.replay && curVQ.replay.start) ? curVQ.replay.start : Math.max(0, v.currentTime - 15);
+        v.currentTime = start;
+        document.getElementById(`ol${id}`).style.display='none';
+        s.lock = false;
+        v.play();
+    }
+
+    function showReview(id) {
+        const el = document.getElementById(`rev${id}`);
+        const list = document.getElementById(`rev${id}-list`);
+        const logs = id===1 ? s.logs1 : s.logs2;
+        list.innerHTML = logs.map(l => `
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; padding:15px; border-radius:10px; margin-bottom:12px; border-left:4px solid ${l.isC?'#22C55E':'#EF4444'};">
+                <div style="font-weight:bold; margin-bottom:5px;">${l.q}</div>
+                <div style="font-size:0.9rem; color:#64748b;">Your Answer: <strong>${l.uAns}</strong> ${l.isC?'✅':'❌'}</div>
+                ${!l.isC ? `<div style="font-size:0.9rem; color:#64748b;">Correct: <strong>${l.cAns}</strong></div>` : ''}
+                <div style="background:#EEF2FF; color:var(--primary); padding:8px; border-radius:6px; font-size:0.85rem; margin-top:8px;"><i class="fas fa-lightbulb"></i> ${l.exp}</div>
+            </div>`).join('');
+        el.style.display = 'flex';
+        document.getElementById(`vid${id}`).pause();
+    }
+
+    function playVid(id){ const v=document.getElementById(`vid${id}`); const i=document.getElementById(`icon${id}`); v.paused?v.play():v.pause(); i.className=v.paused?'fas fa-play':'fas fa-pause'; }
+    function spd(id,v){ document.getElementById(`vid${id}`).playbackRate=v; }
+    function upUI(){ document.getElementById('u-score').innerText = s.lsc + s.qsc + s.vidsc; }
+    function saveState(alertUser){ localStorage.setItem(STORAGE_KEY, JSON.stringify({...s, sv:[...s.sv], lrn:[...s.lrn]})); if(alertUser) alert("Progress Saved!"); }
+    
+    function initSubs() {
+        const c=document.getElementById('subs1');
+        D.subtitles.forEach((x,i)=>{
+            const d=document.createElement('div'); d.className='sub-line'; d.id=`sub-${i}`;
+            const t = x.t.split(' ').map(w=>`<span class="w-click" onclick="ds('${w.replace(/[^\w]/g,'')}')">${w}</span>`).join(' ');
+            d.innerHTML=`<small style="color:#aaa; margin-right:8px; font-weight:400;">${Math.floor(x.s/60)}:${Math.floor(x.s%60).toString().padStart(2,'0')}</small>${t}`;
+            c.appendChild(d);
+        });
+    }
+    
+    async function ds(w) {
+        if(!w) return;
+        const p=document.getElementById('ds-pop'); p.style.display='block';
+        document.getElementById('ds-con').innerHTML='Thinking...';
+        try {
+            const r=await fetch("https://api.deepseek.com/v1/chat/completions", {
+                method:"POST", headers:{"Content-Type":"application/json", "Authorization":`Bearer ${C.deepseekKey}`},
+                body: JSON.stringify({model:"deepseek-chat", messages:[{role:"user", content:`Define "${w}" for B1 student. JSON: {cn, en, ex}`}], response_format:{type:"json_object"}})
+            });
+            const d=JSON.parse((await r.json()).choices[0].message.content);
+            document.getElementById('ds-con').innerHTML=`<div style="font-size:1.5rem; font-weight:800; margin-bottom:5px;">${w}</div><div style="font-size:1.1rem; color:var(--text-sub); margin-bottom:10px;">${d.cn}</div><div style="font-style:italic; color:#555; margin-bottom:15px; border-left:3px solid var(--accent); padding-left:10px;">${d.en}</div><div style="background:#f8fafc; padding:10px; border-radius:8px; color:var(--primary);"><i class="fas fa-quote-left"></i> ${d.ex}</div>`;
+        } catch(e) { document.getElementById('ds-con').innerText="Error fetching definition."; }
+    }
+
+    let si=0;
+    function slide(n){ 
+        const im=document.querySelectorAll('.slide-img'); 
+        im[si].style.display='none'; 
+        si=(si+n+im.length)%im.length; 
+        im[si].style.display='block'; 
+    }
+</script>
+</body>
+</html>
