@@ -670,39 +670,70 @@
         if(v) v.playbackRate = parseFloat(val);
     }
 
-    // 修复3: 苹果设备 (Safari/iOS) TTS 兼容方案
-    // 苹果限制了未经用户交互的语音播放，且对 Azure SDK 兼容性较差
+   
+// 修复3: 语音播放逻辑 (优先 Azure -> 降级为浏览器)
     function speak(t) {
         console.log("Speaking:", t);
         
-        // 优先使用原生的 SpeechSynthesis (苹果设备最稳)
+        // 1. 优先尝试 Azure (高质量)
+        // 检查是否有 SDK 且 Key 不为空 (且不是那个占位符 'YOUR_API_KEY')
+        if(window.SpeechSDK && AZ_KEY && AZ_KEY.length > 20) {
+            try {
+                const c = SpeechSDK.SpeechConfig.fromSubscription(AZ_KEY, AZ_REG);
+                c.speechSynthesisVoiceName = "en-GB-RyanNeural"; // 这里设定你喜欢的 Azure 声音
+                const s = new SpeechSDK.SpeechSynthesizer(c);
+                
+                s.speakTextAsync(
+                    t,
+                    result => {
+                        if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                            console.log("Azure speech synthesis finished.");
+                        } else {
+                            console.error("Azure cancelled: " + result.errorDetails);
+                            // 如果 Azure 出错 (比如 Key 既然不对)，转用浏览器
+                            fallbackToBrowser(t); 
+                        }
+                        s.close();
+                    },
+                    error => {
+                        console.error(error);
+                        s.close();
+                        fallbackToBrowser(t);
+                    }
+                );
+                return; // 如果成功调用 Azure，就结束函数，不再往下走
+            } catch (e) {
+                console.error("Azure setup failed:", e);
+            }
+        }
+
+        // 2. 降级方案：浏览器原生语音 (免费，兼容性好，但声音机械)
+        fallbackToBrowser(t);
+    }
+
+    function fallbackToBrowser(t) {
         if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // 停止当前播放
+            window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(t);
-            u.lang = 'en-US';
-            u.rate = 0.9;
+            u.lang = 'en-US'; // 或者 'en-GB'
+            u.rate = 1.0;     // 语速
             
-            // 尝试获取英文人声
+            // 尝试找好一点的浏览器声音
             const voices = window.speechSynthesis.getVoices();
-            const enVoice = voices.find(v => v.lang.includes('en') && v.name.includes('Samantha')) || voices.find(v => v.lang.includes('en'));
-            if(enVoice) u.voice = enVoice;
+            // 优先找 Google 或 Apple 的增强语音
+            const goodVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel'));
+            if(goodVoice) u.voice = goodVoice;
 
             window.speechSynthesis.speak(u);
-        } else if(window.SpeechSDK && AZ_KEY) {
-            // Azure 备选
-            const c = SpeechSDK.SpeechConfig.fromSubscription(AZ_KEY, AZ_REG);
-            c.speechSynthesisVoiceName = "en-GB-RyanNeural";
-            const s = new SpeechSDK.SpeechSynthesizer(c);
-            s.speakTextAsync(t);
         }
     }
-    
-    // 修复 iOS 无法静音自动播放的问题：在页面首次点击时激活音频上下文
-    document.addEventListener('click', function() {
-        if ('speechSynthesis' in window) {
-            const dummy = new SpeechSynthesisUtterance("");
-            window.speechSynthesis.speak(dummy);
-        }
+
+    // 解决 Chrome/iOS 首次加载语音列表为空的问题
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = function() {
+            window.speechSynthesis.getVoices();
+        };
+    }
     }, { once: true });
     </script>
     </body>
