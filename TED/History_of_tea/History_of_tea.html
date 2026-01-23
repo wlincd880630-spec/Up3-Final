@@ -1,0 +1,709 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The History of Tea</title>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --p: #A8783F;
+            --a: #7A5633;
+            --bg: #F5F0E1;
+            --card: #FFFFFF;
+            --txt: #333333;
+            --sub: #666666;
+            --rad: 12px;
+            --shd: 0 4px 20px rgba(0,0,0,0.1);
+            --f-head: 'Lora', serif;
+            --f-body: 'Open Sans', sans-serif;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; font-family: var(--f-body); background: var(--bg); color: var(--txt); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        h1, h2, h3, .brand { font-family: var(--f-head); }
+
+        .header { background: rgba(255,255,255,0.95); padding: 0 20px; height: 60px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .brand { font-weight: 800; font-size: 1.1rem; color: var(--p); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 70%; }
+        .score-pill { background: var(--bg); border: 1px solid var(--a); color: var(--p); padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; }
+
+        .page { display: none; height: 100%; flex-direction: column; overflow-y: auto; padding: 20px; animation: fadeIn 0.4s ease; }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .container { width: 100%; max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; min-height: 100%; }
+        #p1 .container, #p4 .container, #p7 .container { justify-content: center; align-items: center; }
+
+        .card { background: var(--card); border-radius: var(--rad); padding: 25px; box-shadow: var(--shd); border: 1px solid rgba(0,0,0,0.03); position: relative; }
+        .btn { background: var(--p); color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 1rem; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn-outline { background: transparent; border: 2px solid var(--p); color: var(--p); box-shadow: none; }
+        .btn-outline:hover { background: var(--bg); }
+
+        .vt-layout { display: flex; flex-direction: column; background: #000; border-radius: var(--rad); overflow: hidden; box-shadow: var(--shd); height: 100%; min-height: 500px; }
+        @media(min-width: 1024px) { .vt-layout { flex-direction: row; height: 75vh; } .vt-video-col { flex: 3; } .vt-sub-box { flex: 1; border-left: 1px solid #333; max-width: 400px; } }
+        .vt-video-col { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+        .vt-sub-box { background: white; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+        .sub-list { flex: 1; overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
+        .sub-line { padding: 10px; margin-bottom: 8px; border-radius: 6px; color: var(--sub); line-height: 1.6; border-left: 3px solid transparent; transition: 0.2s; }
+        .sub-line.active { background: #F8FAFC; color: var(--txt); font-weight: 600; border-left-color: var(--p); }
+        .w-click { cursor: pointer; padding: 2px; border-radius: 3px; transition: 0.1s; }
+        .w-click:hover { background: var(--a); color: white; }
+
+        .hud { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #fff; padding: 12px 25px; border-radius: 12px; font-weight: 500; font-size: 1rem; line-height: 1.4; pointer-events: none; z-index: 20; opacity: 0; transition: opacity 0.3s; border: 1px solid rgba(255,255,255,0.2); width: 80%; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .hud.show { opacity: 1; }
+
+        .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 50; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        .q-card { background: var(--card); width: 100%; max-width: 550px; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
+
+        .opt-btn { display: block; width: 100%; text-align: left; padding: 15px; margin-bottom: 10px; border: 2px solid #E5E7EB; border-radius: 10px; background: white; cursor: pointer; color: var(--text-main); font-weight: 500; transition: 0.2s; }
+        .opt-btn:hover:not(:disabled) { border-color: var(--p); background: #F9FAFB; }
+        .opt-btn.correct { background: #ECFDF5; border-color: #10B981; color: #065F46; }
+        .opt-btn.wrong { background: #FEF2F2; border-color: #EF4444; color: #991B1B; }
+
+        .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
+        .modal-box { background: white; width: 100%; max-width: 500px; border-radius: 20px; padding: 30px; position: relative; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .blur-txt { filter: blur(5px); opacity: 0.6; transition: 0.3s; cursor: pointer; user-select: none; }
+        .blur-txt:hover, .blur-txt.revealed { filter: none; opacity: 1; }
+
+        .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; width: 100%; }
+        .flashcard { background: var(--card); border-radius: 12px; padding: 20px; text-align: center; border: 1px solid rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); min-height: 160px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .flashcard:hover { transform: translateY(-5px); border-color: var(--p); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .flashcard.learned { background: #F0FDF4; border-color: #86EFAC; }
+        .flashcard .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; background: #F3F4F6; font-size: 0.7rem; color: #6B7280; text-transform: uppercase; font-weight: 700; margin-bottom: 10px; }
+
+        #ds-pop { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 3000; display: none; border: 1px solid #E5E7EB; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    </style>
+
+    <style>
+        /* 修复1: Overview 图片高度限制，确保文字和按钮不被挤出屏幕 */
+        .slide-container {
+            height: 250px !important; /* 固定高度，防止在大屏或手机上撑开太大 */
+            aspect-ratio: auto !important;
+        }
+        @media (max-width: 768px) {
+            .slide-container { height: 180px !important; }
+            .card { padding: 15px !important; }
+            h2 { font-size: 1.2rem !important; margin-bottom: 10px !important; }
+        }
+
+        /* 修复2: 移动端视频布局修复 */
+        @media (max-width: 1024px) {
+            .vt-layout {
+                flex-direction: column !important;
+                height: auto !important; /* 移动端高度自适应，不要死扣 75vh */
+                min-height: auto !important;
+            }
+            .vt-video-col {
+                width: 100% !important;
+                height: auto !important;
+                aspect-ratio: 16/9 !important; /* 强制视频列保持比例 */
+                flex: none !important;
+            }
+            .vt-sub-box {
+                width: 100% !important;
+                height: 300px !important; /* 移动端给字幕留出固定滚动区域 */
+                max-width: none !important;
+            }
+            body { overflow-y: auto !important; } /* 移动端允许全身滚动 */
+        }
+
+        /* 修复4: 倍速调节样式 */
+        .speed-control {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            padding: 2px 5px;
+            cursor: pointer;
+            outline: none;
+        }
+        .speed-control option { color: black; }
+    </style>
+    </head>
+<body>
+
+<div class="header">
+    <div class="brand"><i class="fas fa-play-circle"></i> The History of Tea</div>
+    <div style="display:flex; align-items:center; gap:10px;">
+        <button id="resume-btn-head" class="btn btn-sm btn-outline" style="display:none; padding:6px 12px; font-size:0.8rem;" onclick="resumeApp()">Resume</button>
+        <div class="score-pill"><i class="fas fa-star"></i> <span id="u-score">0</span></div>
+        <button class="btn btn-sm" style="padding:6px 12px; font-size:0.8rem;" onclick="saveState(true)"><i class="fas fa-save"></i></button>
+    </div>
+</div>
+
+<div id="p1" class="page active">
+    <div class="container">
+        <div class="card" style="text-align:center; width:100%; max-width:600px;">
+            <div style="font-size:4rem; color:var(--p); margin-bottom:15px;"><i class="fas fa-flag-checkered"></i></div>
+            <h1>Mission Start</h1>
+            <p style="color:var(--sub); margin-bottom:30px;">The History of Tea</p>
+            <div style="background:rgba(0,0,0,0.03); border-radius:12px; padding:20px; text-align:left; margin-bottom:30px; border:1px dashed var(--p);">
+                <h3 style="margin-top:0; font-size:1rem;">Rewards:</h3>
+                <div style="margin-bottom:5px;"><i class="fas fa-book-open" style="color:var(--p);"></i> Vocab (+2 pts)</div>
+                <div style="margin-bottom:5px;"><i class="fas fa-puzzle-piece" style="color:var(--p);"></i> Quiz (+/- 1 pt)</div>
+                <div><i class="fas fa-film" style="color:var(--p);"></i> Video (+5 pts)</div>
+            </div>
+            <input type="text" id="username" placeholder="Enter Name" style="width:100%; padding:15px; border-radius:10px; border:2px solid #E5E7EB; margin-bottom:20px; font-size:1rem; text-align:center;">
+            <button class="btn" style="width:100%; padding:15px; font-size:1.1rem;" onclick="startApp()">Start <i class="fas fa-arrow-right"></i></button>
+            <div style="margin-top:15px;"><button id="resume-btn-main" class="btn btn-outline" style="display:none; width:100%;" onclick="resumeApp()">Resume</button></div>
+        </div>
+    </div>
+</div>
+
+<div id="p2" class="page">
+    <div class="container">
+        <div class="card" style="height:100%; display:flex; flex-direction:column;">
+            <h2>Overview</h2>
+            <div class="slide-container" style="position:relative; aspect-ratio:16/9; background:#000; border-radius:12px; overflow:hidden; margin-bottom:20px; flex-shrink:0;">
+                
+                <div class="slide-img" style="display:block; width:100%; height:100%;">
+                    <img src="Video_Homework_img_1.jpg" style="width:100%; height:100%; object-fit:cover; opacity:0.8;">
+                    <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, rgba(0,0,0,0.9)); color:white; padding:20px;">Shennong, the divine farmer, discovering tea after being poisoned, ancient China.</div>
+                </div>
+                
+                <div class="slide-img" style="display:none; width:100%; height:100%;">
+                    <img src="Video_Homework_img_2.jpg" style="width:100%; height:100%; object-fit:cover; opacity:0.8;">
+                    <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, rgba(0,0,0,0.9)); color:white; padding:20px;">Ancient Chinese people preparing and drinking matcha tea during the Tang Dynasty.</div>
+                </div>
+                
+                <div class="slide-img" style="display:none; width:100%; height:100%;">
+                    <img src="Video_Homework_img_3.jpg" style="width:100%; height:100%; object-fit:cover; opacity:0.8;">
+                    <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, rgba(0,0,0,0.9)); color:white; padding:20px;">A Clipper Ship racing across the ocean, laden with tea cargo, 18th century.</div>
+                </div>
+                
+                <div class="slide-img" style="display:none; width:100%; height:100%;">
+                    <img src="Video_Homework_img_4.jpg" style="width:100%; height:100%; object-fit:cover; opacity:0.8;">
+                    <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, rgba(0,0,0,0.9)); color:white; padding:20px;">Robert Fortune disguised as a Chinese merchant, stealing tea plants from a mountain tea plantation.</div>
+                </div>
+                
+                <button onclick="slide(-1)" style="position:absolute; top:50%; left:10px; background:rgba(255,255,255,0.2); border:none; width:40px; height:40px; border-radius:50%; color:white; cursor:pointer;">❮</button>
+                <button onclick="slide(1)" style="position:absolute; top:50%; right:10px; background:rgba(255,255,255,0.2); border:none; width:40px; height:40px; border-radius:50%; color:white; cursor:pointer;">❯</button>
+            </div>
+            <div style="flex:1; overflow-y:auto;">
+                
+                <p style="line-height:1.7; margin-bottom:15px;">According to legend, tea was discovered when Shennong, a divine farmer, was poisoned and revived by a leaf. While tea doesn't cure poisonings, its importance to ancient China is undeniable. Archaeological evidence suggests tea cultivation began as early as 6000 years ago. <i class="fas fa-volume-up" style="color:var(--p); cursor:pointer; opacity:0.6;" onclick="speak('According to legend, tea was discovered when Shennong, a divine farmer, was poisoned and revived by a leaf. While tea doesn't cure poisonings, its importance to ancient China is undeniable. Archaeological evidence suggests tea cultivation began as early as 6000 years ago.')"></i></p>
+                
+                <p style="line-height:1.7; margin-bottom:15px;">Originally eaten as a vegetable or cooked with grain porridge, tea transitioned to a drink 1500 years ago. Heating and moisture unlocked its complex flavors, leading to the popular beverage mocha or matcha. This spurred a distinct Chinese tea culture with books, poetry, and even tea art. <i class="fas fa-volume-up" style="color:var(--p); cursor:pointer; opacity:0.6;" onclick="speak('Originally eaten as a vegetable or cooked with grain porridge, tea transitioned to a drink 1500 years ago. Heating and moisture unlocked its complex flavors, leading to the popular beverage mocha or matcha. This spurred a distinct Chinese tea culture with books, poetry, and even tea art.')"></i></p>
+                
+                <p style="line-height:1.7; margin-bottom:15px;">Tea spread to Japan in the 9th century and eventually to Europe via Dutch traders in the 1600s. It became highly valued, leading to the creation of Clipper Ships for faster transport. Britain initially paid for tea with silver, then opium, causing the Opium Wars and weakening China. <i class="fas fa-volume-up" style="color:var(--p); cursor:pointer; opacity:0.6;" onclick="speak('Tea spread to Japan in the 9th century and eventually to Europe via Dutch traders in the 1600s. It became highly valued, leading to the creation of Clipper Ships for faster transport. Britain initially paid for tea with silver, then opium, causing the Opium Wars and weakening China.')"></i></p>
+                
+                <p style="line-height:1.7; margin-bottom:15px;">The British East India Company sought to control tea production by smuggling tea trees and workers from China to India. Today, tea is the second most consumed beverage globally, prepared in diverse ways across cultures. <i class="fas fa-volume-up" style="color:var(--p); cursor:pointer; opacity:0.6;" onclick="speak('The British East India Company sought to control tea production by smuggling tea trees and workers from China to India. Today, tea is the second most consumed beverage globally, prepared in diverse ways across cultures.')"></i></p>
+                
+            </div>
+            <div style="text-align:right; margin-top:20px;"><button class="btn" onclick="toPage('p3')">Next: Vocab <i class="fas fa-arrow-right"></i></button></div>
+        </div>
+    </div>
+</div>
+
+<div id="p3" class="page">
+    <div class="container">
+        <div class="card">
+            <h2>Vocabulary</h2>
+            <div class="vocab-grid" id="v-grid"></div> 
+            <div style="text-align:center; margin-top:30px;"><button class="btn" onclick="toPage('p4')">Take Quiz <i class="fas fa-gamepad"></i></button></div>
+        </div>
+    </div>
+</div>
+
+<div id="p4" class="page">
+    <div class="container">
+        <div class="card" style="text-align:center; width:100%; max-width:600px;">
+            <div id="qz-setup">
+                <h2>Select Difficulty</h2>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:20px;">
+                    
+                    <button class="btn btn-outline" style="padding:20px;" onclick="startQuiz(0.3, 30)">
+                        <div style="font-weight:800; font-size:1.1rem;">Beginner</div>
+                        <div style="font-size:0.8rem; opacity:0.8;">Base: 30</div>
+                    </button>
+                    
+                    <button class="btn btn-outline" style="padding:20px;" onclick="startQuiz(0.5, 60)">
+                        <div style="font-weight:800; font-size:1.1rem;">Intermediate</div>
+                        <div style="font-size:0.8rem; opacity:0.8;">Base: 60</div>
+                    </button>
+                    
+                    <button class="btn btn-outline" style="padding:20px;" onclick="startQuiz(0.8, 100)">
+                        <div style="font-weight:800; font-size:1.1rem;">Advanced</div>
+                        <div style="font-size:0.8rem; opacity:0.8;">Base: 100</div>
+                    </button>
+                    
+                    <button class="btn btn-outline" style="padding:20px;" onclick="startQuiz(1.0, 140)">
+                        <div style="font-weight:800; font-size:1.1rem;">Expert</div>
+                        <div style="font-size:0.8rem; opacity:0.8;">Base: 140</div>
+                    </button>
+                    
+                </div>
+            </div>
+            <div id="qz-run" style="display:none; text-align:left;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                    <strong>Q <span id="q-idx">1</span></strong>
+                    <span style="color:var(--p); font-weight:800;">Score: <span id="q-score">0</span></span>
+                </div>
+                <div id="q-content"></div>
+                <div id="q-fb" style="display:none; margin-top:20px; padding:15px; background:#F8FAFC; border-radius:10px;"></div>
+                <button id="q-nxt" class="btn" style="width:100%; margin-top:20px; display:none;" onclick="nextQ()">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p5" class="page">
+    <div class="container" style="max-width:1400px; height:100%;">
+        <div class="vt-layout">
+            <div class="vt-video-col">
+                <div id="hud" class="hud">Loading...</div>
+                <video id="vid1" src="Video.mp4" playsinline></video>
+                <div id="ol1" class="overlay">
+                    <div class="q-card">
+                        <h3 id="v-q" style="color:var(--p);">Question</h3>
+                        <div id="v-opts" style="display:flex; flex-direction:column; gap:10px;"></div>
+                        <div id="v-fb" style="display:none; margin-top:20px; background:#F9FAFB; padding:15px; border-radius:10px; text-align:left;"></div>
+                        <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
+                            <button class="btn btn-outline" id="btn-rp" onclick="replaySeg()"><i class="fas fa-undo"></i> Replay</button>
+                            <button class="btn" id="btn-cont" onclick="resumeVid()" style="display:none;">Continue</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="rev1" class="overlay">
+                    <div class="q-card">
+                        <h2 style="color:var(--p);">Phase Complete</h2>
+                        <div id="rev-list" style="max-height:300px; overflow-y:auto; text-align:left; margin:20px 0;"></div>
+                        <button class="btn" onclick="nextPhase()">Next Phase <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                <div class="controls" style="position:absolute; bottom:0; left:0; width:100%; padding:15px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); display:flex; gap:15px; align-items:center;">
+                    <button class="btn btn-sm" style="background:white; color:black; border-radius:50%; width:36px; height:36px; padding:0;" onclick="togglePlay()"><i class="fas fa-play"></i></button>
+                    <input type="range" id="seek-bar" value="0" style="flex:1;">
+    <select class="speed-control" onchange="changeSpeed(this.value)">
+        <option value="0.75">慢速</option>
+        <option value="1.0" selected>常规</option>
+        <option value="1.25">较快</option>
+        <option value="1.5">快速</option>
+    </select>
+    
+                </div>
+            </div>
+            <div class="vt-sub-box">
+                <div style="padding:15px; border-bottom:1px solid #eee; font-weight:bold; color:var(--sub); font-size:0.9rem;">TRANSCRIPT <span style="font-weight:normal; font-size:0.8rem;">(Click to define)</span></div>
+                <div class="sub-list" id="sub-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p7" class="page">
+    <div class="container">
+        <div class="card" style="text-align:center; width:100%; max-width:600px;">
+            <div style="font-size:3rem; color:var(--a); margin-bottom:15px;"><i class="fas fa-trophy"></i></div>
+            <h1 style="color:var(--p);">Mission Report</h1>
+            <p>Great Job, <span id="r-name" style="font-weight:bold;">Agent</span>!</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin:30px 0;">
+                <div style="background:var(--bg); padding:15px; border-radius:10px;"><div id="r-voc" style="font-size:1.8rem; font-weight:800; color:var(--p);">0</div><div>Vocab</div></div>
+                <div style="background:var(--bg); padding:15px; border-radius:10px;"><div id="r-quiz" style="font-size:1.8rem; font-weight:800; color:var(--p);">0</div><div>Quiz</div></div>
+                <div style="background:var(--bg); padding:15px; border-radius:10px;"><div id="r-vid" style="font-size:1.8rem; font-weight:800; color:var(--p);">0</div><div>Video</div></div>
+                <div style="background:var(--bg); padding:15px; border-radius:10px;"><div id="r-time" style="font-size:1.8rem; font-weight:800; color:var(--p);">0m</div><div>Time</div></div>
+            </div>
+            <div id="r-total" style="font-size:3.5rem; font-weight:900; color:var(--a);">0</div>
+            <button class="btn" style="margin-top:30px; width:100%;" onclick="location.reload()">New Mission ↺</button>
+        </div>
+    </div>
+</div>
+
+<div id="mod-voc" class="modal-mask" onclick="clsVoc()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <button onclick="clsVoc()" style="position:absolute; top:15px; right:15px; border:none; background:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        <h2 style="color:var(--p); margin-top:0;" id="m-w">Word</h2>
+        <div style="margin-bottom:20px;">
+            <span id="m-type" style="background:#eee; padding:3px 8px; border-radius:4px; font-size:0.8rem; font-weight:bold;">TYPE</span>
+            <i class="fas fa-volume-up" style="cursor:pointer; color:var(--p); margin-left:10px;" onclick="speak(document.getElementById('m-w').innerText)"></i>
+        </div>
+        <p style="font-style:italic; color:#555;" id="m-def">Def...</p>
+        <p style="border-bottom:1px solid #eee; padding-bottom:15px;"><strong>CN:</strong> <span id="m-cn" class="blur-txt" onclick="this.classList.add('revealed')">CN</span></p>
+        <div style="background:#FFF7ED; padding:15px; border-radius:10px; margin-bottom:10px;">
+            <div style="font-size:0.7rem; font-weight:800; color:var(--p); margin-bottom:5px;">VIDEO</div>
+            <div style="margin-bottom:5px;">"<span id="m-vex"></span>" <i class="fas fa-volume-up" onclick="speak(document.getElementById('m-vex').innerText)"></i></div>
+            <div id="m-vcn" class="blur-txt" onclick="this.classList.add('revealed')">CN</div>
+        </div>
+        <div style="background:#F0FDF4; padding:15px; border-radius:10px;">
+            <div style="font-size:0.7rem; font-weight:800; color:#166534; margin-bottom:5px;">REAL LIFE</div>
+            <div style="margin-bottom:5px;">"<span id="m-lex"></span>" <i class="fas fa-volume-up" onclick="speak(document.getElementById('m-lex').innerText)"></i></div>
+            <div id="m-lcn" class="blur-txt" onclick="this.classList.add('revealed')">CN</div>
+        </div>
+    </div>
+</div>
+
+<div id="ds-pop">
+    <div style="background:var(--p); color:white; padding:10px 15px; font-weight:bold; display:flex; justify-content:space-between;"><span>AI Helper</span><span onclick="document.getElementById('ds-pop').style.display='none'" style="cursor:pointer;">&times;</span></div>
+    <div id="ds-con" style="padding:15px; max-height:250px; overflow-y:auto;">Thinking...</div>
+</div>
+
+<script>
+    const D = {"config": {"title": "The History of Tea", "theme": {"primary": "#2E7D32", "accent": "#A5D6A7", "bg_start": "#F1F8E9", "bg_end": "#DCEDC8"}, "quizTiers": [{"percent": 0.3, "base": 30, "label": "Beginner"}, {"percent": 0.5, "base": 60, "label": "Intermediate"}, {"percent": 0.8, "base": 100, "label": "Advanced"}, {"percent": 1.0, "base": 140, "label": "Expert"}], "videoFile": "Video.mp4", "azureKey": "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9", "azureRegion": "eastus2", "deepseekKey": "sk-daa16008e81843deba6fefe9dce51465", "ai_design": {"theme": {"primary": "#A8783F", "accent": "#7A5633", "bg_body": "#F5F0E1", "bg_card": "#FFFFFF", "text_main": "#333333", "text_sub": "#666666"}, "fonts": {"heading": "Lora", "body": "Open Sans"}, "style": {"radius": "12px", "shadow": "0 4px 20px rgba(0,0,0,0.1)"}}}, "reading": [{"text": "According to legend, tea was discovered when Shennong, a divine farmer, was poisoned and revived by a leaf. While tea doesn't cure poisonings, its importance to ancient China is undeniable. Archaeological evidence suggests tea cultivation began as early as 6000 years ago."}, {"text": "Originally eaten as a vegetable or cooked with grain porridge, tea transitioned to a drink 1500 years ago. Heating and moisture unlocked its complex flavors, leading to the popular beverage mocha or matcha. This spurred a distinct Chinese tea culture with books, poetry, and even tea art."}, {"text": "Tea spread to Japan in the 9th century and eventually to Europe via Dutch traders in the 1600s. It became highly valued, leading to the creation of Clipper Ships for faster transport. Britain initially paid for tea with silver, then opium, causing the Opium Wars and weakening China."}, {"text": "The British East India Company sought to control tea production by smuggling tea trees and workers from China to India. Today, tea is the second most consumed beverage globally, prepared in diverse ways across cultures."}], "images": [{"prompt": "Shennong, the divine farmer, discovering tea after being poisoned, ancient China.", "src": "Video_Homework_img_1.jpg"}, {"prompt": "Ancient Chinese people preparing and drinking matcha tea during the Tang Dynasty.", "src": "Video_Homework_img_2.jpg"}, {"prompt": "A Clipper Ship racing across the ocean, laden with tea cargo, 18th century.", "src": "Video_Homework_img_3.jpg"}, {"prompt": "Robert Fortune disguised as a Chinese merchant, stealing tea plants from a mountain tea plantation.", "src": "Video_Homework_img_4.jpg"}], "vocab": [{"id": 0, "w": "roaming", "type": "general", "en_def": "moving about aimlessly or unsystematically, especially over a wide area", "cn": "\u6f2b\u6e38", "vid_ex": "During a long day spent roaming the forest, the farmer poisoned himself.", "vid_cn": "\u5728\u6f2b\u957f\u7684\u4e00\u5929\u6f2b\u6e38\u68ee\u6797\u671f\u95f4\uff0c\u519c\u6c11\u6bd2\u5bb3\u4e86\u81ea\u5df1\u3002", "life_ex": "The cattle are free to roam the hills.", "life_cn": "\u725b\u53ef\u4ee5\u81ea\u7531\u5730\u5728\u5c71\u4e18\u4e0a\u6f2b\u6e38\u3002"}, {"id": 1, "w": "edible", "type": "general", "en_def": "safe or fit to be eaten", "cn": "\u53ef\u98df\u7528\u7684", "vid_ex": "He searched the forest in search of edible grains and herbs.", "vid_cn": "\u4ed6\u5728\u68ee\u6797\u91cc\u5bfb\u627e\u53ef\u4ee5\u98df\u7528\u7684\u8c37\u7269\u548c\u8349\u836f\u3002", "life_ex": "Are these mushrooms edible?", "life_cn": "\u8fd9\u4e9b\u8611\u83c7\u53ef\u4ee5\u98df\u7528\u5417\uff1f"}, {"id": 2, "w": "weary", "type": "general", "en_def": "feeling or showing tiredness, especially as a result of excessive exertion", "cn": "\u75b2\u5026\u7684", "vid_ex": "The weary divine farmer accidentally poisoned himself.", "vid_cn": "\u75b2\u60eb\u7684\u795e\u519c\u4e0d\u5c0f\u5fc3\u6bd2\u5bb3\u4e86\u81ea\u5df1\u3002", "life_ex": "I'm weary after a long day at work.", "life_cn": "\u7ecf\u8fc7\u4e00\u5929\u7684\u5de5\u4f5c\uff0c\u6211\u611f\u5230\u5f88\u75b2\u5026\u3002"}, {"id": 3, "w": "divine", "type": "general", "en_def": "of, from, or like God or a god", "cn": "\u795e\u5723\u7684", "vid_ex": "The weary divine farmer accidentally poisoned himself 72 times.", "vid_cn": "\u75b2\u60eb\u7684\u795e\u519c\u4e0d\u5c0f\u5fc3\u6bd2\u5bb3\u4e86\u81ea\u5df172\u6b21\u3002", "life_ex": "Some people believe in divine intervention.", "life_cn": "\u6709\u4e9b\u4eba\u76f8\u4fe1\u795e\u5723\u7684\u5e72\u9884\u3002"}, {"id": 4, "w": "revived", "type": "general", "en_def": "restore to life or consciousness", "cn": "\u590d\u6d3b", "vid_ex": "He chewed on the leaf, and it revived him.", "vid_cn": "\u4ed6\u56bc\u4e86\u56bc\u53f6\u5b50\uff0c\u5b83\u4f7f\u4ed6\u590d\u6d3b\u4e86\u3002", "life_ex": "A cup of coffee can revive you in the morning.", "life_cn": "\u65e9\u4e0a\u559d\u4e00\u676f\u5496\u5561\u53ef\u4ee5\u8ba9\u4f60\u7cbe\u795e\u7115\u53d1\u3002"}, {"id": 5, "w": "mythical", "type": "general", "en_def": "occurring in or characteristic of myths or folk tales", "cn": "\u795e\u8bdd\u7684", "vid_ex": "The story of Shen Nong, the mythical Chinese inventor of agriculture, highlights tea's importance.", "vid_cn": "\u795e\u519c\u7684\u6545\u4e8b\uff0c\u8fd9\u4f4d\u795e\u8bdd\u4e2d\u7684\u4e2d\u56fd\u519c\u4e1a\u53d1\u660e\u5bb6\uff0c\u7a81\u51fa\u4e86\u8336\u7684\u91cd\u8981\u6027\u3002", "life_ex": "Unicorns are mythical creatures.", "life_cn": "\u72ec\u89d2\u517d\u662f\u795e\u8bdd\u751f\u7269\u3002"}, {"id": 6, "w": "agriculture", "type": "general", "en_def": "the science or practice of farming, including cultivation of the soil for the growing of crops and the rearing of animals to provide food, wool, and other products", "cn": "\u519c\u4e1a", "vid_ex": "Shen Nong is the mythical Chinese inventor of agriculture.", "vid_cn": "\u795e\u519c\u662f\u795e\u8bdd\u4e2d\u7684\u4e2d\u56fd\u519c\u4e1a\u53d1\u660e\u5bb6\u3002", "life_ex": "Agriculture is a vital part of the economy.", "life_cn": "\u519c\u4e1a\u662f\u7ecf\u6d4e\u7684\u91cd\u8981\u7ec4\u6210\u90e8\u5206\u3002"}, {"id": 7, "w": "archaeological", "type": "general", "en_def": "relating to the study of human history and prehistory through the excavation of sites and the analysis of artifacts and other physical remains", "cn": "\u8003\u53e4\u7684", "vid_ex": "Archaeological evidence suggests tea was first cultivated there as early as 6000 years ago.", "vid_cn": "\u8003\u53e4\u8bc1\u636e\u8868\u660e\uff0c\u8336\u65e9\u57286000\u5e74\u524d\u5c31\u5728\u90a3\u91cc\u79cd\u690d\u3002", "life_ex": "The museum has an extensive archaeological collection.", "life_cn": "\u535a\u7269\u9986\u62e5\u6709\u4e30\u5bcc\u7684\u8003\u53e4\u6536\u85cf\u3002"}, {"id": 8, "w": "cultivated", "type": "general", "en_def": "try to acquire or develop (a quality, sentiment, or skill)", "cn": "\u683d\u57f9", "vid_ex": "Archaeological evidence suggests tea was first cultivated there as early as 6000 years ago.", "vid_cn": "\u8003\u53e4\u8bc1\u636e\u8868\u660e\uff0c\u8336\u65e9\u57286000\u5e74\u524d\u5c31\u5728\u90a3\u91cc\u79cd\u690d\u3002", "life_ex": "She cultivated a love of classical music.", "life_cn": "\u5979\u57f9\u517b\u4e86\u5bf9\u53e4\u5178\u97f3\u4e50\u7684\u70ed\u7231\u3002"}, {"id": 9, "w": "consumed", "type": "general", "en_def": "eat, drink, or ingest (food or drink)", "cn": "\u6d88\u8017", "vid_ex": "That original Chinese tea plant is the same type that's grown around the world today, yet it was originally consumed very differently.", "vid_cn": "\u90a3\u68f5\u6700\u521d\u7684\u4e2d\u56fd\u8336\u6811\u4e0e\u4eca\u5929\u5728\u4e16\u754c\u5404\u5730\u79cd\u690d\u7684\u8336\u6811\u7c7b\u578b\u76f8\u540c\uff0c\u4f46\u6700\u521d\u7684\u98df\u7528\u65b9\u5f0f\u5374\u5927\u4e0d\u76f8\u540c\u3002", "life_ex": "He consumed a large pizza by himself.", "life_cn": "\u4ed6\u81ea\u5df1\u5403\u4e86\u4e00\u4e2a\u5927\u62ab\u8428\u3002"}, {"id": 10, "w": "shifted", "type": "general", "en_def": "move or cause to move from one place to another, especially over a small distance", "cn": "\u8f6c\u79fb", "vid_ex": "Tea only shifted from food to drink 1500 years ago.", "vid_cn": "\u8336\u57281500\u5e74\u524d\u624d\u4ece\u98df\u7269\u8f6c\u53d8\u4e3a\u996e\u6599\u3002", "life_ex": "The wind shifted direction.", "life_cn": "\u98ce\u5411\u8f6c\u53d8\u4e86\u3002"}, {"id": 11, "w": "varied", "type": "general", "en_def": "incorporating a number of different types or elements; showing variation or variety", "cn": "\u5404\u79cd\u5404\u6837\u7684", "vid_ex": "A combination of heat and moisture could create a complex and varied taste.", "vid_cn": "\u70ed\u91cf\u548c\u6c34\u5206\u7684\u7ed3\u5408\u53ef\u4ee5\u521b\u9020\u51fa\u590d\u6742\u591a\u6837\u7684\u5473\u9053\u3002", "life_ex": "The restaurant offers a varied menu.", "life_cn": "\u8fd9\u5bb6\u9910\u5385\u63d0\u4f9b\u5404\u79cd\u5404\u6837\u7684\u83dc\u5355\u3002"}, {"id": 12, "w": "variations", "type": "general", "en_def": "a change or difference in condition, amount, or level, typically within certain limits", "cn": "\u53d8\u5316", "vid_ex": "After hundreds of years of variations to the preparation method, the standard became to heat tea packet into portable cakes.", "vid_cn": "\u7ecf\u8fc7\u6570\u767e\u5e74\u7684\u5236\u5907\u65b9\u6cd5\u53d8\u5316\uff0c\u6807\u51c6\u53d8\u6210\u4e86\u5c06\u8336\u53f6\u5305\u52a0\u70ed\u6210\u4fbf\u643a\u5f0f\u86cb\u7cd5\u3002", "life_ex": "There are many variations of this recipe.", "life_cn": "\u8fd9\u4e2a\u98df\u8c31\u6709\u5f88\u591a\u53d8\u4f53\u3002"}, {"id": 13, "w": "portable", "type": "general", "en_def": "able to be easily carried or moved, especially because of being made in a lightweight and compact form", "cn": "\u4fbf\u643a\u5f0f\u7684", "vid_ex": "The standard became to heat tea packet into portable cakes.", "vid_cn": "\u6807\u51c6\u53d8\u6210\u4e86\u5c06\u8336\u53f6\u5305\u52a0\u70ed\u6210\u4fbf\u643a\u5f0f\u86cb\u7cd5\u3002", "life_ex": "I have a portable charger for my phone.", "life_cn": "\u6211\u6709\u4e00\u4e2a\u624b\u673a\u7684\u4fbf\u643a\u5f0f\u5145\u7535\u5668\u3002"}, {"id": 14, "w": "distinct", "type": "general", "en_def": "recognizably different in nature from something else of a similar type", "cn": "\u72ec\u7279\u7684", "vid_ex": "Matcha became so popular that a distinct Chinese tea culture emerged.", "vid_cn": "\u62b9\u8336\u53d8\u5f97\u975e\u5e38\u53d7\u6b22\u8fce\uff0c\u4ee5\u81f3\u4e8e\u51fa\u73b0\u4e86\u4e00\u79cd\u72ec\u7279\u7684\u4e2d\u56fd\u8336\u6587\u5316\u3002", "life_ex": "She has a distinct voice.", "life_cn": "\u5979\u6709\u4e00\u4e2a\u72ec\u7279\u7684\u58f0\u97f3\u3002"}, {"id": 15, "w": "emerged", "type": "general", "en_def": "move out of or away from something and become visible", "cn": "\u51fa\u73b0", "vid_ex": "Matcha became so popular that a distinct Chinese tea culture emerged.", "vid_cn": "\u62b9\u8336\u53d8\u5f97\u975e\u5e38\u53d7\u6b22\u8fce\uff0c\u4ee5\u81f3\u4e8e\u51fa\u73b0\u4e86\u4e00\u79cd\u72ec\u7279\u7684\u4e2d\u56fd\u8336\u6587\u5316\u3002", "life_ex": "The sun emerged from behind the clouds.", "life_cn": "\u592a\u9633\u4ece\u4e91\u540e\u51fa\u73b0\u3002"}, {"id": 16, "w": "extravagant", "type": "general", "en_def": "lacking restraint in spending money or using resources", "cn": "\u5962\u4f88\u7684", "vid_ex": "They would draw extravagant pictures in the foam of the tea.", "vid_cn": "\u4ed6\u4eec\u4f1a\u5728\u8336\u7684\u6ce1\u6cab\u4e2d\u753b\u51fa\u5962\u4f88\u7684\u56fe\u753b\u3002", "life_ex": "They lived an extravagant lifestyle.", "life_cn": "\u4ed6\u4eec\u8fc7\u7740\u5962\u4f88\u7684\u751f\u6d3b\u3002"}, {"id": 17, "w": "rituals", "type": "general", "en_def": "a religious or solemn ceremony consisting of a series of actions performed according to a prescribed order", "cn": "\u4eea\u5f0f", "vid_ex": "The Japanese eventually developed their own unique rituals around tea.", "vid_cn": "\u65e5\u672c\u4eba\u6700\u7ec8\u53d1\u5c55\u4e86\u81ea\u5df1\u72ec\u7279\u7684\u8336\u9053\u4eea\u5f0f\u3002", "life_ex": "The ceremony was full of ancient rituals.", "life_cn": "\u4eea\u5f0f\u5145\u6ee1\u4e86\u53e4\u8001\u7684\u4eea\u5f0f\u3002"}, {"id": 18, "w": "virtual", "type": "general", "en_def": "almost or nearly as described, but not completely or according to strict definition", "cn": "\u865a\u62df\u7684", "vid_ex": "China still held a virtual monopoly on the world's tea trees.", "vid_cn": "\u4e2d\u56fd\u4ecd\u7136\u5784\u65ad\u7740\u4e16\u754c\u4e0a\u7684\u8336\u6811\u3002", "life_ex": "The company has a virtual office.", "life_cn": "\u8be5\u516c\u53f8\u6709\u4e00\u4e2a\u865a\u62df\u529e\u516c\u5ba4\u3002"}, {"id": 19, "w": "monopoly", "type": "general", "en_def": "the exclusive possession or control of the supply of or trade in a commodity or service", "cn": "\u5784\u65ad", "vid_ex": "China still held a virtual monopoly on the world's tea trees.", "vid_cn": "\u4e2d\u56fd\u4ecd\u7136\u5784\u65ad\u7740\u4e16\u754c\u4e0a\u7684\u8336\u6811\u3002", "life_ex": "The company has a monopoly on the market.", "life_cn": "\u8be5\u516c\u53f8\u5784\u65ad\u4e86\u5e02\u573a\u3002"}, {"id": 20, "w": "essential", "type": "general", "en_def": "absolutely necessary; extremely important", "cn": "\u5fc5\u4e0d\u53ef\u5c11\u7684", "vid_ex": "Tea is one of three essential Chinese export goods.", "vid_cn": "\u8336\u662f\u4e2d\u56fd\u4e09\u5927\u5fc5\u9700\u51fa\u53e3\u5546\u54c1\u4e4b\u4e00\u3002", "life_ex": "Water is essential for survival.", "life_cn": "\u6c34\u662f\u751f\u5b58\u5fc5\u4e0d\u53ef\u5c11\u7684\u3002"}, {"id": 21, "w": "influence", "type": "general", "en_def": "the capacity to have an effect on the character, development, or behavior of someone or something, or the effect itself", "cn": "\u5f71\u54cd", "vid_ex": "This gave China a great deal of power and economic influence.", "vid_cn": "\u8fd9\u7ed9\u4e86\u4e2d\u56fd\u5f88\u5927\u7684\u6743\u529b\u548c\u7ecf\u6d4e\u5f71\u54cd\u529b\u3002", "life_ex": "She has a strong influence on her friends.", "life_cn": "\u5979\u5bf9\u5979\u7684\u670b\u53cb\u6709\u5f88\u5927\u7684\u5f71\u54cd\u3002"}, {"id": 22, "w": "earnest", "type": "general", "en_def": "resulting from or showing sincere and intense conviction", "cn": "\u8ba4\u771f\u7684", "vid_ex": "That spread began in earnest around the early 1600s, when Dutch traders brought tea to Europe in large quantities.", "vid_cn": "\u8fd9\u79cd\u4f20\u64ad\u5927\u7ea6\u572817\u4e16\u7eaa\u521d\u5f00\u59cb\u8ba4\u771f\u8fdb\u884c\uff0c\u5f53\u65f6\u8377\u5170\u8d38\u6613\u5546\u5927\u91cf\u5c06\u8336\u5e26\u5230\u6b27\u6d32\u3002", "life_ex": "He made an earnest attempt to apologize.", "life_cn": "\u4ed6\u8ba4\u771f\u5730\u5c1d\u8bd5\u9053\u6b49\u3002"}, {"id": 23, "w": "aristocracy", "type": "general", "en_def": "the highest class in certain societies, typically those holding hereditary titles or offices", "cn": "\u8d35\u65cf", "vid_ex": "She made tea popular with the English aristocracy.", "vid_cn": "\u5979\u4f7f\u8336\u5728\u82f1\u56fd\u8d35\u65cf\u4e2d\u5f88\u53d7\u6b22\u8fce\u3002", "life_ex": "The aristocracy held great power.", "life_cn": "\u8d35\u65cf\u638c\u63e1\u7740\u5de8\u5927\u7684\u6743\u529b\u3002"}, {"id": 24, "w": "dominant", "type": "general", "en_def": "most important, powerful, or influential", "cn": "\u4e3b\u8981\u7684", "vid_ex": "Great Britain was in the midst of expanding its colonial influence and becoming the new dominant world power.", "vid_cn": "\u5927\u4e0d\u5217\u98a0\u6b63\u5904\u4e8e\u6269\u5927\u5176\u6b96\u6c11\u5f71\u54cd\u5e76\u6210\u4e3a\u65b0\u7684\u4e3b\u5bfc\u4e16\u754c\u529b\u91cf\u7684\u8fc7\u7a0b\u4e2d\u3002", "life_ex": "The company is a dominant player in the industry.", "life_cn": "\u8be5\u516c\u53f8\u662f\u8be5\u884c\u4e1a\u7684\u4e3b\u8981\u53c2\u4e0e\u8005\u3002"}, {"id": 25, "w": "lucrative", "type": "general", "en_def": "producing a great deal of profit", "cn": "\u6709\u5229\u53ef\u56fe\u7684", "vid_ex": "The tea trade was so lucrative that the world's fastest sailboat, the Clipper Ship, was born.", "vid_cn": "\u8336\u53f6\u8d38\u6613\u975e\u5e38\u6709\u5229\u53ef\u56fe\uff0c\u4ee5\u81f3\u4e8e\u4e16\u754c\u4e0a\u6700\u5feb\u7684\u5e06\u8239\uff0c\u5feb\u8239\uff0c\u8bde\u751f\u4e86\u3002", "life_ex": "He has a lucrative business.", "life_cn": "\u4ed6\u6709\u4e00\u9879\u6709\u5229\u53ef\u56fe\u7684\u751f\u610f\u3002"}, {"id": 26, "w": "intense", "type": "general", "en_def": "of extreme force, degree, or strength", "cn": "\u5f3a\u70c8\u7684", "vid_ex": "The world's fastest sailboat was born out of intense competition between Western trading companies.", "vid_cn": "\u4e16\u754c\u4e0a\u6700\u5feb\u7684\u5e06\u8239\u662f\u897f\u65b9\u8d38\u6613\u516c\u53f8\u4e4b\u95f4\u6fc0\u70c8\u7ade\u4e89\u7684\u4ea7\u7269\u3002", "life_ex": "The heat was intense.", "life_cn": "\u5929\u6c14\u975e\u5e38\u708e\u70ed\u3002"}, {"id": 27, "w": "maximize", "type": "general", "en_def": "make as large or great as possible", "cn": "\u6700\u5927\u5316", "vid_ex": "To maximize their profits, at first Britain paid for all this Chinese tea with silver.", "vid_cn": "\u4e3a\u4e86\u6700\u5927\u5316\u4ed6\u4eec\u7684\u5229\u6da6\uff0c\u8d77\u521d\u82f1\u56fd\u7528\u767d\u94f6\u652f\u4ed8\u4e86\u6240\u6709\u8fd9\u4e9b\u4e2d\u56fd\u8336\u3002", "life_ex": "We need to maximize our resources.", "life_cn": "\u6211\u4eec\u9700\u8981\u6700\u5927\u5316\u6211\u4eec\u7684\u8d44\u6e90\u3002"}, {"id": 28, "w": "triggered", "type": "general", "en_def": "cause (an event or situation) to happen or exist", "cn": "\u89e6\u53d1", "vid_ex": "This triggered a public health problem within China.", "vid_cn": "\u8fd9\u5728\u4e2d\u56fd\u5f15\u53d1\u4e86\u516c\u5171\u5065\u5eb7\u95ee\u9898\u3002", "life_ex": "The alarm was triggered by smoke.", "life_cn": "\u8b66\u62a5\u662f\u7531\u70df\u96fe\u89e6\u53d1\u7684\u3002"}, {"id": 29, "w": "official", "type": "general", "en_def": "relating to an authority or public body and its activities or responsibilities", "cn": "\u5b98\u65b9\u7684", "vid_ex": "A Chinese official ordered his men to destroy massive British shipments of opium.", "vid_cn": "\u4e00\u4f4d\u4e2d\u56fd\u5b98\u5458\u547d\u4ee4\u4ed6\u7684\u90e8\u4e0b\u6467\u6bc1\u5927\u91cf\u7684\u82f1\u56fd\u9e26\u7247\u8d27\u7269\u3002", "life_ex": "The official report will be released tomorrow.", "life_cn": "\u5b98\u65b9\u62a5\u544a\u5c06\u4e8e\u660e\u5929\u53d1\u5e03\u3002"}, {"id": 30, "w": "massive", "type": "general", "en_def": "exceptionally large", "cn": "\u5de8\u5927\u7684", "vid_ex": "A Chinese official ordered his men to destroy massive British shipments of opium.", "vid_cn": "\u4e00\u4f4d\u4e2d\u56fd\u5b98\u5458\u547d\u4ee4\u4ed6\u7684\u90e8\u4e0b\u6467\u6bc1\u5927\u91cf\u7684\u82f1\u56fd\u9e26\u7247\u8d27\u7269\u3002", "life_ex": "The building is massive.", "life_cn": "\u8fd9\u5ea7\u5efa\u7b51\u7269\u662f\u5de8\u5927\u7684\u3002"}, {"id": 31, "w": "ceded", "type": "general", "en_def": "give up (power or territory)", "cn": "\u5272\u8ba9", "vid_ex": "The defeated Qing dynasty ceded the port of Hong Kong to the British.", "vid_cn": "\u6218\u8d25\u7684\u6e05\u671d\u5c06\u9999\u6e2f\u6e2f\u53e3\u5272\u8ba9\u7ed9\u82f1\u56fd\u3002", "life_ex": "They ceded control of the company.", "life_cn": "\u4ed6\u4eec\u653e\u5f03\u4e86\u5bf9\u516c\u53f8\u7684\u63a7\u5236\u6743\u3002"}, {"id": 32, "w": "unfavorable", "type": "general", "en_def": "expressing a negative judgment", "cn": "\u4e0d\u5229\u7684", "vid_ex": "The Qing dynasty ceded the port of Hong Kong to the British and resumed trading on unfavorable terms.", "vid_cn": "\u6e05\u671d\u5c06\u9999\u6e2f\u6e2f\u53e3\u5272\u8ba9\u7ed9\u82f1\u56fd\uff0c\u5e76\u4ee5\u4e0d\u5229\u7684\u6761\u4ef6\u6062\u590d\u8d38\u6613\u3002", "life_ex": "The weather is unfavorable for sailing.", "life_cn": "\u5929\u6c14\u4e0d\u5229\u4e8e\u822a\u884c\u3002"}, {"id": 33, "w": "commissioned", "type": "general", "en_def": "formally choose (someone) to do a particular job", "cn": "\u59d4\u6258", "vid_ex": "The British East India Company commissioned botanist Robert Fortune to steal tea from China.", "vid_cn": "\u82f1\u56fd\u4e1c\u5370\u5ea6\u516c\u53f8\u59d4\u6258\u690d\u7269\u5b66\u5bb6\u7f57\u4f2f\u7279\u00b7\u798f\u743c\u4ece\u4e2d\u56fd\u7a83\u53d6\u8336\u53f6\u3002", "life_ex": "The city commissioned a new statue.", "life_cn": "\u8fd9\u5ea7\u57ce\u5e02\u59d4\u6258\u5efa\u9020\u4e86\u4e00\u5ea7\u65b0\u96d5\u50cf\u3002"}, {"id": 34, "w": "covert", "type": "general", "en_def": "not openly acknowledged or displayed", "cn": "\u79d8\u5bc6\u7684", "vid_ex": "They commissioned botanist Robert Fortune to steal tea from China in a covert operation.", "vid_cn": "\u4ed6\u4eec\u59d4\u6258\u690d\u7269\u5b66\u5bb6\u7f57\u4f2f\u7279\u00b7\u798f\u743c\u79d8\u5bc6\u884c\u52a8\u4ece\u4e2d\u56fd\u7a83\u53d6\u8336\u53f6\u3002", "life_ex": "The intelligence agency is involved in covert operations.", "life_cn": "\u60c5\u62a5\u673a\u6784\u53c2\u4e0e\u79d8\u5bc6\u884c\u52a8\u3002"}], "quizzes": {"general": [{"time": 25.67, "type": "choice", "q": "According to the legend, what accidentally led to the discovery of tea?", "opts": ["Shennong consuming a leaf after poisoning himself.", "The Pharaohs building the Great Pyramids of Giza.", "Dutch traders bringing tea to Europe.", "Queen Catherine popularizing tea in England."], "ans": 0, "review": "The legend says that Shennong discovered tea after consuming a leaf that revived him from poisoning.", "replay": {"start": 16.68, "end": 25.67}}, {"time": 89.42, "type": "choice", "q": "What was the result of Matcha's popularity?", "opts": ["The creation of loose leaf tea.", "The emergence of a distinct Chinese tea culture.", "The invention of the Clipper Ship.", "The First Opium War."], "ans": 1, "review": "Matcha's popularity led to the emergence of a distinct Chinese tea culture.", "replay": {"start": 85.35, "end": 89.42}}, {"time": 157.35, "type": "choice", "q": "Who is credited with popularizing tea among the English aristocracy?", "opts": ["Robert Fortune", "The Dutch traders", "Queen Catherine of Braganza", "The Chinese emperor"], "ans": 2, "review": "Queen Catherine of Braganza is credited with popularizing tea among the English aristocracy.", "replay": {"start": 147.45, "end": 157.35}}, {"time": 244.07, "type": "choice", "q": "Why did the British East India Company commission Robert Fortune?", "opts": ["To destroy British shipments of opium.", "To create the Clipper Ship.", "To bring tea to Europe in large quantities.", "To steal tea from China and grow it themselves."], "ans": 3, "review": "The British East India Company commissioned Robert Fortune to steal tea from China and grow it themselves.", "replay": {"start": 232.31, "end": 244.07}}], "detailed": [{"time": 38.03, "type": "true/false", "q": "The story of Shennong is the true origin of tea's discovery.", "opts": ["true", "false"], "ans": 1, "review": "While the story of Shennong is a popular legend, the transcript indicates that it is not the true origin of tea's discovery.", "replay": {"start": 29.43, "end": 38.03}}, {"time": 47.74, "type": "cloze", "q": "Archaeological evidence suggests tea was first cultivated in China approximately ______ years ago.", "opts": ["6000", "3000"], "ans": 0, "review": "Archaeological evidence suggests tea was first cultivated in China approximately 6000 years ago.", "replay": {"start": 38.55, "end": 47.74}}, {"time": 84.59, "type": "choice", "q": "What did the preparation method become after hundreds of years of variations?", "opts": ["Drinking tea with milk and sugar", "Heating tea packet into portable cakes", "Loose leaf tea", "Espresso art"], "ans": 1, "review": "After hundreds of years of variations, the standard became to heat tea packet into portable cakes, grind it into powder, mix with hot water and create a beverage called mocha or matcha.", "replay": {"start": 70.75, "end": 84.59}}, {"time": 124.12, "type": "true/false", "q": "In the 14th century, the Chinese emperor shifted the standard from loose leaf tea to tea cakes.", "opts": ["true", "false"], "ans": 1, "review": "In the 14th century, during the Ming dynasty, the Chinese emperor shifted the standard from tea cakes to loose leaf tea, not the other way around.", "replay": {"start": 115.19, "end": 124.12}}, {"time": 147.45, "type": "cloze", "q": "Tea drinking began to spread in earnest when ______ traders brought tea to Europe in the early 1600s.", "opts": ["Dutch", "British"], "ans": 0, "review": "Tea drinking began to spread in earnest around the early 1600s, when Dutch traders brought tea to Europe in large quantities.", "replay": {"start": 140.7, "end": 147.45}}, {"time": 198.79, "type": "choice", "q": "What did Britain suggest trading tea for when paying with silver became too expensive?", "opts": ["Porcelain", "Silk", "Opium", "Gold"], "ans": 2, "review": "To maximize their profits, at first Britain paid for all this Chinese tea with silver. When that proved too expensive, they suggested trading tea for another substance, opium.", "replay": {"start": 193.11, "end": 198.79}}, {"time": 254.19, "type": "cloze", "q": "Robert Fortune smuggled tea trees and experienced tea workers into ______ , India.", "opts": ["Darjeeling", "Bombay"], "ans": 0, "review": "Robert Fortune smuggled tea trees and experienced tea workers into Darjeeling, India.", "replay": {"start": 244.07, "end": 254.19}}, {"time": 274.07, "type": "choice", "q": "What is the ranking of tea in the world in terms of most consumed beverage?", "opts": ["First", "Second", "Third", "Fourth"], "ans": 1, "review": "Tea is the second most consumed beverage in the world after water.", "replay": {"start": 261.23, "end": 274.07}}]}, "subtitles": [{"s": 7.07, "e": 16.68, "t": "During a long day spent roaming the forest in search of edible grains and herbs, the weary divine farmer Shennong accidentally poisoned himself 72 times."}, {"s": 16.68, "e": 21.27, "t": "But before the poisons could end his life, a leaf drifted into his mouth."}, {"s": 21.27, "e": 23.53, "t": "He chewed on it, and it revived him."}, {"s": 23.53, "e": 25.67, "t": "And that is how we discovered tea."}, {"s": 26.47, "e": 28.71, "t": "Or so an ancient legend goes, at least."}, {"s": 29.43, "e": 38.03, "t": "T doesn't actually cure poisonings, but the story of Shen Nong, the mythical Chinese inventor of agriculture, highlights tea's importance to ancient China."}, {"s": 38.55, "e": 47.74, "t": "Archaeological evidence suggests tea was first cultivated there as early as 6000 years ago, or 1500 years before the Pharaohs built the Great Pyramids of Giza."}, {"s": 47.74, "e": 55.48, "t": "That original Chinese tea plant is the same type that's grown around the world today, yet it was originally consumed very differently."}, {"s": 55.48, "e": 58.83, "t": "It was eaten as a vegetable or cooked with grain porridge."}, {"s": 59.27, "e": 70.75, "t": "Tea only shifted from food to drink 1500 years ago when people realized that a combination of heat and moisture could create a complex and varied taste out of the leafy green."}, {"s": 70.75, "e": 84.59, "t": "After hundreds of years of variations to the preparation method, the standard became to heat tea packet into portable cakes, grind it into powder, mix with hot water and create a beverage called mocha or matcha."}, {"s": 85.35, "e": 89.42, "t": "Matcha became so popular that a distinct Chinese tea culture emerged."}, {"s": 89.42, "e": 95.14, "t": "Tea was the subject of books and poetry, the favorite drink of emperors and a medium for artists."}, {"s": 95.14, "e": 102.75, "t": "They would draw extravagant pictures in the foam of the tea, very much like the espresso art you might see in coffee shops today."}, {"s": 102.75, "e": 108.52, "t": "In the 9th century, during the Tang Dynasty, a Japanese monk brought the first tea plant to Japan."}, {"s": 108.52, "e": 115.07, "t": "The Japanese eventually developed their own unique rituals around tea, leading to the creation of the Japanese."}, {"s": 115.19, "e": 124.12, "t": "Ceremony And in the 14th century, during the Ming dynasty, the Chinese emperor shifted the standard from tea Preston to cakes to loose leaf tea."}, {"s": 124.12, "e": 134.23, "t": "At that point, China still held a virtual monopoly on the world's tea trees, making tea one of three essential Chinese export goods, along with porcelain and silk."}, {"s": 134.71, "e": 140.7, "t": "This gave China a great deal of power and economic influence as tea drinking spread around the world."}, {"s": 140.7, "e": 147.45, "t": "That spread began in earnest around the early 1600s, when Dutch traders brought tea to Europe in large quantities."}, {"s": 147.45, "e": 157.35, "t": "Many credit Queen Catherine of Braganza, a Portuguese noblewoman, for making tea popular with the English aristocracy when she married King Charles the Second in 1661."}, {"s": 157.79, "e": 164.95, "t": "At the time, Great Britain was in the midst of expanding its colonial influence and becoming the new dominant world power."}, {"s": 164.95, "e": 168.89, "t": "And as Great Britain grew, interest in tea spread around the world."}, {"s": 168.89, "e": 175.11, "t": "By 1700, tea in Europe sold for 10 times the price of coffee, and the plant was still only grown in China."}, {"s": 175.11, "e": 184.15, "t": "The tea trade was so lucrative that the world's fastest sailboat, the Clipper Ship, was born out of intense competition between Western trading companies."}, {"s": 184.15, "e": 187.44, "t": "All were racing to bring their tea back to Europe first."}, {"s": 187.55, "e": 193.11, "t": "To maximize their profits, at first Britain paid for all this Chinese tea with silver."}, {"s": 193.11, "e": 198.79, "t": "When that proved too expensive, they suggested trading tea for another substance, opium."}, {"s": 199.55, "e": 203.95, "t": "This triggered a public health problem within China as people became addicted to the drug."}, {"s": 204.63, "e": 213.6, "t": "Then, in 1839, a Chinese official ordered his men to destroy massive British shipments of opium as a statement against Britain's influence over China."}, {"s": 213.6, "e": 217.36, "t": "This act triggered the First Opium War between the two nations."}, {"s": 217.36, "e": 227.64, "t": "Fighting raged up and down the Chinese coast until 1842, when the defeated Qing dynasty ceded the port of Hong Kong to the British and resumed trading on unfavorable terms."}, {"s": 227.64, "e": 231.23, "t": "The war weakened China's global standing for over a century."}, {"s": 232.31, "e": 244.07, "t": "The British East India Company also wanted to be able to grow tea themselves and further control the market, so they commissioned botanist Robert Fortune to steal tea from China in a covert operation."}, {"s": 244.07, "e": 254.19, "t": "He disguised himself and took a perilous journey through China's mountainous tea regions, eventually smuggling tea trees and experienced tea workers into Darjeeling, India."}, {"s": 254.63, "e": 260.55, "t": "From there, the plants spread further still, helping drive Tea's rapid growth as an everyday commodity."}, {"s": 261.23, "e": 274.07, "t": "Today, tea is the second most consumed beverage in the world after water, and from sugary Turkish Risa tea to salty Tibetan butter tea, there are almost as many ways of preparing the beverage as there are cultures on the globe."}, {"s": 284.92, "e": 297.88, "t": ""}]};
+    const C = D.config;
+    const AZ_KEY = "4DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9";
+    const AZ_REG = "eastus2";
+    let s = { u:"", score:0, lsc:0, qsc:0, vidsc:0, sv:new Set(), lrn:new Set(), pg:'p1', lock:false, t:0 };
+    const STORAGE_KEY = 'vt_course_final_v3';
+
+    window.onload = () => {
+        // Fix for Resume Button Visibility
+        const hasSave = localStorage.getItem(STORAGE_KEY);
+        if(hasSave) {
+            const btnMain = document.getElementById('resume-btn-main');
+            const btnHead = document.getElementById('resume-btn-head');
+            if(btnMain) btnMain.style.display = 'inline-block';
+            if(btnHead) btnHead.style.display = 'inline-block';
+        }
+        initSubs();
+        genVocabGrid();
+    };
+    
+    // Auto-Save Strategy
+    window.addEventListener('beforeunload', () => saveState(false));
+    document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') saveState(false); });
+
+    function startApp() { s.u = document.getElementById('username').value; toPage('p2'); }
+    
+    function resumeApp() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if(!raw) return;
+            const saved = JSON.parse(raw);
+            
+            // Restore State
+            s = {...s, ...saved, sv: new Set(saved.sv), lrn: new Set(saved.lrn)};
+            if(s.u) document.getElementById('username').value = s.u;
+            upUI();
+            
+            // UI Restore
+            s.lrn.forEach(i => document.getElementById(`vc-${i}`)?.classList.add('learned'));
+            toPage(s.pg);
+            
+            // Video Resume Logic
+            if(s.pg === 'p5' || s.pg === 'p6') {
+                const vid = document.getElementById(s.pg === 'p5' ? 'vid1' : 'vid2');
+                const t = s.t || 0;
+                // Defer seek until loaded
+                if(vid.readyState >= 1) vid.currentTime = t;
+                else vid.onloadedmetadata = () => { vid.currentTime = t; };
+            }
+        } catch(e){ console.error(e); }
+    }
+
+    function toPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        s.pg = id; 
+        saveState();
+        if(id === 'p5') initVid(1);
+        if(id === 'p6') initVid(2);
+        if(id === 'p7') genReport();
+    }
+
+    function genVocabGrid() {
+        const grid = document.getElementById('v-grid');
+        if(!D.vocab || D.vocab.length === 0) {
+            grid.innerHTML = "<p>No vocabulary loaded.</p>";
+            return;
+        }
+        grid.innerHTML = D.vocab.map((v,i) => `
+            <div class="flashcard" id="vc-${i}" onclick="openVoc(${i})">
+                <div class="tag">${v.type}</div>
+                <div style="font-size:1.3rem; font-weight:800; margin:15px 0;">${v.w}</div>
+                <div style="color:var(--sub); font-size:0.9rem;">${v.en_def.substring(0,30)}...</div>
+            </div>
+        `).join('');
+    }
+    
+    function openVoc(i) {
+        const v = D.vocab[i];
+        document.getElementById('mod-voc').style.display = 'flex';
+        document.getElementById('m-w').innerText = v.w;
+        document.getElementById('m-def').innerText = v.en_def;
+        document.getElementById('m-cn').innerText = v.cn;
+        document.getElementById('m-vex').innerText = v.vid_ex;
+        document.getElementById('m-vcn').innerText = v.vid_cn;
+        document.getElementById('m-lex').innerText = v.life_ex;
+        document.getElementById('m-lcn').innerText = v.life_cn;
+        document.querySelectorAll('.blur-txt').forEach(e => e.classList.remove('revealed'));
+        speak(v.w);
+        if(!s.lrn.has(i)) { s.lrn.add(i); s.lsc+=2; upUI(); saveState(); document.getElementById(`vc-${i}`).classList.add('learned'); }
+    }
+    function clsVoc() { document.getElementById('mod-voc').style.display='none'; }
+
+    // Quiz
+    let qQ = [], qC = 0;
+    function getDistractors(w) {
+        const l = w.length;
+        if(l < 3) return [w+'s', w+'e', w+'a'];
+        let d1 = w.replace(w[l-1], w[l-1]+'e');
+        let d2 = w.substring(0, l-1);
+        let d3 = w.replace(w[0], String.fromCharCode(w.charCodeAt(0)+1));
+        return [d1, d2, d3];
+    }
+
+    function startQuiz(pct, base) {
+        s.qsc += base; upUI();
+        const n = Math.ceil(D.vocab.length * pct);
+        const pool = [...D.vocab].sort(()=>0.5-Math.random()).slice(0,n);
+        qQ = pool.map(v => {
+            const rand = Math.random();
+            let type = 'def', txt = v.en_def, opts = [];
+            if(rand < 0.33) {
+                type = 'spell';
+                txt = `<div style='text-align:center; padding:20px;'><button class='btn btn-outline' style='font-size:1.5rem; padding:20px;' onclick="speak('${v.w}')"><i class='fas fa-volume-up'></i> Listen</button></div>`;
+                opts = [v.w, ...getDistractors(v.w)].sort(()=>0.5-Math.random());
+            } else if(rand < 0.66) {
+                type = 'def';
+                opts = [v, ...D.vocab.filter(x=>x.id!==v.id).sort(()=>0.5-Math.random()).slice(0,3)].map(x=>x.w).sort(()=>0.5-Math.random());
+            } else {
+                type = 'cloze';
+                txt = `"${v.life_ex.replace(new RegExp(v.w, 'gi'), '_____')}"`;
+                opts = [v, ...D.vocab.filter(x=>x.id!==v.id).sort(()=>0.5-Math.random()).slice(0,3)].map(x=>x.w).sort(()=>0.5-Math.random());
+            }
+            const review = `
+                <div style="text-align:left; background:white; padding:15px; border-radius:10px; border:1px solid #eee;">
+                    <h3 style="margin:0; color:var(--p);">${v.w}</h3>
+                    <p><strong>${v.cn}</strong>: ${v.en_def}</p>
+                    <p style="background:#f0fdf4; padding:5px; color:#166534;">Ex: ${v.life_ex}</p>
+                </div>
+            `;
+            return { txt: txt, opts: opts, ans: v.w, rev: review };
+        });
+        qC = 0;
+        document.getElementById('qz-setup').style.display='none';
+        document.getElementById('qz-run').style.display='block';
+        rendQ();
+    }
+
+    function rendQ() {
+        if(qC >= qQ.length) { alert("Quiz Complete!"); toPage('p5'); return; }
+        const q = qQ[qC];
+        document.getElementById('q-idx').innerText = qC + 1;
+        document.getElementById('q-fb').style.display = 'none';
+        document.getElementById('q-nxt').style.display = 'none';
+        let h = `<div style="font-size:1.2rem; margin-bottom:20px; font-weight:500;">${q.txt}</div>`;
+        q.opts.forEach(o => {
+            h += `<button class="opt-btn" onclick="chkQ(this, '${o}', '${q.ans}')">${o}</button>`;
+        });
+        document.getElementById('q-content').innerHTML = h;
+    }
+
+    function chkQ(btn, sel, ans) {
+        const q = qQ[qC];
+        document.querySelectorAll('#q-content .opt-btn').forEach(b => b.disabled = true);
+        if(sel === ans) {
+            btn.classList.add('correct'); s.qsc += 2;
+            document.getElementById('q-fb').innerHTML = `<strong style="color:green; font-size:1.2rem;">Correct!</strong><br>${q.rev}`;
+        } else {
+            btn.classList.add('wrong'); s.qsc -= 1;
+            document.getElementById('q-fb').innerHTML = `<strong style="color:red; font-size:1.2rem;">Incorrect.</strong><br>${q.rev}`;
+        }
+        document.getElementById('q-fb').style.display = 'block';
+        document.getElementById('q-nxt').style.display = 'block';
+        upUI(); saveState();
+    }
+    function nextQ() { qC++; rendQ(); }
+
+    // Video
+    let curQ = null, qIdx = 0, logs = [];
+    function initVid(id) {
+        const v = document.getElementById(`vid${id}`);
+        const qs = id === 1 ? D.quizzes.general : D.quizzes.detailed;
+        if(qs) qs.sort((a,b) => a.time - b.time);
+        
+        // 🔥 RESUME: FAST FORWARD LOGIC 🔥
+        // Advance qIdx to match current time
+        const startT = s.t || 0;
+        qIdx = 0;
+        while(qIdx < qs.length && qs[qIdx].time <= startT) {
+            qIdx++;
+        }
+        
+        document.getElementById(`ol${id}`).style.display = 'none';
+        document.getElementById(`rev${id}`).style.display = 'none';
+        
+        if(qIdx < qs.length) {
+            document.getElementById('hud').innerText = "Next: " + qs[qIdx].q;
+            document.getElementById('hud').classList.add('show');
+        } else {
+            document.getElementById('hud').classList.remove('show');
+        }
+
+        v.ontimeupdate = () => {
+            s.t = v.currentTime;
+            document.getElementById('seek-bar').value = (v.currentTime / v.duration) * 100 || 0;
+            
+            if(qIdx < qs.length) {
+                if(v.currentTime >= qs[qIdx].time && !s.lock) {
+                    v.pause(); s.lock = true; popVQ(id, qs[qIdx]); qIdx++;
+                    document.getElementById('hud').classList.remove('show');
+                }
+            }
+            if(v.currentTime >= v.duration - 0.5) showRev(id);
+        };
+        
+        // Save on Pause
+        v.onpause = () => saveState(false);
+    }
+
+    function popVQ(id, q) {
+        curQ = q;
+        document.getElementById(`ol${id}`).style.display = 'flex';
+        document.getElementById('v-q').innerText = q.q;
+        document.getElementById('v-fb').style.display = 'none';
+        document.getElementById('btn-cont').style.display = 'none';
+        document.getElementById('btn-rp').style.display = 'inline-block';
+        document.getElementById('v-opts').innerHTML = q.opts.map((o,i) => 
+            `<button class="opt-btn" onclick="ansV(this, ${i}, ${q.ans})">${o}</button>`
+        ).join('');
+    }
+
+    function ansV(btn, idx, ans) {
+        document.querySelectorAll('#v-opts .opt-btn').forEach(b => b.disabled = true);
+        const isC = idx === ans;
+        if(isC) { btn.classList.add('correct'); s.vidsc += 5; } else { btn.classList.add('wrong'); }
+        document.getElementById('v-fb').innerHTML = `<div>${isC?'✅ Correct':'❌ Incorrect'}</div><small>${curQ.review}</small>`;
+        document.getElementById('v-fb').style.display = 'block';
+        document.getElementById('btn-cont').style.display = 'inline-block';
+        document.getElementById('btn-rp').style.display = 'none';
+        logs.push({q:curQ.q, c:isC, a: curQ.opts[ans], r: curQ.review});
+        upUI(); saveState();
+    }
+
+    function replaySeg() {
+        const v = document.querySelector('.page.active video');
+        v.currentTime = curQ.replay.start;
+        document.querySelector('.page.active .overlay').style.display = 'none';
+        s.lock = false;
+        if(qIdx > 0) qIdx--; 
+        document.getElementById('hud').innerText = "Replaying: " + curQ.q;
+        document.getElementById('hud').classList.add('show');
+        v.play();
+    }
+    
+    function resumeVid() {
+        document.querySelector('.page.active .overlay').style.display = 'none';
+        s.lock = false;
+        const id = s.pg === 'p5' ? 1 : 2;
+        const qs = id === 1 ? D.quizzes.general : D.quizzes.detailed;
+        if(qIdx < qs.length) {
+            document.getElementById('hud').innerText = "Next: " + qs[qIdx].q;
+            document.getElementById('hud').classList.add('show');
+        } else {
+            document.getElementById('hud').innerText = "Section Complete";
+        }
+        document.querySelector('.page.active video').play();
+    }
+
+    function showRev(id) {
+        document.getElementById(`rev${id}`).style.display = 'flex';
+        document.getElementById('rev-list').innerHTML = logs.map(l => `
+            <div style="padding:15px; background:#f9f9f9; border-radius:8px; margin-bottom:10px; border-left:4px solid ${l.c?'green':'red'}; text-align:left;">
+                <div style="font-weight:bold; font-size:0.95rem; margin-bottom:5px;">${l.q}</div>
+                <div style="font-size:0.85rem; color:#666; margin-bottom:5px;">Correct Answer: ${l.a}</div>
+                <div style="font-size:0.85rem; background:#fff; padding:5px; border:1px solid #eee;">${l.r}</div>
+            </div>
+        `).join('');
+    }
+
+    function togglePlay() { const v = document.querySelector('.page.active video'); v.paused ? v.play() : v.pause(); }
+    function playVid(id) { const v = document.getElementById(`vid${id}`); v.paused ? v.play() : v.pause(); }
+    function upUI() { document.querySelectorAll('#u-score').forEach(e => e.innerText = s.lsc + s.qsc + s.vidsc); }
+    function saveState(a) { localStorage.setItem(STORAGE_KEY, JSON.stringify({...s, sv:[...s.sv], lrn:[...s.lrn]})); if(a) alert("Saved!"); }
+    function genReport() { document.getElementById('r-total').innerText = s.lsc + s.qsc + s.vidsc; }
+    
+    function initSubs() {
+        const c = document.getElementById('sub-list');
+        D.subtitles.forEach((x,i) => {
+            const d = document.createElement('div'); d.className = 'sub-line'; d.id = `sub-${i}`;
+            const html = x.t.split(' ').map(w => `<span class="w-click" onclick="ds('${w.replace(/[^a-zA-Z]/g,'')}')">${w}</span>`).join(' ');
+            d.innerHTML = `<small style="color:var(--sub); margin-right:10px;">${Math.floor(x.s/60)}:${Math.floor(x.s%60).toString().padStart(2,'0')}</small>${html}`;
+            c.appendChild(d);
+        });
+    }
+    async function ds(w) {
+        if(!w) return;
+        document.getElementById('ds-pop').style.display = 'block';
+        document.getElementById('ds-con').innerText = 'Thinking...';
+        try {
+            const r = await fetch("https://api.deepseek.com/v1/chat/completions", {
+                method: "POST", headers: {"Content-Type": "application/json", "Authorization": `Bearer ${C.deepseekKey}`},
+                body: JSON.stringify({model: "deepseek-chat", messages: [{role: "user", content: `Define "${w}" simply. JSON: {cn, en}`}], response_format:{type:"json_object"}})
+            });
+            const d = JSON.parse((await r.json()).choices[0].message.content);
+            document.getElementById('ds-con').innerHTML = `<strong>${w}</strong><br>${d.cn}<br><small>${d.en}</small>`;
+        } catch(e) { document.getElementById('ds-con').innerText = "AI Error"; }
+    }
+    function speak(t) {
+        if(window.SpeechSDK && AZ_KEY) {
+            const c = SpeechSDK.SpeechConfig.fromSubscription(AZ_KEY, AZ_REG);
+            c.speechSynthesisVoiceName = "en-GB-RyanNeural";
+            const s = new SpeechSDK.SpeechSynthesizer(c);
+            s.speakTextAsync(t);
+        } else { const u = new SpeechSynthesisUtterance(t); window.speechSynthesis.speak(u); }
+    }
+    let si = 0;
+    function slide(d) {
+        const imgs = document.querySelectorAll('.slide-img');
+        imgs[si].style.display = 'none';
+        si = (si + d + imgs.length) % imgs.length;
+        imgs[si].style.display = 'block';
+    }
+    function nextPhase() { toPage('p7'); }
+</script>
+
+    <script>
+    // 修复4: 倍速逻辑
+    function changeSpeed(val) {
+        const v = document.querySelector('.page.active video');
+        if(v) v.playbackRate = parseFloat(val);
+    }
+
+    // 修复3: 苹果设备 (Safari/iOS) TTS 兼容方案
+    // 苹果限制了未经用户交互的语音播放，且对 Azure SDK 兼容性较差
+    function speak(t) {
+        console.log("Speaking:", t);
+        
+        // 优先使用原生的 SpeechSynthesis (苹果设备最稳)
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // 停止当前播放
+            const u = new SpeechSynthesisUtterance(t);
+            u.lang = 'en-US';
+            u.rate = 0.9;
+            
+            // 尝试获取英文人声
+            const voices = window.speechSynthesis.getVoices();
+            const enVoice = voices.find(v => v.lang.includes('en') && v.name.includes('Samantha')) || voices.find(v => v.lang.includes('en'));
+            if(enVoice) u.voice = enVoice;
+
+            window.speechSynthesis.speak(u);
+        } else if(window.SpeechSDK && AZ_KEY) {
+            // Azure 备选
+            const c = SpeechSDK.SpeechConfig.fromSubscription(AZ_KEY, AZ_REG);
+            c.speechSynthesisVoiceName = "en-GB-RyanNeural";
+            const s = new SpeechSDK.SpeechSynthesizer(c);
+            s.speakTextAsync(t);
+        }
+    }
+    
+    // 修复 iOS 无法静音自动播放的问题：在页面首次点击时激活音频上下文
+    document.addEventListener('click', function() {
+        if ('speechSynthesis' in window) {
+            const dummy = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(dummy);
+        }
+    }, { once: true });
+    </script>
+    </body>
+</html>
