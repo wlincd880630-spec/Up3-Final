@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Terracotta Army: Emperor Qin's Afterlife Guard</title>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Thematic Colors: Terracotta & Ancient China */
+            --primary: #8B4513;       /* Terracotta Clay */
+            --primary-hover: #A0522D;
+            --accent: #D4AF37;        /* Imperial Gold */
+            --bg-body: #F5F5DC;       /* Beige/Parchment */
+            --bg-card: #FFFFFF;
+            --text-main: #2C3E50;     /* Charcoal */
+            --text-sub: #5D6D7E;      /* Slate Grey */
+            --border-color: #E5E0D8;
+            
+            /* Spacing & Radius */
+            --radius-md: 8px;
+            --radius-xl: 16px;
+            --shadow-card: 0 10px 30px rgba(139, 69, 19, 0.1);
+            --shadow-hover: 0 15px 35px rgba(139, 69, 19, 0.15);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            margin: 0; 
+            font-family: 'Lato', sans-serif; 
+            background: var(--bg-body);
+            color: var(--text-main); 
+            height: 100vh; height: 100dvh; 
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        h1, h2, h3, .brand { font-family: 'Cinzel', serif; }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 0 24px; height: 64px; 
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--accent);
+            z-index: 100; flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .brand { font-weight: 700; font-size: 1.1rem; color: var(--primary); letter-spacing: 1px; text-transform: uppercase; }
+        .brand i { margin-right: 8px; color: var(--accent); }
+        
+        .score-pill { 
+            background: #FFF8E1; 
+            border: 1px solid var(--accent);
+            color: var(--primary); 
+            padding: 6px 16px; 
+            border-radius: 20px; 
+            font-weight: 700; 
+            font-size: 0.9rem; 
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        /* Page Layout */
+        .page { 
+            display: none; height: 100%; flex-direction: column; 
+            overflow-y: auto; padding: 20px; 
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
+        }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .container { 
+            width: 100%; max-width: 1100px; margin: 0 auto; 
+            display: flex; flex-direction: column; gap: 24px; flex: 1; 
+        }
+
+        /* Modern Cards */
+        .card { 
+            background: var(--bg-card); 
+            border-radius: var(--radius-xl); 
+            padding: 32px; 
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-color);
+            display: flex; flex-direction: column;
+            position: relative;
+            transition: transform 0.2s ease;
+        }
+        
+        /* Typography */
+        h1 { font-size: 2.2rem; margin: 0 0 1rem 0; color: var(--primary); border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 10px; }
+        h2 { font-size: 1.6rem; margin-bottom: 1.5rem; color: var(--text-main); position: relative; }
+        p { line-height: 1.8; font-size: 1.05rem; color: var(--text-main); margin-bottom: 1rem; }
+
+        /* Buttons */
+        .btn { 
+            background: var(--primary); 
+            color: white; border: none; 
+            padding: 14px 28px; border-radius: 8px; 
+            font-weight: 600; cursor: pointer; 
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px; 
+            font-size: 1rem; letter-spacing: 0.5px; text-transform: uppercase;
+            transition: all 0.2s ease; 
+            box-shadow: 0 4px 6px rgba(139, 69, 19, 0.2);
+        }
+        .btn:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 6px 12px rgba(139, 69, 19, 0.3); }
+        .btn:active { transform: scale(0.98); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); box-shadow: none; }
+        .btn-outline:hover { background: #FFF5E5; transform: translateY(-1px); }
+        .btn-sm { padding: 8px 16px; font-size: 0.85rem; border-radius: 6px; text-transform: none; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; filter: grayscale(100%); }
+
+        /* Input */
+        input[type=text] {
+            width: 100%; padding: 18px; 
+            border: 2px solid #E5E0D8; border-radius: 12px; 
+            font-size: 1.1rem; text-align: center; 
+            transition: 0.2s; font-family: inherit;
+        }
+        input[type=text]:focus { border-color: var(--primary); outline: none; background: #FFFBFB; }
+
+        /* Video Layout (Responsive) */
+        .vt-layout { 
+            display: flex; flex-direction: column; 
+            background: #1a1a1a; border-radius: var(--radius-xl); 
+            overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            min-height: 60vh;
+        }
+        @media (min-width: 1024px) { 
+            .vt-layout { flex-direction: row; height: 75vh; max-height: 800px; } 
+            .vt-video-col { flex: 2; }
+            .vt-sub-box { width: 380px; border-left: 1px solid #333; }
+        }
+
+        .vt-video-col { 
+            position: relative; flex: 1; 
+            background: #000; display: flex; align-items: center; justify-content: center; 
+            min-height: 300px;
+        }
+        video { width: 100%; height: 100%; object-fit: contain; }
+        
+        /* Subtitles Area */
+        .vt-sub-box { 
+            background: #fff; display: flex; flex-direction: column; 
+            height: 40vh; /* Mobile height */
+        }
+        @media (min-width: 1024px) { .vt-sub-box { height: auto; } }
+
+        .sub-list { flex: 1; overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
+        .sub-line { 
+            padding: 10px 14px; margin-bottom: 8px; border-radius: 8px; 
+            color: var(--text-sub); font-size: 1rem; line-height: 1.6; 
+            transition: all 0.2s; border-left: 3px solid transparent;
+        }
+        .sub-line:hover { background: #F8FAFC; }
+        .sub-line.active { 
+            background: #FFF5E5; color: var(--text-main); 
+            font-weight: 600; border-left-color: var(--primary); 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+        .w-click { cursor: pointer; border-bottom: 1px dashed transparent; transition: 0.1s; }
+        .w-click:hover { color: var(--primary); border-bottom-color: var(--primary); font-weight: bold; }
+
+        /* HUD & Controls */
+        .hud { 
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); 
+            color: #D4AF37; padding: 12px 24px; border-radius: 4px; 
+            font-weight: 600; font-size: 1rem; letter-spacing: 0.5px;
+            z-index: 30; pointer-events: none; border: 1px solid rgba(212, 175, 55, 0.3);
+            text-align: center; width: 90%; max-width: 600px; display: none;
+        }
+        .controls { 
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); 
+            padding: 20px; display: flex; gap: 16px; align-items: center; z-index: 30;
+        }
+        input[type=range] { flex: 1; height: 5px; border-radius: 5px; accent-color: var(--primary); cursor: pointer; }
+        .spd-sel { 
+            background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; cursor: pointer; 
+        }
+        .spd-sel option { color: #000; }
+
+        /* Overlays (Quiz) */
+        .overlay { 
+            position: absolute; inset: 0; 
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); 
+            z-index: 50; display: none; 
+            flex-direction: column; justify-content: center; align-items: center; 
+            padding: 20px; 
+        }
+        .q-card { 
+            background: white; width: 100%; max-width: 550px; 
+            padding: 40px; border-radius: 4px; 
+            text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+            max-height: 90vh; overflow-y: auto; border-top: 4px solid var(--primary);
+        }
+
+        /* Interactive Elements */
+        .opt-btn {
+            display: block; width: 100%; text-align: left; padding: 16px 20px; 
+            margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 4px;
+            background: white; font-size: 1rem; cursor: pointer; transition: 0.2s;
+            color: var(--text-main);
+        }
+        .opt-btn:hover:not(:disabled) { border-color: var(--primary); background: #FFF5E5; }
+        .opt-btn.sel-correct { background: #F0FDF4; border-color: #22C55E; color: #14532D; font-weight: 600; }
+        .opt-btn.sel-wrong { background: #FEF2F2; border-color: #EF4444; color: #7F1D1D; }
+
+        /* Image Slider */
+        .slide-container {
+            position: relative; height: 0; padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            background: #E2E8F0; border-radius: var(--radius-xl); overflow: hidden; 
+            margin-bottom: 25px; box-shadow: inset 0 0 20px rgba(0,0,0,0.05); border: 2px solid var(--border-color);
+        }
+        .slide-img { position: absolute; top:0; left:0; width:100%; height:100%; display: none; }
+        .slide-img img { width: 100%; height: 100%; object-fit: cover; }
+        .slide-caption {
+            position: absolute; bottom: 0; width: 100%; 
+            background: linear-gradient(transparent, rgba(0,0,0,0.9)); 
+            color: #FFF; padding: 40px 20px 20px 20px; 
+            font-size: 1rem; font-weight: 500; line-height: 1.4; border-bottom: 4px solid var(--accent);
+        }
+        .slider-nav {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: rgba(0,0,0,0.6); width: 44px; height: 44px;
+            border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; color: white; transition: 0.2s;
+        }
+        .slider-nav:hover { background: var(--primary); border-color: var(--primary); }
+
+        /* Vocab Grid */
+        .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
+        .flashcard { 
+            background: white; border-radius: 8px; padding: 24px 20px; text-align: center;
+            border: 1px solid var(--border-color); cursor: pointer; min-height: 180px; 
+            display: flex; flex-direction: column; justify-content: center; position: relative; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: all 0.25s ease;
+        }
+        .flashcard:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); border-color: var(--primary); }
+        .flashcard.learned { background: #F5FFE5; border-color: #86EFAC; }
+        .flashcard .tag { 
+            position: absolute; top: 12px; left: 12px; 
+            font-size: 0.65rem; padding: 4px 8px; border-radius: 4px; 
+            background: #F1F5F9; text-transform: uppercase; color: #64748B; font-weight: 700; 
+        }
+        .flashcard .save-icon { position: absolute; top: 12px; right: 12px; color: #cbd5e1; font-size: 1.1rem; transition: 0.2s; }
+        .flashcard .save-icon.saved { color: var(--accent); }
+
+        /* Rules Box */
+        .rules-box { 
+            background: #FFFBFB; padding: 20px; border-radius: 8px; 
+            margin: 20px 0; border: 1px dashed var(--primary); opacity: 0.9;
+        }
+        .rule-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1rem; color: var(--text-main); }
+        .rule-pts { font-weight: 800; color: var(--primary); }
+
+        /* Report Grid */
+        .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width:100%; max-width:500px; margin: 30px 0; }
+        .report-item { background: #FFFBFB; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .report-val { display:block; font-size:2rem; font-weight:800; color:var(--primary); }
+        .report-lbl { font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-sub); }
+
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="brand"><i class="fas fa-layer-group"></i> The Terracotta Army</div>
+    <div style="display:flex; gap:12px;">
+        <div class="score-pill"><i class="fas fa-star" style="color:var(--accent)"></i> <span id="u-score">0</span></div>
+        <button class="btn btn-sm btn-outline" onclick="saveState(true)"><i class="fas fa-save"></i> Save</button>
+    </div>
+</div>
+
+<div id="p1" class="page active">
+    <div class="container" style="justify-content:center; align-items:center;">
+        <div class="card" style="width: 100%; max-width: 550px; text-align: center;">
+            <div style="font-size:4rem; color:var(--primary); margin-bottom:20px;"><i class="fas fa-landmark"></i></div>
+            <h1>Emperor Qin's Guard</h1>
+            <p style="color:var(--text-sub);">An interactive journey into the afterlife army.</p>
+            
+            <div class="rules-box">
+                <div class="rule-item"><span><i class="fas fa-book-open"></i> Study Vocabulary</span><span class="rule-pts">+2 pts</span></div>
+                <div class="rule-item"><span><i class="fas fa-puzzle-piece"></i> Vocab Quiz</span><span class="rule-pts">+/- 1 pt</span></div>
+                <div class="rule-item"><span><i class="fas fa-film"></i> Video Comprehension</span><span class="rule-pts">+5 pts</span></div>
+            </div>
+
+            <input type="text" id="username" placeholder="Enter Your Name" autocomplete="off">
+            <div style="margin-top: 25px; display: flex; flex-direction: column; gap: 15px;">
+                <button class="btn" onclick="startApp()">Enter Expedition <i class="fas fa-arrow-right"></i></button>
+                <button id="resume-btn" class="btn btn-outline" style="display:none;" onclick="resumeApp()">Resume Expedition</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p2" class="page">
+    <div class="container">
+        <div class="card" style="min-height: 100%;">
+            <h2>Topic Overview</h2>
+            
+            <div class="slide-container">
+                <div class="slide-img" style="display:block;">
+                    <img src="Terracotta_Aerial_View.jpg" alt="Aerial view of the Terracotta Army pits">
+                    <div class="slide-caption">Aerial view of the Terracotta Army pits, showing thousands of clay soldiers in formation.</div>
+                </div>
+                <div class="slide-img">
+                    <img src="Terracotta_Closeup.jpg" alt="Close-up of a Terracotta Warrior">
+                    <div class="slide-caption">Close-up of a Terracotta Warrior, highlighting the detail in the face, armor, and hairstyle.</div>
+                </div>
+                <div class="slide-img">
+                    <img src="Terracotta_Excavation.jpg" alt="Excavation site of the Terracotta Army">
+                    <div class="slide-caption">Excavation site of the Terracotta Army, showing archaeologists at work and unearthed figures.</div>
+                </div>
+                <div class="slide-img">
+                    <img src="Emperor_Qin_Review.jpg" alt="Artistic representation of Emperor Qin">
+                    <div class="slide-caption">Artistic representation of Emperor Qin reviewing his Terracotta Army in the afterlife.</div>
+                </div>
+                
+                <button class="slider-nav" style="left:15px;" onclick="slide(-1)">❮</button>
+                <button class="slider-nav" style="right:15px;" onclick="slide(1)">❯</button>
+            </div>
+
+            <div style="flex:1; padding-bottom: 20px;">
+                <p>This video explores the Terracotta Army, an underground army of over 8000 life-size clay soldiers discovered in 1974 near the tomb of Qin Shihuangdi, the first Emperor of China. The army was built to accompany the emperor into the afterlife and continue his rule. <i class="fas fa-volume-up" style="color:var(--primary); cursor:pointer; margin-left:8px;" onclick="speak(D.reading[0].text)"></i></p>
+                <p>Emperor Qin, who unified China and implemented significant reforms, was obsessed with immortality. He commissioned the construction of a massive necropolis, including the Terracotta Army, filled with monuments, artifacts, and an army. The army is arranged in precise battle formation and includes soldiers, chariots, horses, musicians, acrobats, and officials. <i class="fas fa-volume-up" style="color:var(--primary); cursor:pointer; margin-left:8px;" onclick="speak(D.reading[1].text)"></i></p>
+                <p>The terracotta figures were crafted by artisans who molded each body part separately, resulting in unique and individualized statues. Originally painted in bright colors, the paint has largely faded. The actual tomb of Emperor Qin remains sealed to prevent damage to its treasures, including palaces, precious stones, and rivers of mercury. <i class="fas fa-volume-up" style="color:var(--primary); cursor:pointer; margin-left:8px;" onclick="speak(D.reading[2].text)"></i></p>
+                <p>The practice of providing company for the deceased was common in various ancient cultures, including Egypt, Japan, and parts of Mexico. Emperor Qin chose to have figures built rather than sacrificing living beings. Today, the Terracotta Army is a major tourist destination. <i class="fas fa-volume-up" style="color:var(--primary); cursor:pointer; margin-left:8px;" onclick="speak(D.reading[3].text)"></i></p>
+            </div>
+            
+            <div style="text-align:right;"><button class="btn" onclick="toPage('p3')">Proceed to Vocab <i class="fas fa-arrow-right"></i></button></div>
+        </div>
+    </div>
+</div>
+
+<div id="p3" class="page">
+    <div class="container">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+                <h2 style="margin:0;">Vocabulary List</h2>
+                <span style="font-size:0.9rem; color:var(--text-sub);">Click cards to learn</span>
+            </div>
+            <div class="vocab-grid" id="v-grid">
+                </div>
+            <div style="text-align:center; margin-top:40px;">
+                <button class="btn" onclick="toPage('p4')">Take Quiz <i class="fas fa-gamepad"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p4" class="page">
+    <div class="container" style="justify-content:center;">
+        <div class="card" style="text-align:center; max-width:650px; margin:0 auto;">
+            <div id="qz-setup">
+                <h2 style="margin-bottom: 30px;">Select Challenge Level</h2>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                    <button class="btn btn-outline" style="padding:24px;" onclick="startQuiz(0.3, 30)">
+                        <div style="font-size:1.2rem; font-weight:800; margin-bottom:4px;">Basic</div>
+                        <div style="font-size:0.85rem;">30 pts</div>
+                    </button>
+                    <button class="btn btn-outline" style="padding:24px;" onclick="startQuiz(0.5, 60)">
+                        <div style="font-size:1.2rem; font-weight:800; margin-bottom:4px;">Standard</div>
+                        <div style="font-size:0.85rem;">60 pts</div>
+                    </button>
+                    <button class="btn btn-outline" style="padding:24px;" onclick="startQuiz(0.8, 100)">
+                        <div style="font-size:1.2rem; font-weight:800; margin-bottom:4px;">Advanced</div>
+                        <div style="font-size:0.85rem;">100 pts</div>
+                    </button>
+                    <button class="btn btn-outline" style="padding:24px;" onclick="startQuiz(1.0, 140)">
+                        <div style="font-size:1.2rem; font-weight:800; margin-bottom:4px;">Master</div>
+                        <div style="font-size:0.85rem;">140 pts</div>
+                    </button>
+                </div>
+            </div>
+
+            <div id="qz-run" style="display:none; text-align:left;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:15px;">
+                    <strong>Question <span id="q-idx">1</span></strong>
+                    <span style="color:var(--primary); font-weight:bold;">Score: <span id="q-score">0</span></span>
+                </div>
+                <div id="q-content"></div>
+                <div id="q-fb" style="display:none; background:#F8FAFC; padding:20px; border-radius:12px; margin-top:20px; border-left: 4px solid var(--primary);"></div>
+                <button id="q-nxt" class="btn" style="width:100%; margin-top:25px; display:none;" onclick="nextQ()">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p5" class="page">
+    <div class="container" style="max-width:1400px;">
+        <div class="vt-layout">
+            <div class="vt-video-col">
+                <div id="hud1" class="hud">Loading...</div>
+                <video id="vid1" src="Video.mp4" playsinline></video>
+                
+                <div id="ol1" class="overlay">
+                    <div class="q-card">
+                        <h3 id="v1-q" style="color:var(--primary); margin-bottom: 20px;">Question</h3>
+                        <div id="v1-opts"></div>
+                        <div id="fb1" class="feedback-box" style="display:none; margin-top:20px;"></div>
+                        <div style="margin-top:25px; display:flex; gap:12px; justify-content:center;">
+                            <button class="btn btn-outline" id="rp1" onclick="replaySeg(1)"><i class="fas fa-undo"></i> Replay Segment</button>
+                            <button class="btn" id="ct1" onclick="resume(1)" style="display:none;">Continue <i class="fas fa-play"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="rev1" class="overlay">
+                    <div class="q-card">
+                        <h2 style="color:var(--primary);">Part 1 Completed</h2>
+                        <div id="rev1-list" style="text-align:left; margin:20px 0; max-height:300px; overflow-y:auto;"></div>
+                        <button class="btn" onclick="toPage('p6')">Start Part 2 <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-sm btn-icon" style="background:white; color:black; border-radius:50%; width:36px; height:36px; padding:0;" onclick="playVid(1)"><i class="fas fa-play" id="icon1"></i></button>
+                    <input type="range" id="sk1" value="0" disabled>
+                    <select class="spd-sel" onchange="spd(1, this.value)">
+                        <option value="1">1.0x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                    </select>
+                </div>
+            </div>
+            <div class="vt-sub-box">
+                <div class="sub-list" id="subs1"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p6" class="page">
+    <div class="container" style="max-width:1400px;">
+        <div class="vt-layout">
+            <div class="vt-video-col">
+                <div id="hud2" class="hud">Loading...</div>
+                <video id="vid2" src="Video.mp4" playsinline></video>
+                
+                <div id="ol2" class="overlay">
+                    <div class="q-card">
+                        <h3 id="v2-q" style="color:var(--primary);">Detail Question</h3>
+                        <div id="v2-opts"></div>
+                        <div id="fb2" class="feedback-box" style="display:none; margin-top:20px;"></div>
+                        <div style="margin-top:25px; display:flex; gap:12px; justify-content:center;">
+                            <button class="btn btn-outline" id="rp2" onclick="replaySeg(2)"><i class="fas fa-undo"></i> Replay Segment</button>
+                            <button id="ct2" class="btn" onclick="resume(2)" style="display:none;">Continue <i class="fas fa-play"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="rev2" class="overlay">
+                    <div class="q-card">
+                        <h2 style="color:var(--primary);">Section Complete</h2>
+                        <div id="rev2-list" style="text-align:left; margin:20px 0; max-height:300px; overflow-y:auto;"></div>
+                        <button class="btn" onclick="toPage('p7')">View Report <i class="fas fa-flag-checkered"></i></button>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-sm btn-icon" style="background:white; color:black; border-radius:50%; width:36px; height:36px; padding:0;" onclick="playVid(2)"><i class="fas fa-play" id="icon2"></i></button>
+                    <input type="range" id="sk2" value="0" disabled>
+                </div>
+            </div>
+            <div class="vt-sub-box" style="justify-content:center; align-items:center; background:#F8FAFC; text-align:center; padding:20px;">
+                <div style="font-size:3rem; color:#CBD5E1; margin-bottom: 15px;"><i class="fas fa-headphones"></i></div>
+                <h3 style="margin:0; color:#64748B;">Listening Focus</h3>
+                <p style="font-size:0.9rem; color:#94A3B8;">Subtitles hidden for this section</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="p7" class="page">
+    <div class="container" style="justify-content:center;">
+        <div class="card" style="text-align:center; align-items:center;">
+            <div style="font-size:3rem; color:var(--accent); margin-bottom:15px;"><i class="fas fa-trophy"></i></div>
+            <h1 style="color:var(--text-main);">Mission Report</h1>
+            <p>Excellent work, <span id="r-name" style="font-weight:bold; color:var(--primary);">Agent</span>!</p>
+            
+            <div class="report-grid">
+                <div class="report-item">
+                    <span class="report-val" id="r-voc">0</span>
+                    <span class="report-lbl">Vocab Pts</span>
+                </div>
+                <div class="report-item">
+                    <span class="report-val" id="r-quiz">0</span>
+                    <span class="report-lbl">Quiz Pts</span>
+                </div>
+                <div class="report-item">
+                    <span class="report-val" id="r-vid">0</span>
+                    <span class="report-lbl">Video Pts</span>
+                </div>
+                <div class="report-item">
+                    <span class="report-val" id="r-time">0m</span>
+                    <span class="report-lbl">Total Time</span>
+                </div>
+            </div>
+
+            <div>
+                <div style="font-size: 4rem; font-weight: 900; color: var(--accent); line-height:1;" id="r-total">0</div>
+                <div style="font-weight: bold; color: #94a3b8; letter-spacing: 1px; margin-top:5px;">TOTAL SCORE</div>
+            </div>
+            
+            <button class="btn" onclick="location.reload()" style="margin-top: 40px; width: 100%; max-width: 300px;">Start New Expedition ↺</button>
+        </div>
+    </div>
+</div>
+
+<div id="mod-voc" class="overlay" onclick="clsVoc()" style="z-index: 2000; display:none;">
+    <div class="q-card" style="text-align:left; position:relative; max-width: 600px;" onclick="event.stopPropagation()">
+        <button onclick="clsVoc()" style="position:absolute; top:20px; right:20px; border:none; background:none; font-size:1.5rem; cursor:pointer; color: #94a3b8;">&times;</button>
+        
+        <h2 style="color:var(--primary); margin-top:0; font-size: 2.5rem; margin-bottom:5px;" id="vw">Word</h2>
+        <div style="margin-bottom:20px;">
+            <span id="vtype" style="text-transform:uppercase; font-size:0.75rem; border:1px solid #ccc; padding:4px 8px; border-radius:4px; background: #fff; font-weight: 700;">TYPE</span> 
+            <i class="fas fa-volume-up" style="cursor:pointer; margin-left: 12px; color: var(--primary); font-size: 1.2rem;" onclick="speak(document.getElementById('vw').innerText)"></i>
+        </div>
+        
+        <p style="font-size: 1.2rem; line-height: 1.5; font-style: italic; color: #555;" id="vdef">Definition...</p>
+        
+        <p style="font-size: 1.1rem; border-bottom:1px solid #eee; padding-bottom:15px; color:var(--primary);">
+            <strong>CN:</strong> 
+            <span id="vcn" style="font-weight:bold; filter:blur(5px); transition:0.3s; cursor:pointer; user-select:none;" 
+                  onclick="this.style.filter = (this.style.filter === 'none') ? 'blur(5px)' : 'none'">
+                Answer
+            </span>
+        </p>
+        
+        <div style="background:#FFF5E5; padding:15px; border-radius:8px; margin-bottom:10px;">
+            <div style="font-size:0.75rem; font-weight:800; color:var(--primary); text-transform: uppercase;">Video Context</div>
+            <div style="font-size: 1rem; color: #333; margin-top:5px; margin-bottom:4px;">
+                "<span id="vex1"></span>"
+                <i class="fas fa-volume-up" style="cursor:pointer; margin-left: 8px; color: var(--primary); font-size: 1rem;" onclick="speak(document.getElementById('vex1').innerText)"></i>
+            </div>
+            <div id="vcn1" 
+                 style="font-size: 0.9rem; color: #A0522D; filter:blur(5px); transition:0.3s; cursor:pointer; user-select:none;" 
+                 onclick="this.style.filter = (this.style.filter === 'none') ? 'blur(5px)' : 'none'">
+            </div>
+        </div>
+        
+        <div style="background:#F0FDF4; padding:15px; border-radius:8px;">
+            <div style="font-size:0.75rem; font-weight:800; color:green; text-transform: uppercase;">Real Life</div>
+            <div style="font-size: 1rem; color: #333; margin-top:5px; margin-bottom:4px;">
+                "<span id="vex2"></span>"
+                <i class="fas fa-volume-up" style="cursor:pointer; margin-left: 8px; color: green; font-size: 1rem;" onclick="speak(document.getElementById('vex2').innerText)"></i>
+            </div>
+            <div id="vcn2" 
+                 style="font-size: 0.9rem; color: #14532d; filter:blur(5px); transition:0.3s; cursor:pointer; user-select:none;" 
+                 onclick="this.style.filter = (this.style.filter === 'none') ? 'blur(5px)' : 'none'">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ds-pop" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:400px; background:white; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:3000; display:none; border:1px solid #eee;">
+    <div style="background:var(--primary); color:white; padding:10px 20px; display:flex; justify-content:space-between; align-items:center; border-radius: 16px 16px 0 0;">
+        <span style="font-weight:700;"><i class="fas fa-robot"></i> AI Helper</span> 
+        <span onclick="document.getElementById('ds-pop').style.display='none'" style="cursor:pointer;">&times;</span>
+    </div>
+    <div id="ds-con" style="padding:20px; max-height:250px; overflow-y:auto;">Taking a moment...</div>
+</div>
+
+<script>
+    /* DATA OBJECT */
+    const D = {
+        "config": {
+            "title": "The Terracotta Army: Emperor Qin's Afterlife Guard",
+            "theme": {
+                "primary": "#8B4513", 
+                "accent": "#D4AF37", 
+                "bg_start": "#F5F5DC", 
+                "bg_end": "#FFFFFF"
+            },
+            "quizTiers": [
+                {"percent": 0.3, "base": 30, "label": "Basic"}, 
+                {"percent": 0.5, "base": 60, "label": "Standard"}, 
+                {"percent": 0.8, "base": 100, "label": "Advanced"}, 
+                {"percent": 1.0, "base": 140, "label": "Master"}
+            ],
+            "videoFile": "Video.mp4",
+            "azureKey": "DKRXk8ueSfo5NdIOMqFRTCAfpeGDezJ3Snf5K8gGgtyqxiWdugLzJQQJ99BLACHYHv6XJ3w3AAAYACOGUYP9",
+            "azureRegion": "eastus2",
+            "deepseekKey": "sk-daa16008e81843deba6fefe9dce51465"
+        },
+        "reading": [
+            {"text": "This video explores the Terracotta Army, an underground army of over 8000 life-size clay soldiers discovered in 1974 near the tomb of Qin Shihuangdi, the first Emperor of China. The army was built to accompany the emperor into the afterlife and continue his rule."},
+            {"text": "Emperor Qin, who unified China and implemented significant reforms, was obsessed with immortality. He commissioned the construction of a massive necropolis, including the Terracotta Army, filled with monuments, artifacts, and an army. The army is arranged in precise battle formation and includes soldiers, chariots, horses, musicians, acrobats, and officials."},
+            {"text": "The terracotta figures were crafted by artisans who molded each body part separately, resulting in unique and individualized statues. Originally painted in bright colors, the paint has largely faded. The actual tomb of Emperor Qin remains sealed to prevent damage to its treasures, including palaces, precious stones, and rivers of mercury."},
+            {"text": "The practice of providing company for the deceased was common in various ancient cultures, including Egypt, Japan, and parts of Mexico. Emperor Qin chose to have figures built rather than sacrificing living beings. Today, the Terracotta Army is a major tourist destination."}
+        ],
+        "vocab": [
+            {"id": 0, "w": "restful", "type": "general", "en_def": "peaceful and calm", "cn": "宁静的", "vid_ex": "Is there a restful paradise?", "vid_cn": "有一个宁静的天堂吗？", "life_ex": "The hotel offered a restful night's sleep.", "life_cn": "这家酒店提供了一个宁静的夜晚睡眠。"},
+            {"id": 1, "w": "eternal", "type": "general", "en_def": "lasting or existing forever; without end", "cn": "永恒的", "vid_ex": "An eternal torment?", "vid_cn": "永恒的折磨？", "life_ex": "They promised eternal love.", "life_cn": "他们承诺永恒的爱。"},
+            {"id": 2, "w": "rebirth", "type": "general", "en_def": "the process of being reincarnated or born again", "cn": "重生", "vid_ex": "A rebirth, or maybe just nothingness.", "vid_cn": "重生，或者仅仅是虚无。", "life_ex": "Some religions believe in rebirth after death.", "life_cn": "一些宗教信仰死后重生。"},
+            {"id": 3, "w": "hereafter", "type": "general", "en_def": "life after death", "cn": "来世", "vid_ex": "Whatever the hereafter was, he'd better bring an army.", "vid_cn": "不管来世是什么样子，他最好带一支军队。", "life_ex": "Many people contemplate the hereafter.", "life_cn": "许多人都在思考来世。"},
+            {"id": 4, "w": "vast", "type": "general", "en_def": "of very great extent or quantity; immense", "cn": "巨大的", "vid_ex": "Vast underground chambers surrounding that emperor's tomb.", "vid_cn": "围绕着那位皇帝陵墓的巨大地下室。", "life_ex": "The desert is vast and empty.", "life_cn": "沙漠浩瀚而空旷。"},
+            {"id": 5, "w": "subterranean", "type": "general", "en_def": "existing or occurring under the surface of the earth; underground", "cn": "地下的", "vid_ex": "The story of the subterranean army begins with Yingzheng.", "vid_cn": "地下军队的故事始于嬴政。", "life_ex": "They explored the subterranean caves.", "life_cn": "他们探索了地下洞穴。"},
+            {"id": 6, "w": "ruthless", "type": "general", "en_def": "having or showing no pity or compassion for others", "cn": "无情的", "vid_ex": "Ambitious and ruthless, he would go on to become Qing Shihuangdi.", "vid_cn": "雄心勃勃，无情，他后来成为秦始皇。", "life_ex": "The dictator was known for his ruthless policies.", "life_cn": "这位独裁者以其无情的政策而闻名。"},
+            {"id": 7, "w": "uniting", "type": "general", "en_def": "bring together or combine (people, organizations, or countries) for a particular purpose", "cn": "团结", "vid_ex": "After uniting its 7 Warring kingdoms.", "vid_cn": "在统一了七个交战国之后。", "life_ex": "The treaty aimed at uniting the two countries.", "life_cn": "该条约旨在统一这两个国家。"},
+            {"id": 8, "w": "standardized", "type": "general", "en_def": "cause (something) to conform to a standard", "cn": "标准化的", "vid_ex": "A single standardized writing script for all of China.", "vid_cn": "中国通用的单一标准化书写脚本。", "life_ex": "The company standardized its procedures.", "life_cn": "该公司将其程序标准化。"},
+            {"id": 9, "w": "legacy", "type": "general", "en_def": "an amount of money or property left to someone in a will", "cn": "遗产", "vid_ex": "Securing his historical legacy because he was obsessed with his mortality.", "vid_cn": "为了确保他的历史遗产，因为他痴迷于自己的死亡。", "life_ex": "The artist left a legacy of beautiful paintings.", "life_cn": "这位艺术家留下了一笔美丽的绘画遗产。"},
+            {"id": 10, "w": "obsessed", "type": "general", "en_def": "preoccupied or filled with", "cn": "痴迷的", "vid_ex": "Because he was obsessed with his mortality.", "vid_cn": "因为他痴迷于自己的死亡。", "life_ex": "She was obsessed with her appearance.", "life_cn": "她痴迷于自己的外表。"},
+            {"id": 11, "w": "mortality", "type": "general", "en_def": "the state of being subject to death", "cn": "死亡率", "vid_ex": "Because he was obsessed with his mortality.", "vid_cn": "因为他痴迷于自己的死亡。", "life_ex": "We are all aware of our own mortality.", "life_cn": "我们都意识到自己的死亡率。"},
+            {"id": 12, "w": "deploying", "type": "general", "en_def": "move (troops or equipment) into position for military action", "cn": "部署", "vid_ex": "Desperately employing alchemists and deploying expeditions.", "vid_cn": "拼命地雇佣炼金术士和部署探险队。", "life_ex": "The general ordered the deployment of troops.", "life_cn": "将军下令部署部队。"},
+            {"id": 13, "w": "elixirs", "type": "general", "en_def": "a magical or medicinal potion", "cn": "长生不老药", "vid_ex": "In search of elixirs of life that would help him achieve immortality.", "vid_cn": "寻找能帮助他实现永生的长生不老药。", "life_ex": "The old woman believed the elixir would cure her.", "life_cn": "这位老妇人相信这种长生不老药能治好她。"},
+            {"id": 14, "w": "immortality", "type": "general", "en_def": "the ability to live forever; eternal life", "cn": "永生", "vid_ex": "That would help him achieve immortality.", "vid_cn": "这将帮助他实现永生。", "life_ex": "Many legends speak of immortality.", "life_cn": "许多传说都讲述了永生。"},
+            {"id": 15, "w": "necropolis", "type": "general", "en_def": "a city of the dead; a large ancient cemetery with elaborate tomb monuments", "cn": "墓地", "vid_ex": "He began the construction of a massive underground necropolis.", "vid_cn": "他开始建造一个巨大的地下墓地。", "life_ex": "The ancient necropolis was a site of great historical interest.", "life_cn": "古代墓地是一个具有重要历史意义的场所。"},
+            {"id": 16, "w": "monuments", "type": "general", "en_def": "a statue, building, or other structure erected to commemorate a notable person or event", "cn": "纪念碑", "vid_ex": "Filled with monuments, artifacts, and an army.", "vid_cn": "充满了纪念碑、文物和一支军队。", "life_ex": "The city is full of historical monuments.", "life_cn": "这座城市到处都是历史古迹。"},
+            {"id": 17, "w": "artifacts", "type": "general", "en_def": "an object made by a human being, typically an item of cultural or historical interest", "cn": "文物", "vid_ex": "Filled with monuments, artifacts, and an army.", "vid_cn": "充满了纪念碑、文物和一支军队。", "life_ex": "The museum displays ancient artifacts.", "life_cn": "博物馆展示了古代文物。"},
+            {"id": 18, "w": "magnificent", "type": "general", "en_def": "extremely beautiful, elaborate, or impressive", "cn": "宏伟的", "vid_ex": "This magnificent army is still standing in precise battle formation.", "vid_cn": "这支宏伟的军队仍然以精确的战斗队形站立着。", "life_ex": "The view from the top of the mountain was magnificent.", "life_cn": "从山顶看到的景色非常壮丽。"},
+            {"id": 19, "w": "formation", "type": "general", "en_def": "the action of forming or organizing something", "cn": "编队", "vid_ex": "This magnificent army is still standing in precise battle formation.", "vid_cn": "这支宏伟的军队仍然以精确的战斗队形站立着。", "life_ex": "The birds flew in formation.", "life_cn": "鸟儿以编队飞行。"},
+            {"id": 20, "w": "excavated", "type": "general", "en_def": "dig out and remove (earth and rock) from an area of land in order to find buried remains", "cn": "挖掘", "vid_ex": "That another chamber less than a mile away has not been excavated.", "vid_cn": "不到一英里远的另一个房间尚未挖掘。", "life_ex": "The archaeologists excavated the ancient city.", "life_cn": "考古学家挖掘了这座古城。"},
+            {"id": 21, "w": "sealed", "type": "general", "en_def": "close securely", "cn": "密封的", "vid_ex": "Until a way can be found to expose it without damaging the treasures inside, the tomb remains sealed.", "vid_cn": "在找到一种可以在不损坏内部珍宝的情况下将其暴露出来的方法之前，陵墓仍然是密封的。", "life_ex": "The letter was sealed with wax.", "life_cn": "这封信是用蜡封好的。"},
+            {"id": 22, "w": "representing", "type": "general", "en_def": "be entitled or appointed to act or speak for (someone), especially in an official capacity", "cn": "代表", "vid_ex": "Ancient Egyptian tombs contain clay models representing the ideal afterlife.", "vid_cn": "古埃及陵墓包含代表理想来世的粘土模型。", "life_ex": "The lawyer is representing the defendant.", "life_cn": "律师代表被告。"},
+            {"id": 23, "w": "sacrificing", "type": "general", "en_def": "give up (something valued) for the sake of other considerations", "cn": "牺牲", "vid_ex": "Rather than sacrificing living ones to accompany him as had been practiced.", "vid_cn": "而不是像过去那样牺牲活人来陪伴他。", "life_ex": "She sacrificed her career for her family.", "life_cn": "她为家人牺牲了自己的事业。"},
+            {"id": 24, "w": "dynasties", "type": "general", "en_def": "a line of hereditary rulers of a country", "cn": "朝代", "vid_ex": "Shang and Zhou dynasties and today, people travel from all over the world.", "vid_cn": "商朝和周朝，今天，人们从世界各地旅行。", "life_ex": "The Ming dynasty was known for its porcelain.", "life_cn": "明朝以其瓷器而闻名。"},
+            {"id": 25, "w": "stoic", "type": "general", "en_def": "a person who can endure pain or hardship without showing their feelings or complaining", "cn": "坚忍的", "vid_ex": "To see these stoic soldiers silently awaiting their battle orders for centuries to come.", "vid_cn": "看到这些坚忍的士兵默默地等待了几个世纪的战斗命令。", "life_ex": "He remained stoic despite the pain.", "life_cn": "尽管很痛苦，他仍然保持坚忍。"},
+            {"id": 26, "w": "torment", "type": "general", "en_def": "severe physical or mental suffering", "cn": "折磨", "vid_ex": "An eternal torment?", "vid_cn": "永恒的折磨？", "life_ex": "The prisoner suffered constant torment.", "life_cn": "囚犯遭受持续的折磨。"},
+            {"id": 27, "w": "accomplishments", "type": "general", "en_def": "something that has been achieved successfully", "cn": "成就", "vid_ex": "His 36 year reign saw many historic accomplishments.", "vid_cn": "他36年的统治见证了许多历史性的成就。", "life_ex": "She was proud of her academic accomplishments.", "life_cn": "她为自己的学业成就感到自豪。"},
+            {"id": 28, "w": "universal", "type": "general", "en_def": "relating to or done by all people or things in the world or in a particular group; applicable to all cases", "cn": "普遍的", "vid_ex": "Including a universal system of weights and measures.", "vid_cn": "包括一个通用的重量和测量系统。", "life_ex": "Education should be universal.", "life_cn": "教育应该是普遍的。"},
+            {"id": 29, "w": "defensive", "type": "general", "en_def": "used or intended to defend or protect", "cn": "防御性的", "vid_ex": "A defensive barrier that would later come to be known as the Great Wall.", "vid_cn": "后来被称为长城的防御屏障。", "life_ex": "The castle had a strong defensive wall.", "life_cn": "城堡有一堵坚固的防御墙。"},
+            {"id": 30, "w": "construction", "type": "general", "en_def": "the process of building or assembling something, typically a large structure", "cn": "建造", "vid_ex": "He began the construction of a massive underground necropolis.", "vid_cn": "他开始建造一个巨大的地下墓地。", "life_ex": "The construction of the new bridge is underway.", "life_cn": "新桥的建造正在进行中。"},
+            {"id": 31, "w": "precise", "type": "general", "en_def": "marked by exactness and accuracy of expression or detail", "cn": "精确的", "vid_ex": "This magnificent army is still standing in precise battle formation.", "vid_cn": "这支宏伟的军队仍然以精确的战斗队形站立着。", "life_ex": "The scientist took precise measurements.", "life_cn": "科学家进行了精确的测量。"},
+            {"id": 32, "w": "suggests", "type": "general", "en_def": "put forward for consideration", "cn": "表明", "vid_ex": "An empty 4th pit suggests that the grand project could not be finished before the Emperor's death.", "vid_cn": "一个空的第四坑表明，这个宏伟的项目在皇帝去世前无法完成。", "life_ex": "The evidence suggests he is guilty.", "life_cn": "证据表明他有罪。"},
+            {"id": 33, "w": "various", "type": "general", "en_def": "different from one another", "cn": "各种各样的", "vid_ex": "Workers and government officials, and various exotic animals.", "vid_cn": "工人和政府官员，以及各种各样的外来动物。", "life_ex": "The store sells various types of cheese.", "life_cn": "这家商店出售各种类型的奶酪。"},
+            {"id": 34, "w": "indicating", "type": "general", "en_def": "point out; show", "cn": "表明", "vid_ex": "Indicating that Emperor Qin had more plans for the afterlife than simply waging war.", "vid_cn": "表明秦始皇对来世的计划不仅仅是发动战争。", "life_ex": "The sign is indicating the right direction.", "life_cn": "标志表明了正确的方向。"}
+        ],
+        /* UPDATED QUIZ DATA */
+        "quizzes": {
+            "general": [
+                {
+                    "time": 24.67,
+                    "type": "choice",
+                    "q": "Why did the Chinese emperor bring an army to the afterlife?",
+                    "opts": ["To continue his rule and maintain power", "To seek a restful paradise", "To find eternal torment", "To achieve rebirth"],
+                    "ans": 0,
+                    "review": "The emperor believed he needed an army to continue his rule in the afterlife.",
+                    "replay": {"start": 19.87, "end": 24.67}
+                },
+                {
+                    "time": 83.63,
+                    "type": "choice",
+                    "q": "Why did Qing Shihuang dedicate effort to securing his historical legacy?",
+                    "opts": ["Because he was obsessed with his mortality", "To establish a universal system of weights and measures", "To standardize the writing script for all of China", "To build the Great Wall of China"],
+                    "ans": 0,
+                    "review": "Qing Shihuang dedicated effort to securing his legacy because he was obsessed with his mortality.",
+                    "replay": {"start": 76.19, "end": 83.63}
+                },
+                {
+                    "time": 145.0,
+                    "type": "true/false",
+                    "q": "Emperor Qin only planned for war in the afterlife.",
+                    "opts": ["True", "False"],
+                    "ans": 1,
+                    "review": "Emperor Qin had plans for more than just waging war in the afterlife, including figures of musicians, acrobats, and animals.",
+                    "replay": {"start": 131.19, "end": 145.0}
+                },
+                {
+                    "time": 218.62,
+                    "type": "choice",
+                    "q": "What is a common theme among Emperor Qing and other ancient cultures?",
+                    "opts": ["The desire for company in the afterlife", "The construction of terracotta armies", "The search for elixirs of life", "The practice of sacrificing living servants"],
+                    "ans": 0,
+                    "review": "Many ancient cultures shared the desire for company in the afterlife, as seen in the tombs of Egypt, Japan, and Mexico.",
+                    "replay": {"start": 209.92, "end": 218.62}
+                }
+            ],
+            "detailed": [
+                {
+                    "time": 43.61,
+                    "type": "cloze",
+                    "q": "The underground chambers contained more than 8000 life-size clay soldiers ready for ______.",
+                    "opts": ["parade", "battle"],
+                    "ans": 1,
+                    "review": "The chambers held clay soldiers ready for battle.",
+                    "replay": {"start": 30.63, "end": 43.61}
+                },
+                {
+                    "time": 60.63,
+                    "type": "true/false",
+                    "q": "Qing Shihuangdi united 5 warring kingdoms.",
+                    "opts": ["True", "False"],
+                    "ans": 1,
+                    "review": "Qing Shihuangdi united 7 warring kingdoms, not 5.",
+                    "replay": {"start": 52.21, "end": 60.63}
+                },
+                {
+                    "time": 92.47,
+                    "type": "choice",
+                    "q": "What did Qing Shihuang desperately seek to achieve?",
+                    "opts": ["Historical legacy", "Mortality", "Immortality", "Standardized writing"],
+                    "ans": 2,
+                    "review": "Qing Shihuang desperately sought to achieve immortality.",
+                    "replay": {"start": 83.63, "end": 92.47}
+                },
+                {
+                    "time": 130.47,
+                    "type": "choice",
+                    "q": "What does the empty 4th pit suggest about the Emperor's grand project?",
+                    "opts": ["It was fully completed before his death", "It could not be finished before his death", "It was a decoy to confuse grave robbers", "It was intended for storage of supplies"],
+                    "ans": 1,
+                    "review": "The empty 4th pit suggests the project could not be finished before the Emperor's death.",
+                    "replay": {"start": 123.83, "end": 130.47}
+                },
+                {
+                    "time": 150.83,
+                    "type": "choice",
+                    "q": "What material were all the figurines sculpted from?",
+                    "opts": ["Bronze", "Gold", "Terracotta", "Marble"],
+                    "ans": 2,
+                    "review": "All the figurines are sculpted from terracotta.",
+                    "replay": {"start": 145.0, "end": 150.83}
+                },
+                {
+                    "time": 176.93,
+                    "type": "true/false",
+                    "q": "The terracotta warriors all have identical hairstyles and expressions.",
+                    "opts": ["True", "False"],
+                    "ans": 1,
+                    "review": "The warriors feature different hairstyles and expressions, making each unique.",
+                    "replay": {"start": 168.75, "end": 176.93}
+                },
+                {
+                    "time": 208.63,
+                    "type": "choice",
+                    "q": "Why has the actual tomb of Qing Shuang Di not been excavated?",
+                    "opts": ["Lack of funding", "Political reasons", "Risk of damaging the treasures inside", "It has already been looted"],
+                    "ans": 2,
+                    "review": "The tomb remains sealed until a way is found to expose it without damaging the treasures inside.",
+                    "replay": {"start": 202.71, "end": 208.63}
+                },
+                {
+                    "time": 239.32,
+                    "type": "choice",
+                    "q": "What did Emperor Qin choose to have built for his afterlife?",
+                    "opts": ["Living servants and soldiers", "Clay servants and soldiers", "Sacrificed animals", "Rivers of mercury"],
+                    "ans": 1,
+                    "review": "Emperor Qin chose to have servants and soldiers built for this purpose, rather than sacrificing living ones.",
+                    "replay": {"start": 228.56, "end": 239.32}
+                }
+            ]
+        },
+        "subtitles": [{"s": 9.63, "e": 14.75, "t": "What happens after death? Is there a restful paradise? An eternal torment?"}, {"s": 15.47, "e": 17.67, "t": "A rebirth, or maybe just."}, {"s": 18.23, "e": 19.03, "t": "Nothingness."}, {"s": 19.87, "e": 24.67, "t": "Well, one Chinese emperor thought that whatever the hereafter was, he'd better bring an army."}, {"s": 25.47, "e": 30.51, "t": "We know that because in 1974 farmers digging a well near their small village."}, {"s": 30.63, "e": 43.61, "t": "Stumbled upon one of the most important finds in archaeological history, Vast underground chambers surrounding that emperor's tomb and containing more than 8000 life-size clay soldiers ready for battle."}, {"s": 43.61, "e": 52.21, "t": "The story of the subterranean army begins with Yingzheng, who came to power as the king of the Qing state at the age of 13 in 246 BCE."}, {"s": 52.21, "e": 60.63, "t": "Ambitious and ruthless, he would go on to become Qing Shihuangdi, the first Emperor of China, after uniting its 7 Warring kingdoms."}, {"s": 61.35, "e": 75.31, "t": "His 36 year reign saw many historic accomplishments, including a universal system of weights and measures, a single standardized writing script for all of China, and a defensive barrier that would later come to be known as the Great Wall."}, {"s": 76.19, "e": 83.63, "t": "But perhaps Qing Shihuang dedicated so much effort to securing his historical legacy because he was obsessed with his mortality."}, {"s": 83.63, "e": 92.47, "t": "He spent his last years desperately employing alchemists and deploying expeditions in search of elixirs of life that would help him achieve immortality."}, {"s": 92.91, "e": 105.31, "t": "And as early as the first year of his reign, he began the construction of a massive underground necropolis filled with monuments, artifacts, and an army to accompany him into the next World and continue his rule."}, {"s": 105.75, "e": 112.59, "t": "This magnificent army is still standing in precise battle formation and is split across several pits."}, {"s": 112.59, "e": 117.26, "t": "1 contains a main force of 6000 soldiers, each weighing several \u00a3100."}, {"s": 117.26, "e": 123.83, "t": "A second has more than 130 war Chariots and over 600 horses, and a third houses the high command."}, {"s": 123.83, "e": 130.47, "t": "An empty 4th pit suggests that the grand project could not be finished before the Emperor's death."}, {"s": 131.19, "e": 145.0, "t": "In addition, nearby chambers contain figures of musicians and acrobats, workers and government officials, and various exotic animals, indicating that Emperor Qin had more plans for the afterlife than simply waging war."}, {"s": 145.0, "e": 150.83, "t": "All the figurines are sculpted from terracotta or baked earth, a type of reddish brown clay."}, {"s": 151.63, "e": 168.23, "t": "To construct them, multiple workshops and reportedly over 720,000 laborers were commandeered by the emperor, including groups of artisans who molded each body part separately to construct statues as individual as the real warriors and the emperor's army."}, {"s": 168.75, "e": 176.93, "t": "They stand according to rank and feature different weapons and uniforms, distinct hairstyles and expressions, and even unique ears."}, {"s": 176.93, "e": 186.23, "t": "Originally, each warrior was painted in bright colors, but their exposure to air caused the paint to dry and flake, leaving only the terracotta base."}, {"s": 186.23, "e": 192.03, "t": "It is for this very reason that another chamber less than a mile away has not been excavated."}, {"s": 192.03, "e": 198.71, "t": "This is the actual tomb of Qing Shuang Di, reported to contain palaces, precious stones and artifacts, and."}, {"s": 198.87, "e": 201.95, "t": "Even rivers of mercury flowing through mountains of bronze."}, {"s": 202.71, "e": 208.63, "t": "But until a way can be found to expose it without damaging the treasures inside, the tomb remains sealed."}, {"s": 209.92, "e": 214.15, "t": "Emperor Qing was not alone in wanting company for his final destination."}, {"s": 214.15, "e": 218.62, "t": "Ancient Egyptian tombs contain clay models representing the ideal afterlife."}, {"s": 218.62, "e": 228.56, "t": "The dead of Japan's Kofun period were buried with sculptures of horses and houses, and the graves of the Jana Island off the Mexican coast are full of ceramic figurines."}, {"s": 228.56, "e": 239.32, "t": "Fortunately, as ruthless as he was, Emperor Qin chose to have servants and soldiers built for this purpose, rather than sacrificing living ones to accompany him as had been practiced."}, {"s": 239.43, "e": 255.71, "t": "In Egypt, West Africa, Anatolia, parts of North America and even China during the previous Shang and Zhou dynasties and today, people travel from all over the world to see these stoic soldiers silently awaiting their battle orders for centuries to come."}, {"s": 263.96, "e": 271.68, "t": ""}]
+    };
+
+    const C = D.config;
+    let s = { u:"", lsc:0, qsc:0, vidsc:0, sv:new Set(), lrn:new Set(), pg:'p1', v1:0, v2:0, lock:false, t1:0, t2:0, logs1:[], logs2:[], startTime: Date.now() };
+    const AZ_KEY = C.azureKey; const AZ_REG = C.azureRegion;
+    const STORAGE_KEY = 'vt_course_save'; 
+
+    window.onload = () => {
+        if(localStorage.getItem(STORAGE_KEY)) document.getElementById('resume-btn').style.display='inline-block';
+        initSubs();
+        genVocabGrid();
+    };
+
+    function startApp() {
+        const n=document.getElementById('username').value;
+        if(n) s.u=n;
+        s.startTime = Date.now();
+        toPage('p2');
+    }
+
+    function resumeApp() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+
+        try {
+            const saved = JSON.parse(raw);
+            s.u = saved.u || ""; s.lsc = saved.lsc || 0; s.qsc = saved.qsc || 0; s.vidsc = saved.vidsc || 0;
+            s.pg = saved.pg || 'p1'; s.v1 = saved.v1 || 0; s.v2 = saved.v2 || 0;
+            s.t1 = saved.t1 || 0; s.t2 = saved.t2 || 0;
+            s.logs1 = saved.logs1 || []; s.logs2 = saved.logs2 || [];
+            s.sv = new Set(saved.sv || []); s.lrn = new Set(saved.lrn || []);
+
+            if(s.u) document.getElementById('username').value = s.u;
+            upUI();
+
+            s.lrn.forEach(idx => { const el = document.getElementById('vc-' + idx); if(el) el.classList.add('learned'); });
+            s.sv.forEach(idx => { const el = document.getElementById('bm-' + idx); if(el) el.classList.add('saved'); });
+
+            toPage(s.pg);
+        } catch (e) {
+            console.error("Resume corrupted:", e);
+            alert("Save file corrupted. Starting new session.");
+            startApp();
+        }
+    }
+
+    function toPage(p) {
+        document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
+        document.getElementById(p).classList.add('active');
+        s.pg=p;
+        if(p==='p5') { initVid(1); if(s.t1>0) restoreVid('vid1', s.t1); }
+        if(p==='p6') { initVid(2); if(s.t2>0) restoreVid('vid2', s.t2); }
+        if(p==='p7') genReport();
+    }
+    
+    function restoreVid(id, t) {
+        const v = document.getElementById(id);
+        const attempt = () => {
+            v.currentTime = t;
+            if(Math.abs(v.currentTime - t) > 1) requestAnimationFrame(attempt);
+        };
+        if(v.readyState >= 1) attempt();
+        else v.onloadedmetadata = attempt;
+    }
+
+    function genReport() {
+        const timeSpent = Math.floor((Date.now() - s.startTime) / 60000);
+        document.getElementById('r-name').innerText = s.u || "Agent";
+        document.getElementById('r-voc').innerText = s.lsc;
+        document.getElementById('r-quiz').innerText = s.qsc;
+        document.getElementById('r-vid').innerText = s.vidsc;
+        document.getElementById('r-time').innerText = timeSpent + "m";
+        document.getElementById('r-total').innerText = s.lsc + s.qsc + s.vidsc;
+        localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function speak(txt) {
+        if(window.SpeechSDK && AZ_KEY) {
+            const c = SpeechSDK.SpeechConfig.fromSubscription(AZ_KEY, AZ_REG);
+            c.speechSynthesisVoiceName = "en-GB-RyanNeural";
+            const a = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+            const syn = new SpeechSDK.SpeechSynthesizer(c, a);
+            syn.speakTextAsync(txt, r=>{syn.close()}, e=>{syn.close(); nativeSpeak(txt)});
+        } else { nativeSpeak(txt); }
+    }
+    function nativeSpeak(txt) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(txt);
+        u.lang = 'en-GB';
+        window.speechSynthesis.speak(u);
+    }
+
+    // Vocab Grid Generation
+    function genVocabGrid() {
+        const g = document.getElementById('v-grid');
+        g.innerHTML = D.vocab.map(v => `
+            <div class="flashcard" onclick="openVocab(${v.id})" id="vc-${v.id}">
+                <div class="tag">${v.type}</div>
+                <div style="font-size:1.2rem; font-weight:800; margin-top:15px; color:var(--text-main);">${v.w}</div>
+                <div style="color:var(--text-sub); font-size:0.9rem; margin-top:5px;">${v.en_def.substring(0,35)}...</div>
+            </div>
+        `).join('');
+    }
+
+    // Vocab Modal Logic (Fixed to show CN)
+    let tm;
+    function openVocab(i) {
+        const v = D.vocab[i];
+        document.getElementById('mod-voc').style.display='flex';
+        
+        // Populate Data
+        document.getElementById('vw').innerText = v.w;
+        document.getElementById('vtype').innerText = v.type;
+        document.getElementById('vdef').innerText = v.en_def;
+        document.getElementById('vcn').innerText = v.cn;
+        
+        document.getElementById('vex1').innerText = v.vid_ex;
+        document.getElementById('vcn1').innerText = v.vid_cn || "Translation unavailable"; 
+        
+        document.getElementById('vex2').innerText = v.life_ex;
+        document.getElementById('vcn2').innerText = v.life_cn || "Translation unavailable"; 
+        
+        // Reset Blur State
+        document.getElementById('vcn').style.filter = 'blur(5px)';
+        document.getElementById('vcn1').style.filter = 'blur(5px)';
+        document.getElementById('vcn2').style.filter = 'blur(5px)';
+
+        speak(v.w);
+        clearTimeout(tm);
+        
+        tm = setTimeout(()=>{
+            if(!s.lrn.has(i)) { 
+                s.lrn.add(i); 
+                s.lsc+=2; 
+                upUI(); 
+                saveState(); 
+                const el = document.getElementById(`vc-${i}`);
+                if(el) el.classList.add('learned'); 
+            }
+        }, 3000); 
+    }
+    function clsVoc(){ document.getElementById('mod-voc').style.display='none'; clearTimeout(tm); }
+
+    // Quiz Logic
+    let qQ=[], qC=0;
+    function getMisspelling(word) {
+        if(word.length < 4) return word + "e";
+        const idx = Math.floor(Math.random() * (word.length - 2)) + 1;
+        return word.substring(0, idx) + word[idx+1] + word[idx] + word.substring(idx+2);
+    }
+
+    function startQuiz(pct, base) {
+        s.qsc += base; upUI();
+        const n = Math.ceil(D.vocab.length * pct);
+        const pool = [...D.vocab].sort(()=>0.5-Math.random()).slice(0, n);
+        qQ = pool.map(v => {
+            const r = Math.random();
+            let type = 'def'; let opts = [];
+            if(r < 0.33) {
+                type = 'def'; opts = [v]; while(opts.length<4) { const x=D.vocab[Math.floor(Math.random()*D.vocab.length)]; if(!opts.includes(x)) opts.push(x); } opts = opts.sort(()=>0.5-Math.random()).map(o => ({txt: o.w, isC: o.id===v.id}));
+            } else if (r < 0.66) {
+                type = 'lis'; const dist1 = getMisspelling(v.w); const dist2 = getMisspelling(v.w); const dist3 = getMisspelling(v.w); opts = [{txt: v.w, isC: true}, {txt: dist1, isC: false}, {txt: dist2, isC: false}, {txt: dist3, isC: false}].sort(()=>0.5-Math.random());
+            } else {
+                type = 'cloze'; opts = [v]; while(opts.length<4) { const x=D.vocab[Math.floor(Math.random()*D.vocab.length)]; if(!opts.includes(x)) opts.push(x); } opts = opts.sort(()=>0.5-Math.random()).map(o => ({txt: o.w, isC: o.id===v.id}));
+            }
+            return { c:v, t:type, o:opts };
+        });
+        qC=0;
+        document.getElementById('qz-setup').style.display='none';
+        document.getElementById('qz-run').style.display='block';
+        rendQ();
+    }
+
+    function rendQ() {
+        if(qC>=qQ.length) { alert("Quiz Finished!"); toPage('p5'); return; }
+        const q=qQ[qC];
+        document.getElementById('q-idx').innerText=qC+1;
+        document.getElementById('q-fb').style.display='none';
+        document.getElementById('q-nxt').style.display='none';
+        const b=document.getElementById('q-content'); b.innerHTML='';
+        if(q.t==='lis') { b.innerHTML=`<div style="text-align:center; margin-bottom:20px;"><button class="btn btn-outline" style="border-radius:50%; width:60px; height:60px;" onclick="speak('${q.c.w}')"><i class="fas fa-volume-up"></i></button><br><small>Listen & Choose</small></div>`; } 
+        else if (q.t==='cloze') { const sent = q.c.life_ex.replace(new RegExp(q.c.w, 'gi'), '_______'); b.innerHTML=`<div style="padding:10px; font-size:1.2rem; text-align:center; margin-bottom:20px;">"${sent}"</div>`; } 
+        else { b.innerHTML=`<div style="padding:10px; font-weight:bold; font-size:1.1rem; margin-bottom:20px;">${q.c.en_def}</div>`; }
+        q.o.forEach(opt=>{
+            const btn=document.createElement('button'); btn.className='opt-btn'; btn.innerText=opt.txt;
+            btn.onclick=()=>chkQ(btn, opt.isC, q.c);
+            b.appendChild(btn);
+        });
+    }
+
+    function chkQ(btn, isC, dat) {
+        document.querySelectorAll('#q-content .opt-btn').forEach(b=>b.disabled=true);
+        if(isC) { btn.classList.add('sel-correct'); s.qsc+=2; } 
+        else { btn.classList.add('sel-wrong'); s.qsc-=1; }
+        upUI(); saveState();
+        const fb=document.getElementById('q-fb'); fb.style.display='block';
+        fb.innerHTML=`<strong style="font-size:1.1rem; color:var(--primary);">${dat.w}</strong>: ${dat.cn}<br>${dat.life_ex}`;
+        const nx=document.getElementById('q-nxt'); nx.style.display='block';
+        let sec=3; nx.innerText=`Next (${sec})`;
+        const ti=setInterval(()=>{ sec--; nx.innerText=`Next (${sec})`; if(sec<=0){ clearInterval(ti); qC++; rendQ(); } },1000);
+        nx.onclick=()=>{ clearInterval(ti); qC++; rendQ(); };
+    }
+    function nextQ() { qC++; rendQ(); }
+
+    // Video Logic (Unified)
+    let curVQ=null;
+    function initVid(id) {
+        const v=document.getElementById(`vid${id}`);
+        const qs=id===1 ? D.quizzes.general : D.quizzes.detailed;
+        
+        qs.sort((a,b)=>a.time-b.time); // Ensure order
+        
+        upHud(id, qs); 
+
+        v.ontimeupdate = () => {
+            if(id===1) s.t1 = v.currentTime; else s.t2 = v.currentTime;
+            saveState();
+            const t=v.currentTime;
+            const i=id===1?s.v1:s.v2;
+            const sl=document.getElementById(`sk${id}`);
+            if(sl) sl.value=(t/v.duration)*100 || 0; 
+
+            if(i<qs.length) {
+                if(t >= qs[i].time && !s.lock) { 
+                    v.pause(); 
+                    s.lock=true; 
+                    popVQ(id, qs[i]); 
+                }
+            }
+            
+            // Subtitle Sync
+            if(id===1) {
+                const subIdx = D.subtitles.findIndex(x=>t>=x.s && t<=x.e);
+                if(subIdx !== -1) {
+                    document.querySelectorAll('.sub-line').forEach(e=>e.classList.remove('active'));
+                    const el = document.getElementById(`sub-${subIdx}`);
+                    if(el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+                }
+            }
+            if(t >= v.duration - 0.5) showReview(id);
+        };
+    }
+
+    function upHud(id, qs) {
+        const i=id===1?s.v1:s.v2;
+        const h=document.getElementById(`hud${id}`);
+        if(i < qs.length) { h.style.display='block'; h.innerText = qs[i].q; } else { h.style.display='none'; }
+    }
+
+    function popVQ(id, q) {
+        curVQ=q;
+        document.getElementById(`fb${id}`).style.display='none';
+        document.getElementById(`ct${id}`).style.display='none';
+        document.getElementById(`rp${id}`).style.display='inline-block';
+        document.getElementById(`ol${id}`).style.display='flex';
+        
+        const cont = id===1 ? document.getElementById('v1-opts') : document.getElementById('v2-opts');
+        cont.innerHTML = q.opts.map((o,idx)=>
+            `<button class="opt-btn" onclick="ansUnified(${id}, ${idx}, ${q.ans})">${o}</button>`
+        ).join('');
+        
+        document.getElementById(id===1 ? 'v1-q' : 'v2-q').innerText = q.q;
+    }
+
+    function ansUnified(id, idx, corr) {
+        const cont = id===1 ? document.getElementById('v1-opts') : document.getElementById('v2-opts');
+        const btns = cont.querySelectorAll('.opt-btn');
+        btns.forEach(b => b.disabled=true);
+        
+        const isCorr = idx===corr;
+        if(isCorr) { 
+            btns[idx].classList.add('sel-correct'); 
+            s.vidsc+=5;
+        } else { 
+            btns[idx].classList.add('sel-wrong'); 
+            btns[corr].classList.add('sel-correct'); 
+        }
+        
+        showFeedback(id, isCorr);
+        const log = { q: curVQ.q, uAns: curVQ.opts[idx], cAns: curVQ.opts[corr], isC: isCorr, exp: curVQ.review };
+        if(id===1) s.logs1.push(log); else s.logs2.push(log);
+    }
+
+    function showFeedback(id, isCorr) {
+        const fb = document.getElementById(`fb${id}`);
+        fb.innerHTML = `<div style="font-weight:bold; font-size:1.1rem; margin-bottom:5px;">${isCorr ? '<i class="fas fa-check-circle" style="color:green;"></i> Correct!' : '<i class="fas fa-times-circle" style="color:red;"></i> Incorrect'}</div><div style="line-height:1.5;">${curVQ.review}</div>`;
+        fb.style.display='block';
+        document.getElementById(`ct${id}`).style.display='inline-block';
+        document.getElementById(`rp${id}`).style.display='none';
+        upUI(); saveState();
+    }
+
+    function resume(id) {
+        document.getElementById(`ol${id}`).style.display='none';
+        s.lock=false;
+        const v=document.getElementById(`vid${id}`);
+        if(id===1) s.v1++; else s.v2++;
+        const qs=id===1 ? D.quizzes.general : D.quizzes.detailed;
+        upHud(id, qs); 
+        v.play();
+        upUI(); saveState();
+    }
+
+    function replaySeg(id) {
+        const v=document.getElementById(`vid${id}`);
+        const start = (curVQ.replay && curVQ.replay.start) ? curVQ.replay.start : Math.max(0, v.currentTime - 15);
+        v.currentTime = start;
+        document.getElementById(`ol${id}`).style.display='none';
+        s.lock = false;
+        v.play();
+    }
+
+    function showReview(id) {
+        const el = document.getElementById(`rev${id}`);
+        const list = document.getElementById(`rev${id}-list`);
+        const logs = id===1 ? s.logs1 : s.logs2;
+        list.innerHTML = logs.map(l => `
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; padding:15px; border-radius:4px; margin-bottom:12px; border-left:4px solid ${l.isC?'#22C55E':'#EF4444'};">
+                <div style="font-weight:bold; margin-bottom:5px;">${l.q}</div>
+                <div style="font-size:0.9rem; color:#64748b;">Your Answer: <strong>${l.uAns}</strong> ${l.isC?'✅':'❌'}</div>
+                ${!l.isC ? `<div style="font-size:0.9rem; color:#64748b;">Correct: <strong>${l.cAns}</strong></div>` : ''}
+                <div style="background:#EEF2FF; color:var(--primary); padding:8px; border-radius:4px; font-size:0.85rem; margin-top:8px;"><i class="fas fa-lightbulb"></i> ${l.exp}</div>
+            </div>`).join('');
+        el.style.display = 'flex';
+        document.getElementById(`vid${id}`).pause();
+    }
+
+    function playVid(id){ const v=document.getElementById(`vid${id}`); const i=document.getElementById(`icon${id}`); v.paused?v.play():v.pause(); i.className=v.paused?'fas fa-play':'fas fa-pause'; }
+    function spd(id,v){ document.getElementById(`vid${id}`).playbackRate=v; }
+    function upUI(){ document.getElementById('u-score').innerText = s.lsc + s.qsc + s.vidsc; }
+    function saveState(alertUser){ localStorage.setItem(STORAGE_KEY, JSON.stringify({...s, sv:[...s.sv], lrn:[...s.lrn]})); if(alertUser) alert("Progress Saved!"); }
+    
+    function initSubs() {
+        const c=document.getElementById('subs1');
+        D.subtitles.forEach((x,i)=>{
+            const d=document.createElement('div'); d.className='sub-line'; d.id=`sub-${i}`;
+            const t = x.t.split(' ').map(w=>`<span class="w-click" onclick="ds('${w.replace(/[^\w]/g,'')}')">${w}</span>`).join(' ');
+            d.innerHTML=`<small style="color:#aaa; margin-right:8px; font-weight:400;">${Math.floor(x.s/60)}:${Math.floor(x.s%60).toString().padStart(2,'0')}</small>${t}`;
+            c.appendChild(d);
+        });
+    }
+    
+    async function ds(w) {
+        if(!w) return;
+        const p=document.getElementById('ds-pop'); p.style.display='block';
+        document.getElementById('ds-con').innerHTML='Thinking...';
+        try {
+            const r=await fetch("https://api.deepseek.com/v1/chat/completions", {
+                method:"POST", headers:{"Content-Type":"application/json", "Authorization":`Bearer ${C.deepseekKey}`},
+                body: JSON.stringify({model:"deepseek-chat", messages:[{role:"user", content:`Define "${w}" for B1 student. JSON: {cn, en, ex}`}], response_format:{type:"json_object"}})
+            });
+            const d=JSON.parse((await r.json()).choices[0].message.content);
+            document.getElementById('ds-con').innerHTML=`<div style="font-size:1.5rem; font-weight:800; margin-bottom:5px;">${w}</div><div style="font-size:1.1rem; color:var(--text-sub); margin-bottom:10px;">${d.cn}</div><div style="font-style:italic; color:#555; margin-bottom:15px; border-left:3px solid var(--accent); padding-left:10px;">${d.en}</div><div style="background:#f8fafc; padding:10px; border-radius:8px; color:var(--primary);"><i class="fas fa-quote-left"></i> ${d.ex}</div>`;
+        } catch(e) { document.getElementById('ds-con').innerText="Error fetching definition."; }
+    }
+
+    let si=0;
+    function slide(n){ 
+        const im=document.querySelectorAll('.slide-img'); 
+        im[si].style.display='none'; 
+        si=(si+n+im.length)%im.length; 
+        im[si].style.display='block'; 
+    }
+</script>
+</body>
+</html>
